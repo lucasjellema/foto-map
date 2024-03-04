@@ -1,0 +1,1228 @@
+<template>
+  <v-responsive>
+    <v-container fluid tag="section" aria-labelledby="title">
+      <v-main>
+        <v-row>
+          <v-col cols="4" offset="0">
+            <v-text-field v-model="search" label="Search" clearable></v-text-field>
+            <v-data-table :headers="headers" :items="sitesData" :search="search" items-per-page="5" 
+              :custom-sort="customSort" return-object>
+              <template v-slot:item.timestamp="{ item }">
+                {{ formatDate(item.timestamp) }}
+              </template>
+              <template v-slot:item.edit="{ item }">
+                <v-btn icon @click="editItem(item)">
+                  <v-icon>mdi-pencil</v-icon>
+                </v-btn>
+              </template>
+              <template v-slot:item.remove="{ item }">
+                <v-btn icon @click="removeSite(item)">
+                  <v-icon>mdi-delete</v-icon>
+                </v-btn>
+              </template>
+            </v-data-table>
+
+            <h3>Upload or paste one or multiple files</h3>
+            <image-editor ref="imageEditorRef" image-height=300 image-width=400 @gps-data="handleGPSData"
+              :allowMultipleFiles=true :fastSiteCreator="true"></image-editor>
+
+          </v-col>
+          <v-col cols="7" offset="0">
+            <div id="mapid" style="height: 700px; width:900px"></div>
+            <v-container>
+              <v-row align="center">
+                <v-col cols="auto">
+                  <v-btn @click="refreshMap()">Refresh Map</v-btn>
+                </v-col>
+                <!-- <v-col cols="auto">
+                  <v-switch v-model="mapEditMode" label="Edit Mode" color="secondary" hide-details inset></v-switch>
+                </v-col> -->
+                <v-col cols="auto">
+                  <!-- an input element to set the consolidation radius in km -->
+                  <v-text-field v-model="consolidationRadius" label="Consolidation Radius (km)"
+                    type="number"></v-text-field>
+                </v-col>
+              </v-row>
+
+            </v-container>
+            <!-- contents for the popup on markers -->
+            <div style="display: none;">
+              <v-card class="mx-auto hover-zoom" max-width="600" :height="poppedupFeature?.properties?.imageURL ? '500' : '100%'" 
+                 :title="poppedupSite?.label" 
+                :theme="poppedupFeature?.properties?.imageURL ? 'light' : 'light'" ref="popupContentRef">
+<!-- :image="poppedupFeature?.properties?.imageURL" -->
+                <v-card-text>{{ formatDate(poppedupSite?.timestamp) }}
+                  {{ poppedupFeature?.properties?.city }},{{ poppedupSite?.country }}
+                  <v-img  width="500" cover :src="poppedupFeature?.properties?.imageURL" content-class="hover-zoom"></v-img>
+                  {{ poppedupFeature?.properties?.description }}
+                  <!-- <v-btn icon @click="editSiteFromPopup()" v-if="mapEditMode">
+                    <v-icon>mdi-pencil</v-icon>
+                  </v-btn> -->
+                </v-card-text>
+              </v-card>
+            </div>
+
+          </v-col>
+        </v-row>
+      </v-main>
+      <!-- Add/Edit Site Dialog -->
+      <v-dialog v-model="showEditSitePopup" max-width="1000px">
+        <v-card>
+          <v-card-title>
+            <span class="headline">Edit Site {{ editedSite.label }}</span>
+          </v-card-title>
+          <v-card-text>
+            <v-container>
+              <v-form ref="form">
+                <v-text-field v-model="editedSite.label" label="Label" required></v-text-field>
+                <v-expansion-panels :multiple="true">
+                  <v-expansion-panel title="Place" collapse-icon="mdi-map-marker" expand-icon="mdi-map-marker">
+                    <v-expansion-panel-text>
+                      <v-text-field v-model="editedSite.address" label="Address"></v-text-field>
+                      <v-text-field v-model="editedSite.city" label="City"></v-text-field>
+                      <v-text-field v-model="editedSite.country" label="Country"></v-text-field>
+                      <v-select v-model="editedSite.resolution" label="Resolution"
+                        hint="How exact or roundabout is this location to be interpreted?"
+                        :items="resolutionOptions"></v-select>
+                    </v-expansion-panel-text>
+                  </v-expansion-panel>
+                  <v-expansion-panel title="Time" collapse-icon="mdi-clock" expand-icon="mdi-clock">
+                    <v-expansion-panel-text>
+                      <v-text-field v-model="editedSite.timestamp" label="Timestamp"></v-text-field>
+                      <v-text-field label="Date" type="date" v-model="editedSite.datePart"></v-text-field>
+                      <v-text-field label="Time" type="time" v-model="editedSite.timePart"></v-text-field>
+                    </v-expansion-panel-text>
+                  </v-expansion-panel>
+                  <v-expansion-panel title="Description" collapse-icon="mdi-pencil-box-outline"
+                    expand-icon="mdi-pencil-box-outline">
+                    <v-expansion-panel-text>
+                      <v-textarea v-model="editedSite.description" label="Description" auto-grow clearable></v-textarea>
+                    </v-expansion-panel-text>
+                  </v-expansion-panel>
+                  <v-expansion-panel title="Image" collapse-icon="mdi-image" expand-icon="mdi-image">
+                    <v-expansion-panel-text>
+
+                      <!-- <v-text-field v-model="editedSite.geoJSONText" label="GeoJSON"></v-text-field>
+                <a href="https://geojson.io" target="_new">Compose GeoJSON
+                  <v-icon>mdi-map</v-icon>
+                </a>
+                <v-btn v-if="imageMetadata && imageMetadata.gpsInfo && imageMetadata.gpsInfo.latitude"
+                  @click="createGeoJSONfromImageGPS" prepend-icon="mdi-web">Set GeoJSON from Image GPS</v-btn> -->
+
+                      <image-editor :image-url="editedSite.imageUrl" :image-id="editedSite.imageId" ref="imageEditorRef"
+                        image-height=600 image-width=800 @image-change="handleImageChange"
+                        @gps-data="handleGPSData"></image-editor>
+
+                    </v-expansion-panel-text>
+                  </v-expansion-panel>
+                  <v-expansion-panel title="Style" collapse-icon="mdi-brush" expand-icon="mdi-brush">
+                    <v-expansion-panel-text>
+                      <v-container>
+                        <v-row>
+                          <v-col cols="2">
+                            <div>Tooltip Color</div>
+                            <div
+                              :style="{ backgroundColor: editedSite.tooltipColor, width: '100px', height: '50px', cursor: 'pointer', border: '1px solid black' }"
+                              @click="showtooltipColorPicker = !showtooltipColorPicker"></div>
+                            <v-dialog v-model="showtooltipColorPicker" width="300px">
+                              <v-card>
+                                <v-color-picker v-model="editedSite.tooltipColor" hide-inputs></v-color-picker>
+                              </v-card>
+                            </v-dialog>
+                          </v-col>
+                          <v-col cols="2">
+                            <div>Background</div>
+                            <div
+                              :style="{ backgroundColor: editedSite.tooltipBackgroundColor, width: '100px', height: '50px', cursor: 'pointer', border: '1px solid black' }"
+                              @click="showtooltipBackgroundColorPicker = !showtooltipBackgroundColorPicker"></div>
+                            <v-dialog v-model="showtooltipBackgroundColorPicker" width="300px">
+                              <v-card>
+                                <v-color-picker v-model="editedSite.tooltipBackgroundColor" hide-inputs></v-color-picker>
+                              </v-card>
+                            </v-dialog>
+                          </v-col>
+
+                          <v-col cols="2">
+                            <v-checkbox v-model="editedSite.showTooltip" label="Show Label on Map"></v-checkbox>
+                          </v-col>
+                          <v-col cols="4" offset="1">
+                            <div>Pick location of tooltip</div>
+                            <TooltipDirectionSelector v-model="editedSite.tooltipDirection"></TooltipDirectionSelector>
+                          </v-col>
+                        </v-row>
+                        <v-row>
+                          <v-col cols="2">
+                            <div>Pick Icon for the Toolip</div>
+                          </v-col>
+                          <v-col cols="2" offset="1">
+                            <v-btn @click="editedSite.tooltipIcon = ''">Clear Icon</v-btn>
+                          </v-col>
+                          <v-col cols="2" offset="2">
+                            <v-radio-group v-model="editedSite.tooltipSize">
+                              <v-radio label="Small" :value="0"></v-radio>
+                              <v-radio label="Normal" :value="1"></v-radio>
+                              <v-radio :value="2" label="Large"></v-radio>
+                            </v-radio-group>
+                          </v-col>
+                        </v-row>
+                        <v-row>
+                          <v-col cols="8">
+                            <IconSelector v-model="editedSite.tooltipIcon"></IconSelector>
+                          </v-col>
+                        </v-row>
+
+                      </v-container>
+
+                    </v-expansion-panel-text>
+                  </v-expansion-panel>
+
+                </v-expansion-panels>
+              </v-form>
+            </v-container>
+          </v-card-text>
+          <v-card-actions>
+            <v-spacer></v-spacer>
+            <v-btn color="blue darken-1" text @click="closeDialog">Cancel</v-btn>
+            <v-btn color="blue darken-1" text @click="saveItem">Save</v-btn>
+          </v-card-actions>
+        </v-card>
+      </v-dialog>
+
+      <v-dialog v-model="showMapFiltersPopup" max-width="800px">
+        <v-card>
+          <v-card-title>
+            <span class="headline">Map Filters</span>
+          </v-card-title>
+          <v-card-text>
+            <v-container>
+              <v-row>
+                <v-col cols="12">
+                  <v-range-slider v-model="dateRangeSlider" :min="minTimestamp" :max="maxTimestamp" :step="dateRangeStep"
+                    label="Filter Sites by Date" @end="onSliderChange" :thumb-label="true" :ticks="dateRangeTicks"
+                    show-ticks="always" tick-size="4" strict>
+                    <template v-slot:thumb-label="{ modelValue }" class="date-range-slider-thumb">
+                      {{ formatDate(modelValue) }}
+                    </template>
+                  </v-range-slider>
+                </v-col>
+              </v-row>
+            </v-container>
+          </v-card-text>
+          <v-card-actions>
+            <v-spacer></v-spacer>
+            <v-btn color="blue darken-1" text @click="closeMapFiltersDialog">Close</v-btn>
+          </v-card-actions>
+        </v-card>
+      </v-dialog>
+
+    </v-container>
+  </v-responsive>
+</template>
+
+
+<script setup>
+import domtoimage from 'dom-to-image-more';
+import ImageEditor from "@/components/imageEditor.vue"
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+import 'leaflet-contextmenu';
+import 'leaflet-contextmenu/dist/leaflet.contextmenu.min.css';
+import { ref, onMounted } from 'vue';
+import { useLocationLibrary } from '@/composables/useLocationLibrary';
+import TooltipDirectionSelector from '@/components/TooltipDirectionSelector.vue'
+import IconSelector from '@/components/IconSelector.vue'
+
+import 'leaflet.markercluster/dist/MarkerCluster.css';
+import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
+import { MarkerClusterGroup } from 'leaflet.markercluster';
+
+const { mapZoomToResolution,isValidCoordinateFormat, isValidGeoJSON } = useLocationLibrary();
+import { useFunctionCallThrottler } from '@/composables/useFunctionCallThrottler';
+const { enqueueCall: enqueueCallToReverseGeocode } = useFunctionCallThrottler(1500, reverseGeocode);
+
+
+import { useImagesStore } from "@/store/imagesStore";
+const imagesStore = useImagesStore()
+import { useStorieStore } from "@/store/storiesStore";
+import { computed } from 'vue';
+const storiesStore = useStorieStore()
+const currentStory = computed(() => storiesStore.currentStory)
+const sitesData = computed(() => currentStory.value.sites);
+
+const search = ref("")
+
+// const icons = [
+//   'mdi-home',
+//   'mdi-airplane',
+//   'mdi-bike',
+//   'mdi-car',
+//   'mdi-train',
+//   'mdi-theater',
+//   'mdi-church',
+//   'mdi-city',
+//   'mdi-tree',
+//   'mdi-parking',
+//   'mdi-hospital-building',
+//   'mdi-school',
+//   'mdi-beach',
+//   'mdi-martini',
+//   'mdi-shopping',
+//   'mdi-gas-station',
+//   'mdi-hotel',
+//   'mdi-music-note',
+//   'mdi-silverware-variant'
+// ]
+
+
+// const selectIcon = (icon) => {
+//   editedSite.value.tooltipIcon = icon; // Set the clicked icon as the selected icon
+//   console.log(editedSite.value.tooltipIcon)
+// }
+
+const popupContentRef = ref(null)
+const poppedupFeature = ref({})
+const poppedupSite = ref({})
+const showPopup = ref(false)
+const showEditSitePopup = ref(false)
+const showMapFiltersPopup = ref(false)
+
+const showtooltipColorPicker = ref(false)
+const showtooltipBackgroundColorPicker = ref(false)
+const imageMetadata = ref()
+const mapEditMode = ref(false)
+const mapClusterMode = ref(false)
+const mapFilterMode = ref(false)
+const consolidationRadius = ref(2)
+const dateRangeTicks = computed(() => {
+  const start = minTimestamp.value
+  const end = maxTimestamp.value
+  const middle = start + Math.floor((end - start) / 2)
+  const dateRange = {}
+  dateRange[start] = formatDate(start)
+  dateRange[end] = formatDate(end)
+  dateRange[middle] = formatDate(middle)
+
+  return dateRange
+})
+
+const dateRangeSlider = ref([0, 0]) // Initial slider values (timestamps)
+const numberOfStepsInSlider = 50
+const dateRangeStep = computed(() => {
+  return Math.floor((maxTimestamp.value - minTimestamp.value) / numberOfStepsInSlider)
+})
+
+const minTimestamp = computed(() => {
+  if (sitesData.value.length === 0) return 0
+  let min = new Date(sitesData.value[0].timestamp)
+  sitesData.value.forEach(site => {
+    const siteTimestamp = new Date(site.timestamp)
+    if (siteTimestamp < min) {
+      min = siteTimestamp
+    }
+  })
+  return min.getTime()
+})
+
+const maxTimestamp = computed(() => {
+  if (sitesData.value.length === 0) return 0
+  let max = new Date(sitesData.value[0].timestamp)
+  sitesData.value.forEach(site => {
+    const siteTimestamp = new Date(site.timestamp)
+    if (siteTimestamp > max) {
+      max = siteTimestamp
+    }
+  })
+  return max.getTime()
+})
+
+const onSliderChange = (value) => {
+  mapFilterMode.value = true
+  refreshMap()
+}
+
+const closeDialog = () => {
+  showEditSitePopup.value = false;
+}
+
+const closeMapFiltersDialog = () => {
+  showMapFiltersPopup.value = false;
+}
+
+const saveItem = () => {
+  // no JSONTEXT in this page editedSite.value.geoJSON =JSON.parse(editedSite.value.geoJSONText)
+  editedSite.value.geoJSON.features[0].properties.name = editedSite.value.label
+  editedSite.value.geoJSON.features[0].properties.description = editedSite.value.description
+  editedSite.value.geoJSON.features[0].properties.city = editedSite.value.city
+  editedSite.value.geoJSON.features[0].properties.country = editedSite.value.country
+  editedSite.value.geoJSON.features[0].properties.timestamp = editedSite.value.timestamp
+  editedSite.value.geoJSON.features[0].properties.imageId = editedSite.value.imageId
+
+
+  const [year, month, day] = editedSite.value.datePart.split('-');
+  const [hours, minutes] = editedSite.value.timePart.split(':');
+  editedSite.value.timestamp = new Date(year, month - 1, day, hours, minutes); // TODO do something about the TIMEZONE!! 
+  storiesStore.updateSite(editedSite.value)
+  refreshSite(editedSite.value)
+
+  const tooltip = document.getElementsByClassName(`tooltip${editedSite.value.id}`.replace(/-/g, ""))[0]
+  refreshTooltip(editedSite.value, tooltip)
+  // if (tooltip) {
+  //   tooltip.innerHTML = editedSite.value.label
+  // }
+
+
+  closeDialog();
+}
+
+const refreshTooltip = (site, tooltipElement) => {
+  tooltipElement.innerHTML = `<i class="mdi ${site.tooltipIcon ? site.tooltipIcon : ''}" 
+          style="font-size: ${site.tooltipSize ? 10 + 8*site.tooltipSize : '14'}px; color=${site.tooltipColor ? site.tooltipColor : 'black'}"></i>${site.label}`;
+          // set font color style on tooltipElement
+          // set background color style on tooltipElement
+          tooltipElement.style.fontSize = `${site.tooltipSize ? 10 + 8*site.tooltipSize : '14'}px`;
+          tooltipElement.style.color = `${site.tooltipColor ? site.tooltipColor : 'black'}`;
+          tooltipElement.style.background = site.tooltipBackgroundColor ? site.tooltipBackgroundColor : 'yellow';
+          //          createCSSSelector(`.${tooltipClassName}`, `color: ${site.tooltipColor?site.tooltipColor:'black'};background: ${site.tooltipBackgroundColor?site.tooltipBackgroundColor:'yellow'}; border: 1px solid black; font-size: 18px;color: black;`);
+
+
+          if (tooltipElement) {
+            tooltipElement.addEventListener('click', function () {
+              console.log(`Tooltip was clicked! for feature ${feature.properties.name}`);
+              // Add any click handling logic here
+            });
+          }
+
+}
+
+const createGeoJSONfromImageGPS = () => {
+  editedSite.value.geoJSON =
+    { "type": "FeatureCollection", "features": [{ "type": "Feature", "properties": {}, "geometry": { "coordinates": [imageMetadata.value.gpsInfo.longitude, imageMetadata.value.gpsInfo.latitude], "type": "Point" } }] }
+  editedSite.value.geoJSONText = JSON.stringify(editedLocation.value.geoJSON)
+}
+const handleImageChange = (event) => {
+  editedSite.value.imageId = event.imageId
+  editedSite.value.imageUrl = event.imageUrl
+}
+
+
+const headers = [
+  { title: 'Label', value: 'label', sortable: true },
+  { title: 'City', value: 'city', sortable: true },
+  { title: 'Timestamp', value: 'timestamp', sortable: true },
+  { title: "Edit", value: 'edit' },
+  { title: "Delete", value: 'remove' },
+]
+
+const oneDayInMS = 86400000
+const dateFormatStyle = computed(() => {
+  const timerange = maxTimestamp.value - minTimestamp.value
+  if (timerange < oneDayInMS) {
+    return "short"  // HH:MI
+  } else if (timerange < 50 * oneDayInMS) return "medium"  // DD MON HH
+  else
+    return "long"  // DD MON Y
+})
+
+const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+function formatDate(timestamp) {
+  const date = new Date(timestamp)
+
+  if (dateFormatStyle.value === "short") {
+    const hour = date.getHours();
+    const min = date.getMinutes();
+    return `${hour}:${min < 10 ? '0' : ''}${min}`
+  } else if (dateFormatStyle.value === "medium") {
+    const day = date.getDate();
+    const month = months[date.getMonth()];
+    const hour = date.getHours();
+    const min = date.getMinutes();
+    return `${day} ${month} ${hour}:${min < 10 ? '0' : ''}${min}`
+  } else {
+    const day = date.getDate();
+    const month = months[date.getMonth()];
+    const year = date.getFullYear();
+    return `${day} ${month} ${year}`
+  }
+}
+
+const customSort = (items, sortBy, sortDesc) => {
+  const [sortKey] = sortBy;
+  const sortOrder = sortDesc[0] ? -1 : 1;
+
+  if (sortKey === 'timestamp') {
+    return items.sort((a, b) => {
+      const dateA = new Date(a.timestamp);
+      const dateB = new Date(b.timestamp);
+      return (dateA - dateB) * sortOrder;
+    });
+  }
+  // Fallback for other sorts or implement similarly
+  return items;
+}
+
+const resolutionOptions = [
+  { title: 'Exact Address (high accuracy)', value: 0 },
+  { title: 'City ', value: 1 },
+  { title: 'Area/State/Province ', value: 2 },
+  { title: 'Country', value: 3 },
+  { title: 'Continent', value: 4 },
+]
+
+let editedSite = ref({
+  label: '',
+  description: '',
+  address: '',
+  city: '',
+  country: 'nl',
+  resolution: 0,
+  geoJSON: {},
+  geoJSONText: "",
+  imageUrl: '',
+  imageId: '',
+  relevance: 1, // 0 is low, 1 is normal, 2 is high, 3 is low
+  timestamp: new Date(),
+  showTooltip: true,
+  tooltipDirection: 'auto'
+
+})
+
+
+
+const editItem = (site) => {
+  editedSite.value = { ...site }; // Make a copy of the item to edit
+  // if site does not contain property showTooltip, set it to true
+  if (!site.hasOwnProperty('showTooltip')) {
+    editedSite.value.showTooltip = true
+  }
+  if (!site.tooltipDirection) {
+    editedSite.value.tooltipDirection = 'auto'
+  }
+  if (!site.tooltipBackgroundColor) {
+    editedSite.value.tooltipBackgroundColor = '#f8fc03' // yellow
+  }
+  if (!site.tooltipColor) {
+    editedSite.value.tooltipColor = '#000000'
+  }
+  if (!site.tooltipSize) {
+    editedSite.value.tooltipSize = 1
+  }
+
+  // editedSite.value.geoJSONText = JSON.stringify(editedSite.value.geoJSON)
+  const dateForTimestamp = new Date(editedSite.value.timestamp)
+  editedSite.value.datePart = dateForTimestamp.toISOString().slice(0, 10)
+  editedSite.value.timePart = dateForTimestamp.toISOString().slice(11, 16) // HH:MI
+
+  //    imageMetadata.value = null
+  showEditSitePopup.value = true;
+}
+const editSiteFromPopup = () => {
+  const siteId = poppedupFeature.value.properties.id
+  const siteToEdit = storiesStore.getSite(siteId)
+  editItem(siteToEdit)
+}
+
+const imageEditorRef = ref(null)
+
+const handleGPSData = (event) => {
+  console.log("GPS Data for image " + JSON.stringify(event))
+  if (event.gpsInfo?.longitude) {
+    const newGeoJsonData =
+    {
+      "type": "FeatureCollection", "features": [{
+        "type": "Feature", "properties": { name: "To be geo-encoded", imageId: event.imageId, timestamp: event.dateTimeOriginal }
+        , "geometry": { "coordinates": [event.gpsInfo.longitude, event.gpsInfo.latitude], "type": "Point" }
+      }]
+    }
+    createSiteFromGeoJSON(newGeoJsonData, event.imageId, event.dateTimeOriginal);
+  }
+}
+
+const removeSite = (site) => {
+  hideSite(site);
+  storiesStore.removeSite(site)
+}
+
+const refreshSite = (site) => {
+  hideSite(site);
+  geoJsonLayer.addData(site.geoJSON);
+}
+
+
+const props = defineProps({
+  geoJsonPoint: Object,
+  zoomLevel: 10
+});
+
+const alignClustering = () => {
+  if (mapClusterMode.value) {
+    try {
+      map.value.removeLayer(geoJsonLayer);
+    } catch (error) {
+    }
+    clustersLayer.addLayer(geoJsonLayer);
+  }
+  else {
+    try {
+      clustersLayer.removeLayer(geoJsonLayer);
+    } catch (error) {
+    }
+    map.value.addLayer(geoJsonLayer);
+  }
+}
+
+const applyFilters = (sites) => {
+  if (mapFilterMode.value) {
+    const filteredSites = sites.filter(site => {
+      const date = new Date(site.timestamp)
+      const isWithinRange = date >= dateRangeSlider.value[0] && date <= dateRangeSlider.value[1]
+      return isWithinRange
+    })
+    return filteredSites
+  } else return sites
+}
+
+const refreshMarkers = () => {
+  geoJsonLayer.clearLayers();
+  clustersLayer.clearLayers();
+  addSitesToLayer(geoJsonLayer, applyFilters(currentStory.value.sites));
+  alignClustering()
+}
+
+//watch cluster mode and toggle clustering when changed
+watch(mapClusterMode, () => {
+  alignClustering()
+})
+
+onMounted(() => {
+  drawMap();
+  refreshMarkers();
+  dateRangeSlider.value = [minTimestamp.value, maxTimestamp.value];
+});
+const map = ref(null)
+let geoJsonLayer, clustersLayer
+
+
+const refreshMap = () => {
+  map.value.remove()
+  drawMap()
+  refreshMarkers()
+  mapEditMode.value = false
+}
+
+
+const deleteMarker = marker => {
+  hideMarker(marker)
+  const feature = marker.feature;
+  const site = storiesStore.getSite(feature.properties.id)
+  removeSite(site)
+}
+
+const hideMarker = marker => {
+  marker.remove()
+}
+
+const hideSite = (site) => {
+  geoJsonLayer.eachLayer(function (layer) {
+    // Check if this layer's feature has the property 'id' equal to 87
+    if (layer.feature.properties.id === site.id) {
+      geoJsonLayer.removeLayer(layer);
+    }
+  });
+}
+
+function findFeaturesWithinConsolidationRadius(targetFeature, geojsonLayer) {
+  // Array to store features within consolidation radius
+  console.log(`finding features within ${consolidationRadius.value} km from ${targetFeature.properties.id} at ${targetFeature.geometry.coordinates[0]}, ${targetFeature.geometry.coordinates[1]}`)
+
+  const consolidationRangeInMeters = 1000 * consolidationRadius.value
+  let featuresWithinRadius = [];
+
+  // Convert target feature's coordinates to a Leaflet LatLng object
+  let targetLatLng = L.latLng(targetFeature.geometry.coordinates[1], targetFeature.geometry.coordinates[0]);
+
+  // Iterate over each feature in the GeoJSON layer
+  geojsonLayer.eachLayer(function (marker) {
+    // do not process the target feature
+    if (marker.feature === targetFeature) { } else {
+
+
+      // Get the current feature's LatLng
+      let featureLatLng = L.latLng(marker.feature.geometry.coordinates[1], marker.feature.geometry.coordinates[0]);
+
+      // Calculate the distance between the target feature and the current feature
+      let distance = map.value.distance(targetLatLng, featureLatLng);
+
+      // If the distance is less than or equal to consolidation radius, add the feature to the array
+      if (distance <= consolidationRangeInMeters) { // Distance in meters
+        featuresWithinRadius.push(marker);
+        console.log(`-- found ${marker.feature.properties.id}`)
+      }
+    }
+  });
+
+  return featuresWithinRadius;
+}
+
+const consolidateSite = (marker) => {
+  // remove all sites with in the specified consolidation radius
+  // in theory all are merged into this one - however: what remains of these other sites? 
+  // add their pictures in additional attachments for the site?
+  let targetFeature = marker.feature;
+  let nearbyFeatures = findFeaturesWithinConsolidationRadius(targetFeature, geoJsonLayer);
+  let removedFeatures = []
+  // Remove all nearby sites
+  // TODO: retain something from the original site in the consolidation center ??
+  nearbyFeatures.forEach(function (feature) {
+    removedFeatures.push(feature)
+    if (mapEditMode.value)
+      deleteMarker(feature)
+    else hideMarker(feature)
+
+  });
+  return removedFeatures
+}
+
+
+const consolidateAllSites = () => {
+  // loop over all markers/sites and consolidate each  
+  // note: after a consolidation, sites may have been removed from the layer
+  const recentlyRemovedMarkers = []
+  geoJsonLayer.eachLayer(function (marker) {
+    if (!recentlyRemovedMarkers.includes(marker)) {
+      const removedFeatures = consolidateSite(marker);
+      recentlyRemovedMarkers.push(...removedFeatures)
+    }
+  });
+
+}
+
+const centerMap = (e) => {
+  map.value.panTo(e.latlng);
+}
+
+const centerAndZoomMap = (e) => {
+  map.value.panTo(e.latlng, { animate: false });
+  map.value.zoomIn(5)
+
+}
+
+const geoJSONToClipboard = () => {
+  const geoJSON = geoJsonLayer.toGeoJSON()
+  //every feature should have a property called tooltip that contains the city and country and the formatted timestamp
+  geoJSON.features.forEach(feature => feature.properties.tooltip = `${feature.properties.city}, ${feature.properties.country} (${formatDate(feature.properties.timestamp)})`)
+
+  // TODO set icon (based on site type), scale (derive from relevance!), color (per day/category),    
+  // https://academy.datawrapper.de/article/177-how-to-style-your-markers-before-importing-them-to-datawrapper
+  navigator.clipboard.writeText(JSON.stringify(geoJSON));
+}
+
+const showHideControls = (show) => {
+  map.value.zoomControl.getContainer().style.display = show ? 'block' : 'none';
+  myControls.forEach(function (control) {
+    control.getContainer().style.display = show ? 'block' : 'none';
+  });
+}
+const myControls = [];
+
+
+const mapImageToClipboard = async () => {
+  showHideControls(false)
+  const mapElement = document.querySelector("#mapid")
+  const { width, height } = mapElement.getBoundingClientRect();
+  const blob = await domtoimage.toBlob(mapElement, { width, height })
+  const item = new ClipboardItem({ "image/png": blob });
+  navigator.clipboard.write([item]).then(() => {
+    console.log("Image copied to clipboard");
+  }).catch(err => {
+    console.error("Error copying image to clipboard", err);
+    // Fallback method: display the image for manual copying or saving
+    const imgURL = URL.createObjectURL(blob);
+    window.open(imgURL, '_blank').focus();
+  });
+  showHideControls(true)
+
+}
+
+watch(mapEditMode, async (newMapEditMode) => {
+  if (newMapEditMode) {
+    map.value.doubleClickZoom.disable();
+    geoJsonLayer.eachLayer(function (marker) {
+      marker.dragging.enable();
+      marker.on('dragend', function (e) {
+        var newLatLng = marker.getLatLng();
+        // Update the GeoJSON feature with the new coordinates
+        const geoJsonFeature = marker.feature
+
+        geoJsonFeature.geometry.coordinates = [newLatLng.lng, newLatLng.lat];
+        // now update site as well
+        const site = storiesStore.getSite(marker.feature.properties.id)
+        site.geoJSON.features[0].geometry.coordinates = [newLatLng.lng, newLatLng.lat]
+        site.geoJSONText = JSON.stringify(site.geoJSON)
+        storiesStore.updateSite(site)
+        console.log(newLatLng); // New coordinates
+        enqueueCallToReverseGeocode(geoJsonFeature, site);
+      });
+    });
+
+  } else {
+    map.value.doubleClickZoom.enable();
+    geoJsonLayer.eachLayer(function (marker) {
+      marker.dragging.disable();
+    });
+  }
+
+})
+
+const drawMap = () => {
+  // Initialize the map
+  map.value = L.map('mapid', {
+    contextmenu: true,
+    contextmenuWidth: 160,
+    contextmenuItems: [{
+      text: 'Center map here',
+      callback: centerMap
+    }, {
+      text: 'Zoom in here',
+      callback: centerAndZoomMap
+    }, {
+      text: 'GeoJSON to Clipboard',
+      callback: geoJSONToClipboard
+    }, {
+      text: 'Image to Clipboard',
+      callback: mapImageToClipboard
+    }, {
+      text: 'Consolidate All Sites',
+      callback: consolidateAllSites
+    }, {
+      text: 'Show Filters',
+      callback: () => {
+        // show filter dialog
+        showMapFiltersPopup.value = true
+      }
+    }]
+  }).setView([51.505, -0.09], 7); // Temporary view, will adjust based on GeoJSON
+
+  // Add OpenStreetMap tiles
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+  }).addTo(map.value);
+
+  attachMapListeners()
+  addClusterControl()
+  addEditModeControl()
+  addFilterControl()
+  clustersLayer = L.markerClusterGroup();
+  map.value.addLayer(clustersLayer);
+
+
+  geoJsonLayer = L.geoJSON(null, {
+    draggable: true,
+    onEachFeature: async (feature, layer) => {
+      const site = storiesStore.getSite(feature.properties.id)
+      const tooltip = `${feature.properties.name}`;
+      const tooltipClassName = `tooltip${feature.properties.id}`.replace(/-/g, "")
+      if (site.showTooltip) {
+
+
+        layer.bindTooltip(tooltip, {
+          permanent: true
+          , className: `my-custom-tooltip ${tooltipClassName}`
+          , direction: site.tooltipDirection ? site.tooltipDirection : 'auto' // derive direction from feature properties ; also opacity , 
+          , interactive: true // needed to handle tooltip click events
+        })
+
+        //TODO allow user to edit tool tip characteristics; store them in geojson properties; use them to set direction opacity, and color, background color, font-size
+
+        setTimeout(() => {
+          const tooltipElement = document.querySelector(`.${tooltipClassName}`);
+          refreshTooltip(site, tooltipElement)
+
+        }, 50); // Small timeout to ensure the tooltip is rendered
+
+      }
+      layer.bindPopup((layer) => {
+        poppedupSite.value = storiesStore.getSite(layer.feature.properties.id)
+        if (mapEditMode.value) {
+          // open edit dialog
+          // editedSite.value = poppedupSite.value
+          // showEditSitePopup.value = true
+          editItem(poppedupSite.value)
+          return popupContentRef.value.$el
+          //          return editSitePopupContentRef.value.$el;
+        }
+
+        poppedupFeature.value = layer.feature;
+        // get site from storiesStore for this feature
+
+        console.log(`open popup for ${layer.feature.properties.id} ${poppedupSite.value.label}`);
+        if (poppedupSite.value.imageId) {
+          try {
+            setImageURLonFeature(poppedupSite.value.imageId);
+          }
+          catch (e) { }
+        }
+        return popupContentRef.value.$el;
+      });
+      layer.bindContextMenu({
+        contextmenu: true,
+        contextmenuItems: [{
+          text: 'Delete Site',
+          callback: (e) => {
+            var featureLayer = e.relatedTarget;
+            deleteMarker(featureLayer);
+          }
+        }, {
+          text: 'Hide Site',
+          callback: (e) => {
+            var featureLayer = e.relatedTarget;
+            hideMarker(featureLayer);
+          }
+        }, {
+          text: 'Consolidate Site',
+          callback: (e) => {
+            var featureLayer = e.relatedTarget;
+            consolidateSite(featureLayer);
+          }
+        }]
+      });
+    }
+  })
+
+}
+
+
+const addFilterControl = () => {
+  const filterControl = L.control({ position: 'bottomleft' });
+  myControls.push(filterControl);
+
+  filterControl.onAdd = function (map) {
+    const div = L.DomUtil.create('div', 'map-control');
+    div.innerHTML = `<form><input id="filterCheckbox" ${mapFilterMode.value ? 'checked' : ''} type="checkbox" title="Apply filters on sites to display"> Apply Filters</form>`;
+    return div;
+  };
+  filterControl.addTo(map.value);
+  document.getElementById('filterCheckbox').addEventListener('change', function () {
+    if (this.checked) {
+      mapFilterMode.value = true;
+    } else {
+      mapFilterMode.value = false;
+    }
+  });
+}
+
+
+const addClusterControl = () => {
+  const clusteringControl = L.control({ position: 'bottomleft' });
+  myControls.push(clusteringControl);
+
+  clusteringControl.onAdd = function (map) {
+    const div = L.DomUtil.create('div', 'map-control');
+    div.innerHTML = `<form><input id="clusterCheckbox" ${mapClusterMode.value ? 'checked' : ''} type="checkbox" title="Enable Clustering of sites : show nearby sites as clusters"> Enable Clustering</form>`;
+    return div;
+  };
+  clusteringControl.addTo(map.value);
+  document.getElementById('clusterCheckbox').addEventListener('change', function () {
+    if (this.checked) {
+      mapClusterMode.value = true;
+      mapEditMode.value = false;
+    } else {
+      mapClusterMode.value = false;
+    }
+  });
+}
+
+
+const addEditModeControl = () => {
+  const editModeControl = L.control({ position: 'bottomleft' });
+  myControls.push(editModeControl);
+
+  editModeControl.onAdd = () => {
+    const div = L.DomUtil.create('div', 'map-control');
+    div.innerHTML = `<form><input id="editmodeCheckbox" type="checkbox" ${mapEditMode.value ? 'checked' : ''}  title="Enable Edit Mode: move, delete, add sites"> Edit Mode</form>`;
+    return div;
+  };
+  editModeControl.addTo(map.value);
+  document.getElementById('editmodeCheckbox').addEventListener('change', function () {
+    if (this.checked) {
+      mapEditMode.value = true;
+      mapClusterMode.value = false;
+    } else {
+      mapEditMode.value = false;
+    }
+  });
+
+}
+//if mapeditmode changes then refresh the editmodecontrol
+watch(mapEditMode, (newMapEditModeValue) => {
+  document.getElementById('editmodeCheckbox').checked = newMapEditModeValue
+  if (newMapEditModeValue) {
+    document.getElementById('clusterCheckbox').checked = !newMapEditModeValue
+    mapClusterMode.value = !newMapEditModeValue
+  }
+})
+
+watch(mapFilterMode, (newMapFilterModeValue) => {
+  refreshMarkers()
+})
+
+const attachMapListeners = () => {
+  const mapContainer = map.value.getContainer();
+  // Make the map container focusable
+  mapContainer.setAttribute('tabindex', '0');
+
+  if (!mapContainer.getAttribute('data-paste-listener-attached')) {
+    mapContainer.addEventListener('paste', function (event) {
+      // Handle the paste event
+      console.log('Paste event detected!');
+      event.stopPropagation();
+      event.preventDefault();
+
+      // You can access the pasted data using event.clipboardData
+      const items = event.clipboardData.items;
+      for (let i = 0; i < items.length; i++) {
+        // Check if the item is an image
+        if (items[i].type.indexOf("image") !== -1) {
+          const file = items[i].getAsFile();
+          imageEditorRef.value.handleNewImage(file)
+        }
+        if (items[i].type.indexOf("text") !== -1) {
+          const text = (event.clipboardData || window.clipboardData).getData('text');
+          handlePastedText(text);
+        }
+      }
+    });
+    mapContainer.setAttribute('data-paste-listener-attached', 'true');
+  }
+
+
+  if (!mapContainer.getAttribute('dblclick-listener-attached')) {
+    mapContainer.addEventListener('dblclick', function (e) {
+      if (mapEditMode.value) {
+        const latlng = map.value.mouseEventToLatLng(e)
+        const { lat, lng } = latlng;
+        // Create a GeoJSON Point feature for the click location
+        const geoJsonPointFeature =
+        {
+          "type": "FeatureCollection", "features": [
+            {
+              "type": "Feature", "properties": { name: "Pasted coordinates", timestamp: new Date() }
+              , "geometry": { "coordinates": [lng, lat], "type": "Point" }
+            }
+          ]
+        }
+          ;
+        console.log(`double click at location ${JSON.stringify(geoJsonPointFeature)}`)
+        createSiteFromGeoJSON(geoJsonPointFeature, null, new Date());
+      }
+    })
+
+  }
+  mapContainer.setAttribute('dblclick-listener-attached', 'true');
+
+  // Focus the map container to ensure it can receive paste (and other keyboard) events
+  // This step might be necessary depending on how you want to handle focus in your application
+  mapContainer.focus();
+
+}
+
+const setImageURLonFeature = async (imageId) => {
+  const url = await imagesStore.getUrlForIndexedDBImage(imageId)
+  poppedupFeature.value.properties.imageURL = url
+}
+
+
+const addSitesToLayer = (layer, sites) => {
+  try {
+
+    const features = sites.map(site => site.geoJSON.features[0]);
+    layer.addData({ type: "FeatureCollection", features: features });
+  } catch (e) {
+    console.warn(`adding daata to layer failed`, e);
+  }
+  // Zoom the map to the GeoJSON bounds
+  try {
+    const bounds = geoJsonLayer.getBounds();
+    if (bounds)
+      map.value.fitBounds(bounds);
+    // if (layer.getBounds()) map.value.fitBounds(layer.getBounds());
+  } catch (e) { console.warn(`map.value.fitBounds(layer.getBounds() failed`); }
+}
+
+function createSiteFromGeoJSON(newGeoJsonData, imageId, dateTimeOriginal) {
+  const site = {
+    label: "To be geo-encoded",
+    imageId: imageId,
+    timestamp: dateTimeOriginal,
+    geoJSON: newGeoJsonData,
+    resolution: mapZoomToResolution(map.value.getZoom()),
+    showTooltip: true
+  };
+  console.log(site.resolution)
+  storiesStore.addSite(site);
+  console.warn(`request reverse geo call`);
+
+  enqueueCallToReverseGeocode(newGeoJsonData.features[0], site);
+  geoJsonLayer.addData(newGeoJsonData);
+  if (!mapEditMode.value) {
+    const bounds = geoJsonLayer.getBounds();
+    map.value.fitBounds(bounds);
+  }
+}
+
+// Function to perform reverse geocoding
+function reverseGeocode(geoJsonFeature, site) {
+  //, "geometry": { "coordinates": [event.gpsInfo.longitude, event.gpsInfo.latitude], "type": "Point" }
+  console.warn(`go reverse geocode`)
+  const longitude = geoJsonFeature.geometry.coordinates[0];
+  const latitude = geoJsonFeature.geometry.coordinates[1];
+  const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`;
+
+  fetch(url)
+    .then(response => response.json())
+    .then(data => {
+      console.log('Location details:', data);
+      // Here you can extract and use the country, state, city, etc.
+      console.log(`Country: ${data.tourism}, ${data.name} ${data.address.country}, State: ${data.address.state}, City: ${data.address.village || data.address.city || data.address.town}`);
+      geoJsonFeature.properties.name = data.tourism || data.name || data.address.city || data.address.town
+      geoJsonFeature.properties.city = data.address.village || data.address.city || data.address.town
+      geoJsonFeature.properties.country = data.address.country
+      site.label = data.tourism || data.name || data.address.city || data.address.town
+      site.country = data.address.country
+      site.city = data.address.village || data.address.city || data.address.town
+      // console.log(`sites ${JSON.stringify(currentStory.value.sites)}`)
+    })
+    .catch(error => console.error('Error:', error));
+}
+
+
+// function isValidCoordinateFormat(str) {
+//   // Regular expression for matching coordinates with at least one decimal digit
+//   const regex = /^-?\d+\.\d+, -?\d+\.\d+$/;
+//   return regex.test(str);
+// }
+
+
+
+// function isValidGeoJSON(str) {
+//   try {
+//     // Step 1: Attempt to parse the string as JSON
+//     const obj = JSON.parse(str);
+
+//     // Step 2: Verify that the parsed object adheres to the GeoJSON specification
+//     // Check for the existence of a "type" property
+//     if (!obj.type) {
+//       return false;
+//     }
+
+//     // Check if the "type" is one of the valid GeoJSON types
+//     const validTypes = ["FeatureCollection", "Feature", "Point", "LineString", "Polygon", "MultiPoint", "MultiLineString", "MultiPolygon", "GeometryCollection"];
+//     if (!validTypes.includes(obj.type)) {
+//       return false;
+//     }
+
+//     // Further checks can be added here based on the GeoJSON specification requirements
+//     // for each type, such as checking for the existence and validity of the "features" array
+//     // in a FeatureCollection, the "geometry" object in a Feature, etc.
+
+//     // If the checks pass, the object is likely valid GeoJSON
+//     return true;
+//   } catch (e) {
+//     // The string could not be parsed as JSON
+//     return false;
+//   }
+// }
+
+const handlePastedText = (text) => {
+  // handle pasted geojson
+  if (isValidGeoJSON(text)) {
+    console.log(`looks like valid geojson`)
+    // process all features of type point in text
+    const geoJsonData = JSON.parse(text);
+    for (const feature of geoJsonData.features) {
+      if (feature.geometry.type === 'Point') {
+        const newGeoJsonData =
+        {
+          "type": "FeatureCollection", "features": [feature]
+        }
+        createSiteFromGeoJSON(newGeoJsonData, null, new Date());
+      }
+    }
+  }
+
+  else if (isValidCoordinateFormat(text)) {
+    console.log(`looks like coordinates`)
+    const coordinates = text.split(',');
+    const longitude = parseFloat(coordinates[1]);
+    const latitude = parseFloat(coordinates[0]);
+
+    const newGeoJsonData =
+    {
+      "type": "FeatureCollection", "features": [{
+        "type": "Feature", "properties": { name: "Pasted coordinates", timestamp: new Date() }
+        , "geometry": { "coordinates": [longitude, latitude], "type": "Point" }
+      }]
+    }
+    createSiteFromGeoJSON(newGeoJsonData, null, new Date());
+  }
+}
+
+// from https://gist.github.com/sagarpanda/ed583b408a38c56f33ba
+function createCSSSelector(selector, style) {
+  const stylesheet = document.styleSheets[document.styleSheets.length - 1];
+  stylesheet.insertRule(`${selector} { ${style} }`, stylesheet.cssRules.length);
+  //stylesheet.insertRule(`${selector} { background: pink; border: 1px solid black;}`, stylesheet.cssRules.length);
+  // stylesheet.insertRule(`.my-custom-tooltip { background: pink; border: 1px solid black;}`, 0);
+
+}
+
+
+
+</script>
+<style>
+.my-custom-tooltip {
+  background-color: black;
+  color: white;
+  font-family: Arial, sans-serif;
+  /* Other styling */
+}
+
+.v-slider-thumb__label {
+  min-width: 150px !important;
+}
+
+.v-slider-track__tick-label {
+  /* text-wrap: wrap !important;*/
+  font-size: 12px !important;
+}
+
+.map-control {
+  background-color: rgba(200, 200, 200, 0.8);
+  /* Light gray with transparency */
+  padding: 5px;
+  border-radius: 4px;
+}
+
+.leaflet-bottom.leaflet-left .leaflet-control {
+  margin-bottom: 0px;
+  padding: 0px;
+}
+
+.icon-selected {
+  transform: scale(1.5);
+  /* Makes the icon larger */
+}
+
+.image-container {
+    overflow: hidden; /* Ensures the image doesn't overflow its container */
+    display: inline-block; /* Adjust as needed */
+  }
+  img.hover-zoom {
+    transition: transform 0.5s ease; /* Smooth transition */
+    display: block; /* Prevents adding extra space below the image */
+    width: 100px; /* Initial reduced width, adjust as needed */
+    height: auto; /* Maintain aspect ratio */
+  }
+  img.hover-zoom:hover {
+    transform: scale(2); /* Adjust scale factor as needed */
+  }
+</style>

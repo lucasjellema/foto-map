@@ -1,85 +1,70 @@
-<script setup>
-import { RouterLink, RouterView } from 'vue-router'
-import HelloWorld from './components/HelloWorld.vue'
-</script>
-
 <template>
-  <header>
-    <img alt="Vue logo" class="logo" src="@/assets/logo.svg" width="125" height="125" />
-
-    <div class="wrapper">
-      <HelloWorld msg="You did it!" />
-
-      <nav>
-        <RouterLink to="/">Home</RouterLink>
-        <RouterLink to="/about">About</RouterLink>
-      </nav>
-    </div>
-  </header>
-
-  <RouterView />
+  <v-app>
+    <v-app-bar app>
+      <v-toolbar-title>FotoMapp</v-toolbar-title>
+    </v-app-bar>
+    <v-main>
+      <router-view />
+    </v-main>
+  </v-app>
 </template>
 
-<style scoped>
-header {
-  line-height: 1.5;
-  max-height: 100vh;
-}
+<script setup>
+import { ref, computed } from 'vue'
+import { useStorieStore } from "./store/storiesStore";
 
-.logo {
-  display: block;
-  margin: 0 auto 2rem;
-}
+import { useRouter } from 'vue-router'
 
-nav {
-  width: 100%;
-  font-size: 12px;
-  text-align: center;
-  margin-top: 2rem;
-}
+const router = useRouter()
+const store = useStorieStore()
+const storyData = store.stories;
 
-nav a.router-link-exact-active {
-  color: var(--color-text);
-}
+// import { useImagesStore } from "./store/imagesStore";
+// const imagesStore = useImagesStore()
 
-nav a.router-link-exact-active:hover {
-  background-color: transparent;
-}
+// const storyImageSrc = ref()
 
-nav a {
-  display: inline-block;
-  padding: 0 1rem;
-  border-left: 1px solid var(--color-border);
-}
+const currentStory = computed(() => store.currentStory)
 
-nav a:first-of-type {
-  border: 0;
-}
+// watch(currentStory, async (newCurrentStory) => {
+//   if (newCurrentStory) {
+//     if (newCurrentStory.imageId) {
+//       const url = await imagesStore.getUrlForIndexedDBImage(newCurrentStory.imageId)
+//       storyImageSrc.value = url
+//     } else {
+//       storyImageSrc.value = newCurrentStory.imageUrl
+//     }
+//     router.push('/storyCover')
+//     dialog.value = false
+//   }
+// })
 
-@media (min-width: 1024px) {
-  header {
-    display: flex;
-    place-items: center;
-    padding-right: calc(var(--section-gap) / 2);
-  }
+// const gotoStory = () => {
+//   if (currentStory.value) {
+    	
+  
+//   router.push('/storyCover')
+//   }
+// }
 
-  .logo {
-    margin: 0 2rem 0 0;
-  }
+onMounted(() => {
+    console.log(` rerieve or create and save current story`)
+    // does a story exist? if not, create it
+    if (store.stories.length==0) {
+      // create default story
+      store.addStory({label: 'Default', imageUrl: 'https://picsum.photos/id/237/200/300'})
+      console.log(store.stories[0])
+    }
+    // the first story is the current story
+    store.setCurrentStory(store.stories[0])
+});
 
-  header .wrapper {
-    display: flex;
-    place-items: flex-start;
-    flex-wrap: wrap;
-  }
+const selectedStory = computed({
+  get: () => store.currentStory,
+  set: (value) => {
+    store.setCurrentStory(value)
+  },
+})
 
-  nav {
-    text-align: left;
-    margin-left: -1rem;
-    font-size: 1rem;
 
-    padding: 1rem 0;
-    margin-top: 1rem;
-  }
-}
-</style>
+</script>
