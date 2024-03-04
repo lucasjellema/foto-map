@@ -1,5 +1,5 @@
-
 export function useLocationLibrary() {
+    
 
     // Function to map resolution to zoom level
     function mapResolutionToZoom(resolution) {
@@ -75,7 +75,36 @@ export function useLocationLibrary() {
         }
       }
 
-    return { mapResolutionToZoom, mapZoomToResolution, isValidCoordinateFormat, isValidGeoJSON };
+// Function to perform reverse geocoding
+function reverseGeocode(geoJsonFeature, site) {
+    //, "geometry": { "coordinates": [event.gpsInfo.longitude, event.gpsInfo.latitude], "type": "Point" }
+    console.warn(`go reverse geocode`)
+    const longitude = geoJsonFeature.geometry.coordinates[0];
+    const latitude = geoJsonFeature.geometry.coordinates[1];
+    const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`;
+  
+    fetch(url)
+      .then(response => response.json())
+      .then(data => {
+        console.log('Location details:', data);
+        // Here you can extract and use the country, state, city, etc.
+        console.log(`Country: ${data.tourism}, ${data.name} ${data.address.country}, State: ${data.address.state}, City: ${data.address.village || data.address.city || data.address.town}`);
+        geoJsonFeature.properties.name = data.tourism || data.name || data.address.city || data.address.town
+        geoJsonFeature.properties.city = data.address.village || data.address.city || data.address.town
+        geoJsonFeature.properties.country = data.address.country
+        site.label = data.tourism || data.name || data.address.city || data.address.town
+        site.country = data.address.country
+        site.city = data.address.village || data.address.city || data.address.town
+        // console.log(`sites ${JSON.stringify(currentStory.value.sites)}`)
+      })
+      .catch(error => console.error('Error:', error));
+  }
+
+  
+  
+  
+
+    return { mapResolutionToZoom, mapZoomToResolution, isValidCoordinateFormat, isValidGeoJSON, reverseGeocode };
 }
 
 

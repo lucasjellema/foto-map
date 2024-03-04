@@ -23,7 +23,7 @@
             </v-data-table>
 
             <h3>Upload or paste one or multiple files</h3>
-            <image-editor ref="imageEditorRef" image-height=300 image-width=400 @gps-data="handleGPSData"
+            <image-editor ref="imageEditorRef" image-height=400 image-width=600 @gps-data="handleGPSData"
               :allowMultipleFiles=true :fastSiteCreator="true"></image-editor>
 
           </v-col>
@@ -34,9 +34,7 @@
                 <v-col cols="auto">
                   <v-btn @click="refreshMap()">Refresh Map</v-btn>
                 </v-col>
-                <!-- <v-col cols="auto">
-                  <v-switch v-model="mapEditMode" label="Edit Mode" color="secondary" hide-details inset></v-switch>
-                </v-col> -->
+
                 <v-col cols="auto">
                   <!-- an input element to set the consolidation radius in km -->
                   <v-text-field v-model="consolidationRadius" label="Consolidation Radius (km)"
@@ -67,125 +65,7 @@
       </v-main>
       <!-- Add/Edit Site Dialog -->
       <v-dialog v-model="showEditSitePopup" max-width="1000px">
-        <v-card>
-          <v-card-title>
-            <span class="headline">Edit Site {{ editedSite.label }}</span>
-          </v-card-title>
-          <v-card-text>
-            <v-container>
-              <v-form ref="form">
-                <v-text-field v-model="editedSite.label" label="Label" required></v-text-field>
-                <v-expansion-panels :multiple="true">
-                  <v-expansion-panel title="Place" collapse-icon="mdi-map-marker" expand-icon="mdi-map-marker">
-                    <v-expansion-panel-text>
-                      <v-text-field v-model="editedSite.address" label="Address"></v-text-field>
-                      <v-text-field v-model="editedSite.city" label="City"></v-text-field>
-                      <v-text-field v-model="editedSite.country" label="Country"></v-text-field>
-                      <v-select v-model="editedSite.resolution" label="Resolution"
-                        hint="How exact or roundabout is this location to be interpreted?"
-                        :items="resolutionOptions"></v-select>
-                    </v-expansion-panel-text>
-                  </v-expansion-panel>
-                  <v-expansion-panel title="Time" collapse-icon="mdi-clock" expand-icon="mdi-clock">
-                    <v-expansion-panel-text>
-                      <v-text-field v-model="editedSite.timestamp" label="Timestamp"></v-text-field>
-                      <v-text-field label="Date" type="date" v-model="editedSite.datePart"></v-text-field>
-                      <v-text-field label="Time" type="time" v-model="editedSite.timePart"></v-text-field>
-                    </v-expansion-panel-text>
-                  </v-expansion-panel>
-                  <v-expansion-panel title="Description" collapse-icon="mdi-pencil-box-outline"
-                    expand-icon="mdi-pencil-box-outline">
-                    <v-expansion-panel-text>
-                      <v-textarea v-model="editedSite.description" label="Description" auto-grow clearable></v-textarea>
-                    </v-expansion-panel-text>
-                  </v-expansion-panel>
-                  <v-expansion-panel title="Image" collapse-icon="mdi-image" expand-icon="mdi-image">
-                    <v-expansion-panel-text>
-
-                      <!-- <v-text-field v-model="editedSite.geoJSONText" label="GeoJSON"></v-text-field>
-                <a href="https://geojson.io" target="_new">Compose GeoJSON
-                  <v-icon>mdi-map</v-icon>
-                </a>
-                <v-btn v-if="imageMetadata && imageMetadata.gpsInfo && imageMetadata.gpsInfo.latitude"
-                  @click="createGeoJSONfromImageGPS" prepend-icon="mdi-web">Set GeoJSON from Image GPS</v-btn> -->
-
-                      <image-editor :image-url="editedSite.imageUrl" :image-id="editedSite.imageId" ref="imageEditorRef"
-                        image-height=600 image-width=800 @image-change="handleImageChange"
-                        @gps-data="handleGPSData"></image-editor>
-
-                    </v-expansion-panel-text>
-                  </v-expansion-panel>
-                  <v-expansion-panel title="Style" collapse-icon="mdi-brush" expand-icon="mdi-brush">
-                    <v-expansion-panel-text>
-                      <v-container>
-                        <v-row>
-                          <v-col cols="2">
-                            <div>Tooltip Color</div>
-                            <div
-                              :style="{ backgroundColor: editedSite.tooltipColor, width: '100px', height: '50px', cursor: 'pointer', border: '1px solid black' }"
-                              @click="showtooltipColorPicker = !showtooltipColorPicker"></div>
-                            <v-dialog v-model="showtooltipColorPicker" width="300px">
-                              <v-card>
-                                <v-color-picker v-model="editedSite.tooltipColor" hide-inputs></v-color-picker>
-                              </v-card>
-                            </v-dialog>
-                          </v-col>
-                          <v-col cols="2">
-                            <div>Background</div>
-                            <div
-                              :style="{ backgroundColor: editedSite.tooltipBackgroundColor, width: '100px', height: '50px', cursor: 'pointer', border: '1px solid black' }"
-                              @click="showtooltipBackgroundColorPicker = !showtooltipBackgroundColorPicker"></div>
-                            <v-dialog v-model="showtooltipBackgroundColorPicker" width="300px">
-                              <v-card>
-                                <v-color-picker v-model="editedSite.tooltipBackgroundColor" hide-inputs></v-color-picker>
-                              </v-card>
-                            </v-dialog>
-                          </v-col>
-
-                          <v-col cols="2">
-                            <v-checkbox v-model="editedSite.showTooltip" label="Show Label on Map"></v-checkbox>
-                          </v-col>
-                          <v-col cols="4" offset="1">
-                            <div>Pick location of tooltip</div>
-                            <TooltipDirectionSelector v-model="editedSite.tooltipDirection"></TooltipDirectionSelector>
-                          </v-col>
-                        </v-row>
-                        <v-row>
-                          <v-col cols="2">
-                            <div>Pick Icon for the Toolip</div>
-                          </v-col>
-                          <v-col cols="2" offset="1">
-                            <v-btn @click="editedSite.tooltipIcon = ''">Clear Icon</v-btn>
-                          </v-col>
-                          <v-col cols="2" offset="2">
-                            <v-radio-group v-model="editedSite.tooltipSize">
-                              <v-radio label="Small" :value="0"></v-radio>
-                              <v-radio label="Normal" :value="1"></v-radio>
-                              <v-radio :value="2" label="Large"></v-radio>
-                            </v-radio-group>
-                          </v-col>
-                        </v-row>
-                        <v-row>
-                          <v-col cols="8">
-                            <IconSelector v-model="editedSite.tooltipIcon"></IconSelector>
-                          </v-col>
-                        </v-row>
-
-                      </v-container>
-
-                    </v-expansion-panel-text>
-                  </v-expansion-panel>
-
-                </v-expansion-panels>
-              </v-form>
-            </v-container>
-          </v-card-text>
-          <v-card-actions>
-            <v-spacer></v-spacer>
-            <v-btn color="blue darken-1" text @click="closeDialog">Cancel</v-btn>
-            <v-btn color="blue darken-1" text @click="saveItem">Save</v-btn>
-          </v-card-actions>
-        </v-card>
+        <SiteEditor v-model:site="editedSite" @saveSite="saveItem" @closeDialog="closeDialog"></SiteEditor> 
       </v-dialog>
 
       <v-dialog v-model="showMapFiltersPopup" max-width="800px">
@@ -223,6 +103,7 @@
 <script setup>
 import domtoimage from 'dom-to-image-more';
 import ImageEditor from "@/components/imageEditor.vue"
+import SiteEditor from "@/components/SiteEditor.vue"
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet-contextmenu';
@@ -236,7 +117,7 @@ import 'leaflet.markercluster/dist/MarkerCluster.css';
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
 import { MarkerClusterGroup } from 'leaflet.markercluster';
 
-const { mapZoomToResolution,isValidCoordinateFormat, isValidGeoJSON } = useLocationLibrary();
+const { mapZoomToResolution,isValidCoordinateFormat, isValidGeoJSON, reverseGeocode } = useLocationLibrary();
 import { useFunctionCallThrottler } from '@/composables/useFunctionCallThrottler';
 const { enqueueCall: enqueueCallToReverseGeocode } = useFunctionCallThrottler(1500, reverseGeocode);
 
@@ -251,34 +132,6 @@ const sitesData = computed(() => currentStory.value.sites);
 
 const search = ref("")
 
-// const icons = [
-//   'mdi-home',
-//   'mdi-airplane',
-//   'mdi-bike',
-//   'mdi-car',
-//   'mdi-train',
-//   'mdi-theater',
-//   'mdi-church',
-//   'mdi-city',
-//   'mdi-tree',
-//   'mdi-parking',
-//   'mdi-hospital-building',
-//   'mdi-school',
-//   'mdi-beach',
-//   'mdi-martini',
-//   'mdi-shopping',
-//   'mdi-gas-station',
-//   'mdi-hotel',
-//   'mdi-music-note',
-//   'mdi-silverware-variant'
-// ]
-
-
-// const selectIcon = (icon) => {
-//   editedSite.value.tooltipIcon = icon; // Set the clicked icon as the selected icon
-//   console.log(editedSite.value.tooltipIcon)
-// }
-
 const popupContentRef = ref(null)
 const poppedupFeature = ref({})
 const poppedupSite = ref({})
@@ -286,8 +139,6 @@ const showPopup = ref(false)
 const showEditSitePopup = ref(false)
 const showMapFiltersPopup = ref(false)
 
-const showtooltipColorPicker = ref(false)
-const showtooltipBackgroundColorPicker = ref(false)
 const imageMetadata = ref()
 const mapEditMode = ref(false)
 const mapClusterMode = ref(false)
@@ -366,11 +217,6 @@ const saveItem = () => {
 
   const tooltip = document.getElementsByClassName(`tooltip${editedSite.value.id}`.replace(/-/g, ""))[0]
   refreshTooltip(editedSite.value, tooltip)
-  // if (tooltip) {
-  //   tooltip.innerHTML = editedSite.value.label
-  // }
-
-
   closeDialog();
 }
 
@@ -393,17 +239,6 @@ const refreshTooltip = (site, tooltipElement) => {
           }
 
 }
-
-const createGeoJSONfromImageGPS = () => {
-  editedSite.value.geoJSON =
-    { "type": "FeatureCollection", "features": [{ "type": "Feature", "properties": {}, "geometry": { "coordinates": [imageMetadata.value.gpsInfo.longitude, imageMetadata.value.gpsInfo.latitude], "type": "Point" } }] }
-  editedSite.value.geoJSONText = JSON.stringify(editedLocation.value.geoJSON)
-}
-const handleImageChange = (event) => {
-  editedSite.value.imageId = event.imageId
-  editedSite.value.imageUrl = event.imageUrl
-}
-
 
 const headers = [
   { title: 'Label', value: 'label', sortable: true },
@@ -459,14 +294,6 @@ const customSort = (items, sortBy, sortDesc) => {
   // Fallback for other sorts or implement similarly
   return items;
 }
-
-const resolutionOptions = [
-  { title: 'Exact Address (high accuracy)', value: 0 },
-  { title: 'City ', value: 1 },
-  { title: 'Area/State/Province ', value: 2 },
-  { title: 'Country', value: 3 },
-  { title: 'Continent', value: 4 },
-]
 
 let editedSite = ref({
   label: '',
@@ -702,7 +529,7 @@ const centerMap = (e) => {
 
 const centerAndZoomMap = (e) => {
   map.value.panTo(e.latlng, { animate: false });
-  map.value.zoomIn(5)
+  map.value.zoomIn(4) // number of zoom levels to increase with
 
 }
 
@@ -1069,68 +896,6 @@ function createSiteFromGeoJSON(newGeoJsonData, imageId, dateTimeOriginal) {
   }
 }
 
-// Function to perform reverse geocoding
-function reverseGeocode(geoJsonFeature, site) {
-  //, "geometry": { "coordinates": [event.gpsInfo.longitude, event.gpsInfo.latitude], "type": "Point" }
-  console.warn(`go reverse geocode`)
-  const longitude = geoJsonFeature.geometry.coordinates[0];
-  const latitude = geoJsonFeature.geometry.coordinates[1];
-  const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`;
-
-  fetch(url)
-    .then(response => response.json())
-    .then(data => {
-      console.log('Location details:', data);
-      // Here you can extract and use the country, state, city, etc.
-      console.log(`Country: ${data.tourism}, ${data.name} ${data.address.country}, State: ${data.address.state}, City: ${data.address.village || data.address.city || data.address.town}`);
-      geoJsonFeature.properties.name = data.tourism || data.name || data.address.city || data.address.town
-      geoJsonFeature.properties.city = data.address.village || data.address.city || data.address.town
-      geoJsonFeature.properties.country = data.address.country
-      site.label = data.tourism || data.name || data.address.city || data.address.town
-      site.country = data.address.country
-      site.city = data.address.village || data.address.city || data.address.town
-      // console.log(`sites ${JSON.stringify(currentStory.value.sites)}`)
-    })
-    .catch(error => console.error('Error:', error));
-}
-
-
-// function isValidCoordinateFormat(str) {
-//   // Regular expression for matching coordinates with at least one decimal digit
-//   const regex = /^-?\d+\.\d+, -?\d+\.\d+$/;
-//   return regex.test(str);
-// }
-
-
-
-// function isValidGeoJSON(str) {
-//   try {
-//     // Step 1: Attempt to parse the string as JSON
-//     const obj = JSON.parse(str);
-
-//     // Step 2: Verify that the parsed object adheres to the GeoJSON specification
-//     // Check for the existence of a "type" property
-//     if (!obj.type) {
-//       return false;
-//     }
-
-//     // Check if the "type" is one of the valid GeoJSON types
-//     const validTypes = ["FeatureCollection", "Feature", "Point", "LineString", "Polygon", "MultiPoint", "MultiLineString", "MultiPolygon", "GeometryCollection"];
-//     if (!validTypes.includes(obj.type)) {
-//       return false;
-//     }
-
-//     // Further checks can be added here based on the GeoJSON specification requirements
-//     // for each type, such as checking for the existence and validity of the "features" array
-//     // in a FeatureCollection, the "geometry" object in a Feature, etc.
-
-//     // If the checks pass, the object is likely valid GeoJSON
-//     return true;
-//   } catch (e) {
-//     // The string could not be parsed as JSON
-//     return false;
-//   }
-// }
 
 const handlePastedText = (text) => {
   // handle pasted geojson
@@ -1166,14 +931,6 @@ const handlePastedText = (text) => {
   }
 }
 
-// from https://gist.github.com/sagarpanda/ed583b408a38c56f33ba
-function createCSSSelector(selector, style) {
-  const stylesheet = document.styleSheets[document.styleSheets.length - 1];
-  stylesheet.insertRule(`${selector} { ${style} }`, stylesheet.cssRules.length);
-  //stylesheet.insertRule(`${selector} { background: pink; border: 1px solid black;}`, stylesheet.cssRules.length);
-  // stylesheet.insertRule(`.my-custom-tooltip { background: pink; border: 1px solid black;}`, 0);
-
-}
 
 
 
