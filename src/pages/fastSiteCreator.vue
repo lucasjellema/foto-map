@@ -5,16 +5,18 @@
         <v-row>
           <v-col cols="4" offset="0">
             <v-text-field v-model="search" label="Search" clearable></v-text-field>
-            <v-data-table :headers="headers" :items="sitesData" :search="search" items-per-page="5" 
+            <v-data-table :headers="headers" :items="sitesData" :search="search" items-per-page="5"
               :custom-sort="customSort" return-object>
               <template v-slot:item.timestamp="{ item }">
                 {{ formatDate(item.timestamp) }}
               </template>
+
               <template v-slot:item.edit="{ item }">
                 <v-btn icon @click="editItem(item)">
                   <v-icon>mdi-pencil</v-icon>
                 </v-btn>
               </template>
+
               <template v-slot:item.remove="{ item }">
                 <v-btn icon @click="removeSite(item)">
                   <v-icon>mdi-delete</v-icon>
@@ -45,13 +47,14 @@
             </v-container>
             <!-- contents for the popup on markers -->
             <div style="display: none;">
-              <v-card class="mx-auto hover-zoom" max-width="600" :height="poppedupFeature?.properties?.imageURL ? '500' : '100%'" 
-                 :title="poppedupSite?.label" 
+              <v-card class="mx-auto hover-zoom" max-width="600"
+                :height="poppedupFeature?.properties?.imageURL ? '500' : '100%'" :title="poppedupSite?.label"
                 :theme="poppedupFeature?.properties?.imageURL ? 'light' : 'light'" ref="popupContentRef">
-<!-- :image="poppedupFeature?.properties?.imageURL" -->
+                <!-- :image="poppedupFeature?.properties?.imageURL" -->
                 <v-card-text>{{ formatDate(poppedupSite?.timestamp) }}
                   {{ poppedupFeature?.properties?.city }},{{ poppedupSite?.country }}
-                  <v-img  width="500" cover :src="poppedupFeature?.properties?.imageURL" content-class="hover-zoom"></v-img>
+                  <v-img width="500" cover :src="poppedupFeature?.properties?.imageURL"
+                    content-class="hover-zoom"></v-img>
                   {{ poppedupFeature?.properties?.description }}
                   <!-- <v-btn icon @click="editSiteFromPopup()" v-if="mapEditMode">
                     <v-icon>mdi-pencil</v-icon>
@@ -62,10 +65,15 @@
 
           </v-col>
         </v-row>
+        <!-- <v-row>
+          <v-col>
+            <SiteMap v-model="sitesData" v-model:currentStory="currentStory">  </SiteMap>
+          </v-col>
+        </v-row> -->
       </v-main>
       <!-- Add/Edit Site Dialog -->
       <v-dialog v-model="showEditSitePopup" max-width="1000px">
-        <SiteEditor v-model:site="editedSite" @saveSite="saveItem" @closeDialog="closeDialog"></SiteEditor> 
+        <SiteEditor v-model:site="editedSite" @saveSite="saveItem" @closeDialog="closeDialog"></SiteEditor>
       </v-dialog>
 
       <v-dialog v-model="showMapFiltersPopup" max-width="800px">
@@ -77,9 +85,10 @@
             <v-container>
               <v-row>
                 <v-col cols="12">
-                  <v-range-slider v-model="dateRangeSlider" :min="minTimestamp" :max="maxTimestamp" :step="dateRangeStep"
-                    label="Filter Sites by Date" @end="onSliderChange" :thumb-label="true" :ticks="dateRangeTicks"
-                    show-ticks="always" tick-size="4" strict>
+                  <v-range-slider v-model="dateRangeSlider" :min="minTimestamp" :max="maxTimestamp"
+                    :step="dateRangeStep" label="Filter Sites by Date" @end="onSliderChange" :thumb-label="true"
+                    :ticks="dateRangeTicks" show-ticks="always" tick-size="4" strict>
+
                     <template v-slot:thumb-label="{ modelValue }" class="date-range-slider-thumb">
                       {{ formatDate(modelValue) }}
                     </template>
@@ -104,6 +113,7 @@
 import domtoimage from 'dom-to-image-more';
 import ImageEditor from "@/components/imageEditor.vue"
 import SiteEditor from "@/components/SiteEditor.vue"
+import SiteMap from "@/components/SiteMap.vue"
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet-contextmenu';
@@ -117,7 +127,7 @@ import 'leaflet.markercluster/dist/MarkerCluster.css';
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
 import { MarkerClusterGroup } from 'leaflet.markercluster';
 
-const { mapZoomToResolution,isValidCoordinateFormat, isValidGeoJSON, reverseGeocode } = useLocationLibrary();
+const { mapZoomToResolution, isValidCoordinateFormat, isValidGeoJSON, reverseGeocode } = useLocationLibrary();
 import { useFunctionCallThrottler } from '@/composables/useFunctionCallThrottler';
 const { enqueueCall: enqueueCallToReverseGeocode } = useFunctionCallThrottler(1500, reverseGeocode);
 
@@ -213,30 +223,38 @@ const saveItem = () => {
   const [hours, minutes] = editedSite.value.timePart.split(':');
   editedSite.value.timestamp = new Date(year, month - 1, day, hours, minutes); // TODO do something about the TIMEZONE!! 
   storiesStore.updateSite(editedSite.value)
-  refreshSite(editedSite.value)
-
-  const tooltip = document.getElementsByClassName(`tooltip${editedSite.value.id}`.replace(/-/g, ""))[0]
-  refreshTooltip(editedSite.value, tooltip)
   closeDialog();
+  refreshSite(editedSite.value)
+  const tooltips = document.getElementsByClassName(`tooltip${editedSite.value.id}`.replace(/-/g, ""))
+  
+  for (let i = 0; i < tooltips.length; i++) {
+    const tooltip = tooltips[i];
+    setTimeout(() => {
+      refreshTooltip(editedSite.value, tooltip)
+    }, 50); // Small timeout to ensure the tooltip is rendered
+  }
 }
 
 const refreshTooltip = (site, tooltipElement) => {
+
+  if (!site.tooltipSize) site.tooltipSize = site.tooltipSize
+
   tooltipElement.innerHTML = `<i class="mdi ${site.tooltipIcon ? site.tooltipIcon : ''}" 
-          style="font-size: ${site.tooltipSize ? 10 + 8*site.tooltipSize : '14'}px; color=${site.tooltipColor ? site.tooltipColor : 'black'}"></i>${site.label}`;
-          // set font color style on tooltipElement
-          // set background color style on tooltipElement
-          tooltipElement.style.fontSize = `${site.tooltipSize ? 10 + 8*site.tooltipSize : '14'}px`;
-          tooltipElement.style.color = `${site.tooltipColor ? site.tooltipColor : 'black'}`;
-          tooltipElement.style.background = site.tooltipBackgroundColor ? site.tooltipBackgroundColor : 'yellow';
-          //          createCSSSelector(`.${tooltipClassName}`, `color: ${site.tooltipColor?site.tooltipColor:'black'};background: ${site.tooltipBackgroundColor?site.tooltipBackgroundColor:'yellow'}; border: 1px solid black; font-size: 18px;color: black;`);
+          style="font-size: ${10 + 6 * site.tooltipSize }px; color=${site.tooltipColor ? site.tooltipColor : 'black'}">
+          </i>${site.label}`;
+console.log(`Tooltip size ${site.tooltipSize}   ${site.tooltipSize ? 8 + 4 * site.tooltipSize : '14'}px`)
 
+  tooltipElement.style.fontSize = `${ 10 + 6 * site.tooltipSize}px`;
+  tooltipElement.style.color = `${site.tooltipColor ? site.tooltipColor : 'black'}`;
+  tooltipElement.style.background = site.tooltipBackgroundColor ? site.tooltipBackgroundColor : 'yellow';
+  //          createCSSSelector(`.${tooltipClassName}`, `color: ${site.tooltipColor?site.tooltipColor:'black'};background: ${site.tooltipBackgroundColor?site.tooltipBackgroundColor:'yellow'}; border: 1px solid black; font-size: 18px;color: black;`);
 
-          if (tooltipElement) {
-            tooltipElement.addEventListener('click', function () {
-              console.log(`Tooltip was clicked! for feature ${feature.properties.name}`);
-              // Add any click handling logic here
-            });
-          }
+  if (tooltipElement) {
+    tooltipElement.addEventListener('click', function () {
+      console.log(`Tooltip was clicked! for feature ${feature.properties.name}`);
+      // Add any click handling logic here
+    });
+  }
 
 }
 
@@ -935,6 +953,7 @@ const handlePastedText = (text) => {
 
 
 </script>
+
 <style>
 .my-custom-tooltip {
   background-color: black;
@@ -964,22 +983,26 @@ const handlePastedText = (text) => {
   padding: 0px;
 }
 
-.icon-selected {
-  transform: scale(1.5);
-  /* Makes the icon larger */
+.image-container {
+  overflow: hidden;
+  /* Ensures the image doesn't overflow its container */
+  display: inline-block;
+  /* Adjust as needed */
 }
 
-.image-container {
-    overflow: hidden; /* Ensures the image doesn't overflow its container */
-    display: inline-block; /* Adjust as needed */
-  }
-  img.hover-zoom {
-    transition: transform 0.5s ease; /* Smooth transition */
-    display: block; /* Prevents adding extra space below the image */
-    width: 100px; /* Initial reduced width, adjust as needed */
-    height: auto; /* Maintain aspect ratio */
-  }
-  img.hover-zoom:hover {
-    transform: scale(2); /* Adjust scale factor as needed */
-  }
+img.hover-zoom {
+  transition: transform 0.5s ease;
+  /* Smooth transition */
+  display: block;
+  /* Prevents adding extra space below the image */
+  width: 100px;
+  /* Initial reduced width, adjust as needed */
+  height: auto;
+  /* Maintain aspect ratio */
+}
+
+img.hover-zoom:hover {
+  transform: scale(2);
+  /* Adjust scale factor as needed */
+}
 </style>
