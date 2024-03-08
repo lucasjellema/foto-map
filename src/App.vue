@@ -1,7 +1,11 @@
 <template>
   <v-app>
-    <v-app-bar app>
-      <v-toolbar-title>FotoMapp</v-toolbar-title>
+    <v-app-bar app >
+      <v-toolbar-title>FotoMapp
+
+
+      </v-toolbar-title>
+      <v-img src="/app-bar-background-conclusion.jpg" height="80" ></v-img>
     </v-app-bar>
     <v-main>
       <router-view />
