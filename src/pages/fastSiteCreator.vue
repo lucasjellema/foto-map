@@ -47,18 +47,35 @@
             </v-container>
             <!-- contents for the popup on markers -->
             <div style="display: none;">
-              <v-card class="mx-auto hover-zoom" max-width="600"
-                :height="poppedupFeature?.properties?.imageURL ? '500' : '100%'" :title="poppedupSite?.label"
+              <v-card class="mx-auto hover-zoom" max-width="600" :title="poppedupSite?.label"
                 :theme="poppedupFeature?.properties?.imageURL ? 'light' : 'light'" ref="popupContentRef">
                 <!-- :image="poppedupFeature?.properties?.imageURL" -->
                 <v-card-text>{{ formatDate(poppedupSite?.timestamp) }}
-                  {{ poppedupFeature?.properties?.city }},{{ poppedupSite?.country }}
-                  <v-img width="500" cover :src="poppedupFeature?.properties?.imageURL"
-                    content-class="hover-zoom"></v-img>
-                  {{ poppedupFeature?.properties?.description }}
-                  <!-- <v-btn icon @click="editSiteFromPopup()" v-if="mapEditMode">
-                    <v-icon>mdi-pencil</v-icon>
-                  </v-btn> -->
+                  {{ poppedupFeature?.properties?.city }},{{ poppedupSite?.country }}<br />
+                  {{ poppedupFeature?.geometry?.coordinates[2] ? `Altitude
+                  ${poppedupFeature?.geometry?.coordinates[2].toFixed(0)}m` : '' }}                  
+                  <div v-if="poppedupSite?.attachments?.length > 0">
+                    <v-carousel :height="400" show-arrows="hover">
+                      <v-carousel-item>
+                        <div>
+                          <v-img width="500" cover :src="poppedupFeature?.properties?.imageURL"
+                            content-class="hover-zoom"></v-img>
+                          {{ poppedupFeature?.properties?.description }}
+                        </div>
+                      </v-carousel-item>
+                      <v-carousel-item v-for="(attachment, index) in poppedupSite?.attachments">
+                        <div>
+                          <!-- <v-img width="500" cover :src="attachment.imageURL"></v-img>-->
+                          {{ attachment.description }}
+                        </div>
+                      </v-carousel-item>
+                    </v-carousel>
+                  </div>
+                  <div v-else>
+                    <v-img width="500" cover :src="poppedupFeature?.properties?.imageURL"
+                      content-class="hover-zoom"></v-img>
+                    {{ poppedupFeature?.properties?.description }}
+                  </div>
                 </v-card-text>
               </v-card>
             </div>
@@ -226,7 +243,7 @@ const saveItem = () => {
   closeDialog();
   refreshSite(editedSite.value)
   const tooltips = document.getElementsByClassName(`tooltip${editedSite.value.id}`.replace(/-/g, ""))
-  
+
   for (let i = 0; i < tooltips.length; i++) {
     const tooltip = tooltips[i];
     setTimeout(() => {
@@ -240,11 +257,11 @@ const refreshTooltip = (site, tooltipElement) => {
   if (!site.tooltipSize) site.tooltipSize = site.tooltipSize
 
   tooltipElement.innerHTML = `<i class="mdi ${site.tooltipIcon ? site.tooltipIcon : ''}" 
-          style="font-size: ${10 + 6 * site.tooltipSize }px; color=${site.tooltipColor ? site.tooltipColor : 'black'}">
+          style="font-size: ${10 + 6 * site.tooltipSize}px; color=${site.tooltipColor ? site.tooltipColor : 'black'}">
           </i>${site.label}`;
-console.log(`Tooltip size ${site.tooltipSize}   ${site.tooltipSize ? 8 + 4 * site.tooltipSize : '14'}px`)
+  console.log(`Tooltip size ${site.tooltipSize}   ${site.tooltipSize ? 8 + 4 * site.tooltipSize : '14'}px`)
 
-  tooltipElement.style.fontSize = `${ 10 + 6 * site.tooltipSize}px`;
+  tooltipElement.style.fontSize = `${10 + 6 * site.tooltipSize}px`;
   tooltipElement.style.color = `${site.tooltipColor ? site.tooltipColor : 'black'}`;
   tooltipElement.style.background = site.tooltipBackgroundColor ? site.tooltipBackgroundColor : 'yellow';
   //          createCSSSelector(`.${tooltipClassName}`, `color: ${site.tooltipColor?site.tooltipColor:'black'};background: ${site.tooltipBackgroundColor?site.tooltipBackgroundColor:'yellow'}; border: 1px solid black; font-size: 18px;color: black;`);
@@ -375,7 +392,7 @@ const handleGPSData = (event) => {
     {
       "type": "FeatureCollection", "features": [{
         "type": "Feature", "properties": { name: "To be geo-encoded", imageId: event.imageId, timestamp: event.dateTimeOriginal }
-        , "geometry": { "coordinates": [event.gpsInfo.longitude, event.gpsInfo.latitude], "type": "Point" }
+        , "geometry": { "coordinates": [event.gpsInfo.longitude, event.gpsInfo.latitude, event.gpsInfo.altitude], "type": "Point" }
       }]
     }
     createSiteFromGeoJSON(newGeoJsonData, event.imageId, event.dateTimeOriginal);
@@ -513,17 +530,33 @@ const consolidateSite = (marker) => {
   // in theory all are merged into this one - however: what remains of these other sites? 
   // add their pictures in additional attachments for the site?
   let targetFeature = marker.feature;
+  const targetSite = storiesStore.getSite(targetFeature.properties.id)
+  if (!targetSite.attachments) {
+    targetSite.attachments = []
+  }
   let nearbyFeatures = findFeaturesWithinConsolidationRadius(targetFeature, geoJsonLayer);
   let removedFeatures = []
   // Remove all nearby sites
-  // TODO: retain something from the original site in the consolidation center ??
   nearbyFeatures.forEach(function (feature) {
+
     removedFeatures.push(feature)
-    if (mapEditMode.value)
+    if (mapEditMode.value) {
+      // add to targetSite.attachments an object with description (consisting of label, timestamp, description) and imageID
+      targetSite.attachments.push({
+        description: `${formatDate(feature.feature.properties.timestamp)} ${feature.feature.properties.city}, ${feature.feature.properties.country}`
+        , imageId: feature.feature.properties.imageId
+       // , imageURL: feature.feature.properties.imageURL
+      }
+      )
       deleteMarker(feature)
+    }
     else hideMarker(feature)
 
   });
+  console.log(targetSite)
+  if (mapEditMode.value) {
+    storiesStore.updateSite(targetSite)
+  }
   return removedFeatures
 }
 
@@ -873,6 +906,7 @@ const attachMapListeners = () => {
 const setImageURLonFeature = async (imageId) => {
   const url = await imagesStore.getUrlForIndexedDBImage(imageId)
   poppedupFeature.value.properties.imageURL = url
+
 }
 
 
