@@ -51,9 +51,9 @@
                 :theme="poppedupFeature?.properties?.imageURL ? 'light' : 'light'" ref="popupContentRef">
                 <!-- :image="poppedupFeature?.properties?.imageURL" -->
                 <v-card-text>{{ formatDate(poppedupSite?.timestamp) }}
-                  {{ poppedupFeature?.properties?.city }},{{ poppedupSite?.country }}<br />
-                  {{ poppedupFeature?.geometry?.coordinates[2] ? `Altitude
-                  ${poppedupFeature?.geometry?.coordinates[2].toFixed(0)}m` : '' }}                  
+                  {{ poppedupFeature?.properties?.city }},{{ poppedupSite?.country }}
+                  {{ poppedupFeature?.geometry?.coordinates[2] ? ` (∆
+                  ${poppedupFeature?.geometry?.coordinates[2].toFixed(0)}m)` : '' }}
                   <div v-if="poppedupSite?.attachments?.length > 0">
                     <v-carousel :height="400" show-arrows="hover">
                       <v-carousel-item>
@@ -65,7 +65,7 @@
                       </v-carousel-item>
                       <v-carousel-item v-for="(attachment, index) in poppedupSite?.attachments">
                         <div>
-                          <!-- <v-img width="500" cover :src="attachment.imageURL"></v-img>-->
+                          <v-img width="500" cover :src="attachment.imageURL"></v-img>
                           {{ attachment.description }}
                         </div>
                       </v-carousel-item>
@@ -484,10 +484,11 @@ const hideMarker = marker => {
 }
 
 const hideSite = (site) => {
-  geoJsonLayer.eachLayer(function (layer) {
+  geoJsonLayer.eachLayer(function (marker) {
     // Check if this layer's feature has the property 'id' equal to 87
-    if (layer.feature.properties.id === site.id) {
-      geoJsonLayer.removeLayer(layer);
+    if (marker.feature.properties.id === site.id) {
+      //geoJsonLayer.removeLayer(marker);
+      marker.remove()
     }
   });
 }
@@ -537,17 +538,21 @@ const consolidateSite = (marker) => {
   let nearbyFeatures = findFeaturesWithinConsolidationRadius(targetFeature, geoJsonLayer);
   let removedFeatures = []
   // Remove all nearby sites
-  nearbyFeatures.forEach(function (feature) {
+  // sort nearbyfeature by timestamp
+  nearbyFeatures.sort((a, b) => (a.feature.properties.timestamp > b.feature.properties.timestamp) ? 1 : -1).forEach(function (feature) {
 
     removedFeatures.push(feature)
     if (mapEditMode.value) {
+      const siteToRemove = storiesStore.getSite(feature.feature.properties.id)
+
       // add to targetSite.attachments an object with description (consisting of label, timestamp, description) and imageID
-      targetSite.attachments.push({
-        description: `${formatDate(feature.feature.properties.timestamp)} ${feature.feature.properties.city}, ${feature.feature.properties.country}`
-        , imageId: feature.feature.properties.imageId
-       // , imageURL: feature.feature.properties.imageURL
+      if (siteToRemove.imageId || siteToRemove.description) {
+        targetSite.attachments.push({
+          description: `${formatDate(siteToRemove.timestamp)} ${siteToRemove.city}, ${siteToRemove.country}`
+          , imageId: siteToRemove.imageId
+        })
+        siteToRemove.imageId = null // to prevent the removal of the site to also remove referenced image 
       }
-      )
       deleteMarker(feature)
     }
     else hideMarker(feature)
@@ -645,7 +650,9 @@ watch(mapEditMode, async (newMapEditMode) => {
   } else {
     map.value.doubleClickZoom.enable();
     geoJsonLayer.eachLayer(function (marker) {
-      marker.dragging.disable();
+      if (marker?.dragging) {
+        marker.dragging.disable();
+      }
     });
   }
 
@@ -736,6 +743,16 @@ const drawMap = () => {
         if (poppedupSite.value.imageId) {
           try {
             setImageURLonFeature(poppedupSite.value.imageId);
+            //iterate over every attachment in the poppedupSite 
+            poppedupSite.value.attachments.forEach(attachment => {
+              if (attachment.imageId) {
+
+                imagesStore.getUrlForIndexedDBImage(attachment.imageId).then(url => {
+                  attachment.imageURL = url
+                })
+              }
+            })
+
           }
           catch (e) { }
         }
