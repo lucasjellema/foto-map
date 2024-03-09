@@ -10,6 +10,14 @@ export const useStorieStore = defineStore('storyData', () => {
 
     const currentStory = ref(stories.value[0])
 
+    const initializeCurrentStory = () => {
+        if (!currentStory.value.mapConfiguration) {
+            currentStory.value.mapConfiguration = { customTileLayers: [], showTooltips: true };
+            updateStory(currentStory.value);
+        }
+    }
+    initializeCurrentStory()
+
     const setCurrentStory = (story) => {
         currentStory.value = story
     }
@@ -21,6 +29,9 @@ export const useStorieStore = defineStore('storyData', () => {
         }
         if (!story.sites) {
             story.sites = [];
+        }
+        if (!story.mapConfiguration) {
+            story.mapConfiguration = { customTileLayers: [], showTooltips: true };
         }
         stories.value.push(story);
     }
@@ -35,7 +46,7 @@ export const useStorieStore = defineStore('storyData', () => {
     const removeStory = (storyToRemove) => {
         const theIndex = stories.value.findIndex(l => l.id === storyToRemove.id);
         if (theIndex !== -1) {
-            if (stories.value[theIndex].imageId) { imagesStore.removeImage(stories.value[theIndex].imageId)}
+            if (stories.value[theIndex].imageId) { imagesStore.removeImage(stories.value[theIndex].imageId) }
 
             stories.value.splice(theIndex, 1);
         }
@@ -66,13 +77,13 @@ export const useStorieStore = defineStore('storyData', () => {
     const removeSite = (site) => {
         const theIndex = currentStory.value.sites.findIndex(l => l.id === site.id);
         if (theIndex !== -1) {
-            if (currentStory.value.sites[theIndex].imageId) { imagesStore.removeImage(currentStory.value.sites[theIndex].imageId)}
+            if (currentStory.value.sites[theIndex].imageId) { imagesStore.removeImage(currentStory.value.sites[theIndex].imageId) }
             currentStory.value.sites.splice(theIndex, 1);
         }
     }
 
     return {
-        stories, currentStory, addStory, updateStory, removeStory, setCurrentStory, addSite,removeSite, updateSite, getSite
+        stories, currentStory, addStory, updateStory, removeStory, setCurrentStory, addSite, removeSite, updateSite, getSite
     };
 });
 

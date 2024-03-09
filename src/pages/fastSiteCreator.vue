@@ -121,6 +121,27 @@
         </v-card>
       </v-dialog>
 
+      <v-dialog v-model="showMapConfigurationPopup" max-width="800px">
+        <v-card>
+          <v-card-title>
+            <span class="headline">Map Configuration</span>
+          </v-card-title>
+          <v-card-text>
+            <v-container>
+              <v-row>
+                <v-col cols="12">
+                  <v-checkbox v-model="currentStory.mapConfiguration.showTooltips" label="Show Tooltips"></v-checkbox>
+                </v-col>
+              </v-row>
+            </v-container>
+          </v-card-text>
+          <v-card-actions>
+            <v-spacer></v-spacer>
+            <v-btn color="blue darken-1" text @click="closeMapConfigurationDialog">Close</v-btn>
+          </v-card-actions>
+        </v-card>
+      </v-dialog>
+
     </v-container>
   </v-responsive>
 </template>
@@ -165,6 +186,7 @@ const poppedupSite = ref({})
 const showPopup = ref(false)
 const showEditSitePopup = ref(false)
 const showMapFiltersPopup = ref(false)
+const showMapConfigurationPopup = ref(false)
 
 const imageMetadata = ref()
 const mapEditMode = ref(false)
@@ -225,6 +247,12 @@ const closeDialog = () => {
 const closeMapFiltersDialog = () => {
   showMapFiltersPopup.value = false;
 }
+const closeMapConfigurationDialog = () => {
+  storiesStore.updateStory(currentStory.value)
+  refreshMap()
+  showMapConfigurationPopup.value = false;
+}
+
 
 const saveItem = () => {
   // no JSONTEXT in this page editedSite.value.geoJSON =JSON.parse(editedSite.value.geoJSONText)
@@ -253,6 +281,7 @@ const saveItem = () => {
 }
 
 const refreshTooltip = (site, tooltipElement) => {
+    tooltipElement.style.display = currentStory.value.mapConfiguration?.showTooltips? 'block' : 'none'
 
   if (!site.tooltipSize) site.tooltipSize = site.tooltipSize
 
@@ -601,6 +630,7 @@ const geoJSONToClipboard = () => {
 
 const showHideControls = (show) => {
   map.value.zoomControl.getContainer().style.display = show ? 'block' : 'none';
+  layerControl.getContainer().style.display = show ? 'block' : 'none';
   myControls.forEach(function (control) {
     control.getContainer().style.display = show ? 'block' : 'none';
   });
@@ -658,6 +688,7 @@ watch(mapEditMode, async (newMapEditMode) => {
 
 })
 
+let layerControl
 const drawMap = () => {
   // Initialize the map
   map.value = L.map('mapid', {
@@ -669,6 +700,8 @@ const drawMap = () => {
     }, {
       text: 'Zoom in here',
       callback: centerAndZoomMap
+    }, {
+      separator: true
     }, {
       text: 'GeoJSON to Clipboard',
       callback: geoJSONToClipboard
@@ -684,13 +717,32 @@ const drawMap = () => {
         // show filter dialog
         showMapFiltersPopup.value = true
       }
+    }, {
+      text: 'Configure Map',
+      callback: () => {
+        // show filter dialog
+        showMapConfigurationPopup.value = true
+      }
     }]
   }).setView([51.505, -0.09], 7); // Temporary view, will adjust based on GeoJSON
 
   // Add OpenStreetMap tiles
-  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  const osmLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
   }).addTo(map.value);
+
+
+  const EsriWorldImageryLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+    attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+  });
+  //  layerControl.addOverlay(Esri_WorldImagery, "Esri World Imagery");
+
+  layerControl = L.control.layers({ OpenStreetMap: osmLayer, Satellite: EsriWorldImageryLayer }, {}).addTo(map.value);
+
+
+  const tileLayer = L.tileLayer('https://mapwarper.net/maps/tile/80272/{z}/{x}/{y}.png', { attribution: '&copy; <a href="https://www.https://mapwarper.net">mapwarper.net</a> ' }).addTo(map.value);
+  layerControl.addOverlay(tileLayer, "Galgenwaard");
+
 
   attachMapListeners()
   addClusterControl()
@@ -706,7 +758,7 @@ const drawMap = () => {
       const site = storiesStore.getSite(feature.properties.id)
       const tooltip = `${feature.properties.name}`;
       const tooltipClassName = `tooltip${feature.properties.id}`.replace(/-/g, "")
-      if (site.showTooltip) {
+      if (site.showTooltip ) {
 
 
         layer.bindTooltip(tooltip, {
@@ -761,6 +813,8 @@ const drawMap = () => {
       layer.bindContextMenu({
         contextmenu: true,
         contextmenuItems: [{
+          separator: true
+        }, {
           text: 'Delete Site',
           callback: (e) => {
             var featureLayer = e.relatedTarget;
