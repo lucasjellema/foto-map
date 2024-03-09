@@ -130,9 +130,43 @@
             <v-container>
               <v-row>
                 <v-col cols="12">
-                  <v-checkbox v-model="currentStory.mapConfiguration.showTooltips" label="Show Tooltips"></v-checkbox>
+                  <v-checkbox v-model="currentStory.mapConfiguration.showTooltips" label="Show Tooltips for Markers"></v-checkbox>
                 </v-col>
               </v-row>
+              <v-row>
+                <v-col cols="12">
+                  <h2>Custom tile layers</h2>
+                </v-col>
+              </v-row>
+              <v-row>
+                <v-col cols="4">
+                  <v-text-field v-model="newTileLayer.label" label="Label"></v-text-field>
+                </v-col>
+                <v-col cols="8">
+                  <v-text-field v-model="newTileLayer.url" label="URL"
+                    hint="https://provider.domain/optional- provider-specific-path/{z}/{x}/{y}.png"
+                    persistent-hint=""></v-text-field>
+                </v-col>
+              </v-row>
+              <v-row>
+                <v-col cols="12">
+                  <v-text-field v-model="newTileLayer.description" label="Description"></v-text-field>
+                  <v-text-field v-model="newTileLayer.attribution" label="Attribution" hint="Attribution to provider, for example '© OpenStreetMap contributors'"></v-text-field>
+                  <v-btn @click="addTileLayer">Add Tile Layer</v-btn>
+                </v-col>
+                </v-row>
+                <v-row>
+                  <v-col>
+                    <v-data-table :headers="tileLayersHeaders" :items="currentStory.mapConfiguration.customTileLayers"
+                      item-key="label" class="elevation-1">
+                      <template v-slot:item.actions="{ item }">
+                        <v-icon small @click="removeTileLayer(item, index)">
+                          mdi-delete
+                        </v-icon>
+                      </template>
+                    </v-data-table>
+                  </v-col>
+                </v-row>
             </v-container>
           </v-card-text>
           <v-card-actions>
@@ -179,6 +213,25 @@ const currentStory = computed(() => storiesStore.currentStory)
 const sitesData = computed(() => currentStory.value.sites);
 
 const search = ref("")
+const tileLayersHeaders = ref([
+  { text: 'Label', value: 'label' },
+  { text: 'URL', value: 'url' },
+  { text: 'Description', value: 'description' },
+  { text: 'Actions', value: 'actions' },
+])
+const newTileLayer = ref({})
+
+const addTileLayer = () => {
+  currentStory.value.mapConfiguration.customTileLayers.push(newTileLayer.value)
+
+  newTileLayer.value = {}
+
+}
+
+const removeTileLayer = (item, index) => {
+  currentStory.value.mapConfiguration.customTileLayers.splice(index, 1)
+
+}
 
 const popupContentRef = ref(null)
 const poppedupFeature = ref({})
@@ -281,7 +334,7 @@ const saveItem = () => {
 }
 
 const refreshTooltip = (site, tooltipElement) => {
-    tooltipElement.style.display = currentStory.value.mapConfiguration?.showTooltips? 'block' : 'none'
+  tooltipElement.style.display = currentStory.value.mapConfiguration?.showTooltips ? 'block' : 'none'
 
   if (!site.tooltipSize) site.tooltipSize = site.tooltipSize
 
@@ -740,8 +793,15 @@ const drawMap = () => {
   layerControl = L.control.layers({ OpenStreetMap: osmLayer, Satellite: EsriWorldImageryLayer }, {}).addTo(map.value);
 
 
-  const tileLayer = L.tileLayer('https://mapwarper.net/maps/tile/80272/{z}/{x}/{y}.png', { attribution: '&copy; <a href="https://www.https://mapwarper.net">mapwarper.net</a> ' }).addTo(map.value);
-  layerControl.addOverlay(tileLayer, "Galgenwaard");
+  // const tileLayer = L.tileLayer('https://mapwarper.net/maps/tile/80272/{z}/{x}/{y}.png', { attribution: '&copy; <a href="https://www.https://mapwarper.net">mapwarper.net</a> ' }).addTo(map.value);
+  // layerControl.addOverlay(tileLayer, "Galgenwaard");
+
+//loop over customtilelayers and add them
+  currentStory.value.mapConfiguration.customTileLayers.forEach(tileLayer => {
+    const theTileLayer = L.tileLayer(tileLayer.url, { attribution: tileLayer.attribution }).addTo(map.value);
+    layerControl.addOverlay(theTileLayer, tileLayer.label);
+  })
+
 
 
   attachMapListeners()
@@ -758,7 +818,7 @@ const drawMap = () => {
       const site = storiesStore.getSite(feature.properties.id)
       const tooltip = `${feature.properties.name}`;
       const tooltipClassName = `tooltip${feature.properties.id}`.replace(/-/g, "")
-      if (site.showTooltip ) {
+      if (site.showTooltip) {
 
 
         layer.bindTooltip(tooltip, {
