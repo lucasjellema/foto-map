@@ -11,10 +11,11 @@ export const useStorieStore = defineStore('storyData', () => {
     const currentStory = ref(stories.value[0])
 
     const initializeCurrentStory = () => {
-        if (!currentStory.value.mapConfiguration) {
-            currentStory.value.mapConfiguration = { customTileLayers: [], showTooltips: true };
-            updateStory(currentStory.value);
+        if (stories.value.length==0) {
+            stories.value.push({ id: uuidv4(), name: 'New Story', sites: [], mapConfiguration: { customTileLayers: [], showTooltips: true } })
+            
         }
+
     }
     initializeCurrentStory()
 

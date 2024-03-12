@@ -129,8 +129,17 @@
           <v-card-text>
             <v-container>
               <v-row>
+                <v-col cols="3">
+                  <v-btn @click="exportMap()">Export Map</v-btn>
+                </v-col>
+                <v-col cols="8" offset="1">
+                  <v-file-input label="Upload FotoMapp Archive" @change="handleImport" accept=".zip"></v-file-input>
+                </v-col>
+              </v-row>
+              <v-row>
                 <v-col cols="12">
-                  <v-checkbox v-model="currentStory.mapConfiguration.showTooltips" label="Show Tooltips for Markers"></v-checkbox>
+                  <v-checkbox v-model="currentStory.mapConfiguration.showTooltips"
+                    label="Show Tooltips for Markers"></v-checkbox>
                 </v-col>
               </v-row>
               <v-row>
@@ -151,22 +160,23 @@
               <v-row>
                 <v-col cols="12">
                   <v-text-field v-model="newTileLayer.description" label="Description"></v-text-field>
-                  <v-text-field v-model="newTileLayer.attribution" label="Attribution" hint="Attribution to provider, for example '© OpenStreetMap contributors'"></v-text-field>
+                  <v-text-field v-model="newTileLayer.attribution" label="Attribution"
+                    hint="Attribution to provider, for example '© OpenStreetMap contributors'"></v-text-field>
                   <v-btn @click="addTileLayer">Add Tile Layer</v-btn>
                 </v-col>
-                </v-row>
-                <v-row>
-                  <v-col>
-                    <v-data-table :headers="tileLayersHeaders" :items="currentStory.mapConfiguration.customTileLayers"
-                      item-key="label" class="elevation-1">
-                      <template v-slot:item.actions="{ item }">
-                        <v-icon small @click="removeTileLayer(item, index)">
-                          mdi-delete
-                        </v-icon>
-                      </template>
-                    </v-data-table>
-                  </v-col>
-                </v-row>
+              </v-row>
+              <v-row>
+                <v-col>
+                  <v-data-table :headers="tileLayersHeaders" :items="currentStory.mapConfiguration.customTileLayers"
+                    item-key="label" class="elevation-1">
+                    <template v-slot:item.actions="{ item }">
+                      <v-icon small @click="removeTileLayer(item, index)">
+                        mdi-delete
+                      </v-icon>
+                    </template>
+                  </v-data-table>
+                </v-col>
+              </v-row>
             </v-container>
           </v-card-text>
           <v-card-actions>
@@ -211,6 +221,32 @@ import { computed } from 'vue';
 const storiesStore = useStorieStore()
 const currentStory = computed(() => storiesStore.currentStory)
 const sitesData = computed(() => currentStory.value.sites);
+
+import { useImportExportLibrary } from '@/composables/useImportExportLibrary';
+const { exportStoryToZip, importStoryFromZip } = useImportExportLibrary();
+
+
+const exportMap = () => {
+  exportStoryToZip(currentStory.value)
+}
+
+
+const handleImportedStory = (story) => {
+  console.log(`resolvd`)
+    //loop over all sites in story and create sites in current story using addSite
+    // TODO handle image id
+    for (const site of story.sites) {
+      storiesStore.addSite(site)
+    }
+}
+
+
+const handleImport = async (event) => {
+  const files = event.target.files
+  if (!files || files.length == 0) return;
+  importStoryFromZip(files[0], handleImportedStory)
+  
+}
 
 const search = ref("")
 const tileLayersHeaders = ref([
@@ -265,7 +301,7 @@ const dateRangeStep = computed(() => {
 })
 
 const minTimestamp = computed(() => {
-  if (sitesData.value.length === 0) return 0
+  if (!sitesData.value || sitesData.value.length === 0) return 0
   let min = new Date(sitesData.value[0].timestamp)
   sitesData.value.forEach(site => {
     const siteTimestamp = new Date(site.timestamp)
@@ -277,7 +313,7 @@ const minTimestamp = computed(() => {
 })
 
 const maxTimestamp = computed(() => {
-  if (sitesData.value.length === 0) return 0
+  if (!sitesData.value || sitesData.value.length === 0) return 0
   let max = new Date(sitesData.value[0].timestamp)
   sitesData.value.forEach(site => {
     const siteTimestamp = new Date(site.timestamp)
@@ -796,8 +832,8 @@ const drawMap = () => {
   // const tileLayer = L.tileLayer('https://mapwarper.net/maps/tile/80272/{z}/{x}/{y}.png', { attribution: '&copy; <a href="https://www.https://mapwarper.net">mapwarper.net</a> ' }).addTo(map.value);
   // layerControl.addOverlay(tileLayer, "Galgenwaard");
 
-//loop over customtilelayers and add them
-  currentStory.value.mapConfiguration.customTileLayers.forEach(tileLayer => {
+  //loop over customtilelayers and add them
+  currentStory.value.mapConfiguration?.customTileLayers?.forEach(tileLayer => {
     const theTileLayer = L.tileLayer(tileLayer.url, { attribution: tileLayer.attribution }).addTo(map.value);
     layerControl.addOverlay(theTileLayer, tileLayer.label);
   })
@@ -1042,6 +1078,7 @@ const setImageURLonFeature = async (imageId) => {
 
 
 const addSitesToLayer = (layer, sites) => {
+  if (!sites) return
   try {
 
     const features = sites.map(site => site.geoJSON.features[0]);

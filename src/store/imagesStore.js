@@ -34,6 +34,32 @@ export const useImagesStore = defineStore('imageData', () => {
         });
     }
 
+      
+
+    const  getImagesFromIndexedDB = async ()=> {
+        // Open your IndexedDB database and read the images
+        // This example assumes you know how to work with IndexedDB
+        const db = await openDatabase(); // Implement this function based on your IndexedDB setup
+        const transaction = db.transaction(['images'], 'readonly');
+        const store = transaction.objectStore('images');
+        const images = [];
+      
+        // This will depend on your database structure. Here we iterate over all stored images
+        store.openCursor().onsuccess = (event) => {
+          const cursor = event.target.result;
+          if (cursor) {
+            images.push(cursor.value); // Assuming cursor.value is the image Blob or base64 string
+            cursor.continue();
+          }
+        };
+      
+        // Wait for the transaction to complete
+        await transaction.complete;
+        db.close();
+      
+        return images;
+      }
+
     const imageUrlCache = {} // contains all URLs handed out for imagedIds in the currentr session
 
     const getUrlForIndexedDBImage = (imageId) => {
@@ -181,7 +207,7 @@ export const useImagesStore = defineStore('imageData', () => {
 
 
     return {
-        getUrlForIndexedDBImage, resizeImage, saveImage, removeImage, extractEXIFData
+        getUrlForIndexedDBImage, resizeImage, saveImage, removeImage, extractEXIFData, getImagesFromIndexedDB
     };
 });
 
