@@ -1,47 +1,82 @@
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
+import { useImagesStore } from "@/store/imagesStore";
+
 
 export function useImportExportLibrary() {
 
+  async function fetchImageData(imageUrl) {
+    const response = await fetch(imageUrl);
+    if (!response.ok) throw new Error(`Failed to fetch: ${response.statusText}`);
+    return response.blob(); // Get the image data as Blob
+  }
+
+  function blobToFile(blob, fileName) {
+    const file = new File([blob], fileName, { type: blob.type });
+    return file;
+  }
+
+
+  const imagesStore = useImagesStore()
   const exportStoryToZip = (story) => {
     const zip = new JSZip();
-
-    // TODO process imageId 
     zip.file("story.json", JSON.stringify(story));
 
-    // Generate the zip file and trigger download
-    zip.generateAsync({ type: "blob" })
-      .then(function (content) {
-        saveAs(content, `fotomapp-archive.zip`);
-      });
+    const promises = [];
+    // for each site - check the imageId; get the associated image as a file and add it to the zip file in the subdirectory for images using the imageId as the filename
+    // TODO also process images in attachments
+    story.sites.forEach(site => {
+      if (site.imageId) {
+        promises.push(new Promise((resolve, reject) => {
+          imagesStore.getUrlForIndexedDBImage(site.imageId).then(async url => {
+            try {
+              const imageData = await fetchImageData(url);
+              zip.file(`images/${site.imageId}`, imageData);
+              resolve();
+            }
+            catch (error) { reject(error) }
+          })
+        }))
+      }
+    })
+    // only when all images have been added can we generate the zip
+
+    Promise.all(promises)
+      .then(results => {
+        // Generate the zip file and trigger download
+        zip.generateAsync({ type: "blob" })
+          .then(function (content) {
+            saveAs(content, `fotomapp-archive.zip`);
+          });
+      })
   }
 
 
-  const importStoryFromZip = (file, handleImportedStory) => {
-      const zip = new JSZip();
+  const imgFileRegex = /^images\/\d+$/i;
 
-      // Read the zip file
-      zip.loadAsync(file)
-        .then(function (contents) {
-          // Assuming there's only one file, "localStorageData.json"
-          return contents.file("story.json").async("string");
-        })
-        .then(function (data) {
-          const story = JSON.parse(data);
-          // add data from story to currentstory or replace currentstory with story
-          handleImportedStory(story)
+  const importStoryFromZip = async (file, handleImportedStory) => {
+    const zip = new JSZip();
+    const contents = await zip.loadAsync(file)
+    const files = Object.values(contents.files);
+    const imageFile2NewImageId = {}
 
-        })
-        .catch(function (err) {
-          console.error("Error reading zip file", err);
-          
-        });
-    
+    for (const file of files) {
+      // store file as image in indexedDB, retrieve newly assigned imageId, return map with original image id and new image id 
+      if (imgFileRegex.test(file.name)) {
+        const blob = await zip.file(file.name).async('blob') // .then(async (content) => {
+        const imageId = await imagesStore.saveImage(blob)
+        imageFile2NewImageId[file.name] = imageId
+      }
+    }
+    const data = await contents.file("story.json").async("string");
+    const story = JSON.parse(data);
+    // invoke callback function to handle the imported content 
+    handleImportedStory(story, imageFile2NewImageId)
+    }
+
+
+
+
+
+    return { exportStoryToZip, importStoryFromZip };
   }
-
-
-
-
-
-  return { exportStoryToZip, importStoryFromZip };
-}

@@ -231,13 +231,16 @@ const exportMap = () => {
 }
 
 
-const handleImportedStory = (story) => {
+const handleImportedStory = (story, imageFile2NewImageIdMap) => {
   console.log(`resolvd`)
-    //loop over all sites in story and create sites in current story using addSite
-    // TODO handle image id
-    for (const site of story.sites) {
-      storiesStore.addSite(site)
-    }
+  //loop over all sites in story and create sites in current story using addSite
+  for (const site of story.sites) {
+    // TODO check if site already exists under id and if so: update!
+    const newSite = { ...site }
+    newSite.imageId = imageFile2NewImageIdMap[`images\/${site.imageId}`]
+    storiesStore.addSite(newSite)
+    // TODO handle image id in attachments
+  }
 }
 
 
@@ -245,7 +248,7 @@ const handleImport = async (event) => {
   const files = event.target.files
   if (!files || files.length == 0) return;
   importStoryFromZip(files[0], handleImportedStory)
-  
+
 }
 
 const search = ref("")
