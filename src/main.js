@@ -11,10 +11,17 @@ import { createPinia } from 'pinia'
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
+// PrimeVue setup
+import PrimeVue from 'primevue/config';
+import 'primevue/resources/themes/aura-light-green/theme.css'
+
+import "primeflex/primeflex.css";
+import "primeicons/primeicons.css";
+
+
 
 // fix the issue of marker-icon not available in the public folder
 const iconRetinaUrl = new URL('/marker-icon-2x.png', import.meta.url).href;
-//const iconUrl = new URL('../public/leaflet-images/marker-icon.png', import.meta.url).href;
 const iconUrl = new URL('/marker-icon.png', import.meta.url).href;
 const shadowUrl = new URL('/marker-shadow.png', import.meta.url).href;
 
@@ -35,5 +42,8 @@ const pinia = createPinia()
 const app = createApp(App)
 
 registerPlugins(app)
+
+// PrimeVue
+app.use(PrimeVue);
 
 app.mount('#app')

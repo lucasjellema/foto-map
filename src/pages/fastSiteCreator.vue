@@ -4,30 +4,50 @@
       <v-main>
         <v-row>
           <v-col cols="4" offset="0">
-            <v-text-field v-model="search" label="Search" clearable></v-text-field>
-            <v-data-table :headers="headers" :items="sitesData" :search="search" items-per-page="5"
-              :custom-sort="customSort" return-object>
-              <template v-slot:item.timestamp="{ item }">
-                {{ formatDate(item.timestamp) }}
-              </template>
+            <v-tabs v-model="tab" align-tabs="center" density="compact" bg-color="deep-purple-accent-4" stacked>
+              <v-tab value="tab-1">
+                <v-icon>mdi-file-tree</v-icon>
+                Sites Tree
+              </v-tab>
 
-              <template v-slot:item.edit="{ item }">
-                <v-btn icon @click="editItem(item)">
-                  <v-icon>mdi-pencil</v-icon>
-                </v-btn>
-              </template>
+              <v-tab value="tab-2">
+                <v-icon>mdi-table-arrow-up</v-icon>
+                Upload Photographs
+              </v-tab>
 
-              <template v-slot:item.remove="{ item }">
-                <v-btn icon @click="removeSite(item)">
-                  <v-icon>mdi-delete</v-icon>
-                </v-btn>
-              </template>
-            </v-data-table>
+              <!-- <v-tab value="tab-3">
+        <v-icon>mdi-account-box</v-icon>
+        Nearby
+      </v-tab> -->
+            </v-tabs>
+            <div v-if="tab == 'tab-1'">
+              <SiteTree @site-selected="handleSiteSelected" ></SiteTree>
+            </div>
+            <div v-if="tab == 'tab-2'">
+              <v-text-field v-model="search" label="Search" clearable></v-text-field>
+              <v-data-table :headers="headers" :items="sitesData" :search="search" items-per-page="5"
+                :custom-sort="customSort" return-object>
+                <template v-slot:item.timestamp="{ item }">
+                  {{ formatDate(item.timestamp) }}
+                </template>
 
-            <h3>Upload or paste one or multiple files</h3>
-            <image-editor ref="imageEditorRef" image-height=400 image-width=600 @gps-data="handleGPSData"
-              :allowMultipleFiles=true :fastSiteCreator="true"></image-editor>
+                <template v-slot:item.edit="{ item }">
+                  <v-btn icon @click="editItem(item)">
+                    <v-icon>mdi-pencil</v-icon>
+                  </v-btn>
+                </template>
 
+                <template v-slot:item.remove="{ item }">
+                  <v-btn icon @click="removeSite(item)">
+                    <v-icon>mdi-delete</v-icon>
+                  </v-btn>
+                </template>
+              </v-data-table>
+
+              <h3>Upload or paste one or multiple files</h3>
+              <image-editor ref="imageEditorRef" image-height=400 image-width=600 @gps-data="handleGPSData"
+                :allowMultipleFiles=true :fastSiteCreator="true"></image-editor>
+            </div>
           </v-col>
           <v-col cols="7" offset="0">
             <div id="mapid" style="height: 700px; width:900px"></div>
@@ -79,6 +99,7 @@
                 </v-card-text>
               </v-card>
             </div>
+
 
           </v-col>
         </v-row>
@@ -196,6 +217,7 @@ import domtoimage from 'dom-to-image-more';
 import ImageEditor from "@/components/imageEditor.vue"
 import SiteEditor from "@/components/SiteEditor.vue"
 import SiteMap from "@/components/SiteMap.vue"
+
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet-contextmenu';
@@ -224,22 +246,43 @@ const sitesData = computed(() => currentStory.value.sites);
 
 import { useImportExportLibrary } from '@/composables/useImportExportLibrary';
 const { exportStoryToZip, importStoryFromZip } = useImportExportLibrary();
+import { useSitesTreeLibrary } from '@/composables/useSitesTreeLibrary';
+
+
+const tab = ref('tab-1')
 
 
 const exportMap = () => {
   exportStoryToZip(currentStory.value)
 }
 
-
+// callback - will be invoked from importStoryFromZip  
 const handleImportedStory = (story, imageFile2NewImageIdMap) => {
   console.log(`resolvd`)
   //loop over all sites in story and create sites in current story using addSite
   for (const site of story.sites) {
-    // TODO check if site already exists under id and if so: update!
-    const newSite = { ...site }
-    newSite.imageId = imageFile2NewImageIdMap[`images\/${site.imageId}`]
-    storiesStore.addSite(newSite)
-    // TODO handle image id in attachments
+    // find story in storiesStore with id site.id
+    let existingSite = storiesStore.getSite(site.id)
+    if (existingSite) {
+      //copy properties from site to existingSite
+      existingSite = { ...existingSite, ...site }
+      // remove existing image from indexedDB 
+      // TODO unless it is used in other sites as well? alternatively, push to attachments?
+      if (existingSite.imageId) {
+        imagesStore.removeImage(existingSite.imageId)
+      }
+
+      existingSite.imageId = imageFile2NewImageIdMap[`images\/${site.imageId}`]
+      storiesStore.updateSite(existingSite)
+
+    }
+    else {
+
+      const newSite = { ...site }
+      newSite.imageId = imageFile2NewImageIdMap[`images\/${site.imageId}`]
+      storiesStore.addSite(newSite)
+    }
+    // TODO handle image id in attachments - both for existing (overwritten) site and for newly created site
   }
 }
 
@@ -249,6 +292,21 @@ const handleImport = async (event) => {
   if (!files || files.length == 0) return;
   importStoryFromZip(files[0], handleImportedStory)
 
+}
+
+const handleSiteSelected = (siteIds) => {
+  if (siteIds.length == 0) {return    
+  }
+  const coordinates = []
+  for (const siteId of siteIds) {
+    const site = storiesStore.getSite(siteId)
+    if (site) {
+      const siteCoordinates = site.geoJSON.features[0].geometry.coordinates
+      coordinates.push([siteCoordinates[1], siteCoordinates[0]])
+    }
+  }
+  const bounds = L.latLngBounds(coordinates);
+  map.value.fitBounds(bounds, { padding: [30, 30] });
 }
 
 const search = ref("")
@@ -414,7 +472,7 @@ const dateFormatStyle = computed(() => {
     return "long"  // DD MON Y
 })
 
-const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+// const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 function formatDate(timestamp) {
   const date = new Date(timestamp)
 
@@ -424,7 +482,7 @@ function formatDate(timestamp) {
     return `${hour}:${min < 10 ? '0' : ''}${min}`
   } else if (dateFormatStyle.value === "medium") {
     const day = date.getDate();
-    const month = months[date.getMonth()];
+    const month = date.toLocaleString('default', { month: 'long' }) // months[date.getMonth()];
     const hour = date.getHours();
     const min = date.getMinutes();
     return `${day} ${month} ${hour}:${min < 10 ? '0' : ''}${min}`
@@ -580,7 +638,11 @@ onMounted(() => {
   drawMap();
   refreshMarkers();
   dateRangeSlider.value = [minTimestamp.value, maxTimestamp.value];
+
+ 
 });
+
+
 const map = ref(null)
 let geoJsonLayer, clustersLayer
 
@@ -590,6 +652,18 @@ const refreshMap = () => {
   drawMap()
   refreshMarkers()
   mapEditMode.value = false
+
+  // find first marker and tilt
+
+  const firstMarker = geoJsonLayer.getLayers()[0]
+  if (firstMarker) {
+
+    var icon = firstMarker._icon; // Access the DOM element of the marker icon
+    //    icon.style.transition = "transform 0.3s ease"; // Optional: smooth transition
+    console.log(`Icon style transform ${icon.style.transform}`)
+    icon.style.transform += "rotate(30deg)";
+    console.log(`NEW Icon style transform ${icon.style.transform}`)
+  }
 }
 
 
@@ -601,7 +675,12 @@ const deleteMarker = marker => {
 }
 
 const hideMarker = marker => {
-  marker.remove()
+  marker.setOpacity(0) // also hide tooltip?!
+  const tooltipClassName = `tooltip${marker.feature.properties.id}`.replace(/-/g, "")
+  const tooltipElement = document.querySelector(`.${tooltipClassName}`);
+  tooltipElement.style.opacity = 0
+
+  //  marker.remove()
 }
 
 const hideSite = (site) => {
@@ -664,15 +743,17 @@ const consolidateSite = (marker) => {
 
     removedFeatures.push(feature)
     if (mapEditMode.value) {
-      const siteToRemove = storiesStore.getSite(feature.feature.properties.id)
 
+      const siteToRemove = storiesStore.getSite(feature.feature.properties.id)
       // add to targetSite.attachments an object with description (consisting of label, timestamp, description) and imageID
       if (siteToRemove.imageId || siteToRemove.description) {
         targetSite.attachments.push({
           description: `${formatDate(siteToRemove.timestamp)} ${siteToRemove.city}, ${siteToRemove.country}`
           , imageId: siteToRemove.imageId
         })
-        siteToRemove.imageId = null // to prevent the removal of the site to also remove referenced image 
+        siteToRemove.imageId = null // to prevent the removal of the site to alsoresult in removal of the referenced image 
+
+        // TODO process the attachments of the removed site - add those to the targerSet as well?!
       }
       deleteMarker(feature)
     }
@@ -827,15 +908,9 @@ const drawMap = () => {
   const EsriWorldImageryLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
     attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
   });
-  //  layerControl.addOverlay(Esri_WorldImagery, "Esri World Imagery");
 
   layerControl = L.control.layers({ OpenStreetMap: osmLayer, Satellite: EsriWorldImageryLayer }, {}).addTo(map.value);
 
-
-  // const tileLayer = L.tileLayer('https://mapwarper.net/maps/tile/80272/{z}/{x}/{y}.png', { attribution: '&copy; <a href="https://www.https://mapwarper.net">mapwarper.net</a> ' }).addTo(map.value);
-  // layerControl.addOverlay(tileLayer, "Galgenwaard");
-
-  //loop over customtilelayers and add them
   currentStory.value.mapConfiguration?.customTileLayers?.forEach(tileLayer => {
     const theTileLayer = L.tileLayer(tileLayer.url, { attribution: tileLayer.attribution }).addTo(map.value);
     layerControl.addOverlay(theTileLayer, tileLayer.label);
@@ -853,21 +928,19 @@ const drawMap = () => {
 
   geoJsonLayer = L.geoJSON(null, {
     draggable: true,
-    onEachFeature: async (feature, layer) => {
+    onEachFeature: async (feature, marker) => {
       const site = storiesStore.getSite(feature.properties.id)
       const tooltip = `${feature.properties.name}`;
       const tooltipClassName = `tooltip${feature.properties.id}`.replace(/-/g, "")
       if (site.showTooltip) {
 
 
-        layer.bindTooltip(tooltip, {
+        marker.bindTooltip(tooltip, {
           permanent: true
           , className: `my-custom-tooltip ${tooltipClassName}`
           , direction: site.tooltipDirection ? site.tooltipDirection : 'auto' // derive direction from feature properties ; also opacity , 
           , interactive: true // needed to handle tooltip click events
         })
-
-        //TODO allow user to edit tool tip characteristics; store them in geojson properties; use them to set direction opacity, and color, background color, font-size
 
         setTimeout(() => {
           const tooltipElement = document.querySelector(`.${tooltipClassName}`);
@@ -876,8 +949,8 @@ const drawMap = () => {
         }, 50); // Small timeout to ensure the tooltip is rendered
 
       }
-      layer.bindPopup((layer) => {
-        poppedupSite.value = storiesStore.getSite(layer.feature.properties.id)
+      marker.bindPopup((marker) => {
+        poppedupSite.value = storiesStore.getSite(marker.feature.properties.id)
         if (mapEditMode.value) {
           // open edit dialog
           // editedSite.value = poppedupSite.value
@@ -887,10 +960,10 @@ const drawMap = () => {
           //          return editSitePopupContentRef.value.$el;
         }
 
-        poppedupFeature.value = layer.feature;
+        poppedupFeature.value = marker.feature;
         // get site from storiesStore for this feature
 
-        console.log(`open popup for ${layer.feature.properties.id} ${poppedupSite.value.label}`);
+        console.log(`open popup for ${marker.feature.properties.id} ${poppedupSite.value.label}`);
         if (poppedupSite.value.imageId) {
           try {
             setImageURLonFeature(poppedupSite.value.imageId);
@@ -909,27 +982,33 @@ const drawMap = () => {
         }
         return popupContentRef.value.$el;
       });
-      layer.bindContextMenu({
+      marker.bindContextMenu({
         contextmenu: true,
         contextmenuItems: [{
           separator: true
         }, {
           text: 'Delete Site',
           callback: (e) => {
-            var featureLayer = e.relatedTarget;
-            deleteMarker(featureLayer);
+            const featureLayer = e.relatedTarget;
+            if (featureLayer) {
+              deleteMarker(featureLayer);
+            }
           }
         }, {
           text: 'Hide Site',
           callback: (e) => {
-            var featureLayer = e.relatedTarget;
-            hideMarker(featureLayer);
+            const featureLayer = e.relatedTarget;
+            if (featureLayer) {
+              hideMarker(featureLayer);
+            }
           }
         }, {
           text: 'Consolidate Site',
           callback: (e) => {
-            var featureLayer = e.relatedTarget;
-            consolidateSite(featureLayer);
+            const featureLayer = e.relatedTarget;
+            if (featureLayer) {
+              consolidateSite(featureLayer);
+            }
           }
         }]
       });
@@ -1091,9 +1170,9 @@ const addSitesToLayer = (layer, sites) => {
   }
   // Zoom the map to the GeoJSON bounds
   try {
-    const bounds = geoJsonLayer.getBounds();
+    const bounds = layer.getBounds();
     if (bounds)
-      map.value.fitBounds(bounds);
+      map.value.fitBounds(bounds, { padding: [15, 15] });
     // if (layer.getBounds()) map.value.fitBounds(layer.getBounds());
   } catch (e) { console.warn(`map.value.fitBounds(layer.getBounds() failed`); }
 }
@@ -1175,6 +1254,7 @@ const handlePastedText = (text) => {
   /* text-wrap: wrap !important;*/
   font-size: 12px !important;
 }
+
 
 .map-control {
   background-color: rgba(200, 200, 200, 0.8);
