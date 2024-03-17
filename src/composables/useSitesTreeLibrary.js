@@ -24,7 +24,7 @@ export function useSitesTreeLibrary() {
       }
       const uniqueMonths = [...new Set(sites.filter(site => new Date(site.timestamp).getFullYear() === year).sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
         .map(site => new Date(site.timestamp).toLocaleString('default', { month: 'long' }))
-        )];
+      )];
       uniqueMonths.forEach(month => {
         const monthNode = {
           key: month,
@@ -41,13 +41,13 @@ export function useSitesTreeLibrary() {
         const uniqueDays = [...new Set(sitesWithYearAndMonth.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
           .map(site => new Date(site.timestamp).getDate()))];
         //iterate over all unique days sorted by date and create a node for each day
-        
+
         uniqueDays.forEach(day => {
 
-          const date = new Date(`${year}-${month}-${day}`) 
+          const date = new Date(`${year}-${month}-${day}`)
           const dayNode = {
             key: day,
-            label: formatDate(date, 'dow') + ' '+day ,
+            label: formatDate(date, 'dow') + ' ' + day,
             data: day,
             icon: 'mdi mdi-calendar-range',
             selectable: false,
@@ -71,7 +71,7 @@ export function useSitesTreeLibrary() {
             else {
 
               dayNode.key = siteNode.key
-               dayNode.icon = siteNode.icon
+              dayNode.icon = siteNode.icon
               dayNode.selectable = siteNode.selectable
               dayNode.leaf = siteNode.leaf
               dayNode.styleClass = siteNode.styleClass
@@ -168,8 +168,12 @@ export function useSitesTreeLibrary() {
           }
           cityNode.children.push(siteNode)
         })
-
-        countryNode.children.push(cityNode)
+        if (uniqueCities.length > 1)
+          countryNode.children.push(cityNode)
+        else {
+          countryNode.children = cityNode.children
+          countryNode.label = cityNode.label + ' - ' + countryNode.label
+        }
       })
       locationTreeData.children.push(countryNode)
 
