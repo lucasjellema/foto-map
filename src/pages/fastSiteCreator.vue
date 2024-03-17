@@ -96,6 +96,12 @@
                       content-class="hover-zoom"></v-img>
                     {{ poppedupFeature?.properties?.description }}
                   </div>
+                  
+                  <div v-if="poppedupSite?.tags?.length > 0">
+                    <v-chip v-for="tag in poppedupSite?.tags" class="ma-2">
+                      {{ tag }}
+                    </v-chip>
+                  </div> 
                 </v-card-text>
               </v-card>
             </div>
@@ -111,7 +117,7 @@
       </v-main>
       <!-- Add/Edit Site Dialog -->
       <v-dialog v-model="showEditSitePopup" max-width="1000px">
-        <SiteEditor v-model:site="editedSite" @saveSite="saveItem" @closeDialog="closeDialog"></SiteEditor>
+        <SiteEditor v-model:site="editedSite" :storyTags="storyTags"  @saveSite="saveItem" @closeDialog="closeDialog"></SiteEditor>
       </v-dialog>
 
       <v-dialog v-model="showMapFiltersPopup" max-width="800px">
@@ -243,6 +249,7 @@ import { computed } from 'vue';
 const storiesStore = useStorieStore()
 const currentStory = computed(() => storiesStore.currentStory)
 const sitesData = computed(() => currentStory.value.sites);
+const storyTags = computed(() => currentStory.value.tags);
 
 import { useImportExportLibrary } from '@/composables/useImportExportLibrary';
 const { exportStoryToZip, importStoryFromZip } = useImportExportLibrary();

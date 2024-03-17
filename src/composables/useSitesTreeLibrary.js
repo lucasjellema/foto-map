@@ -176,38 +176,66 @@ export function useSitesTreeLibrary() {
         }
       })
       locationTreeData.children.push(countryNode)
+    })
+    return locationTreeData
+  }
 
+  const getTagsTreeData = (sites) => {
+    const tagsTreeData =
+    {
+      key: '0-tags',
+      label: 'Tags',
+      data: 'Documents Folder',
+      icon: 'mdi mdi-tag-outline',
+      selectable: false,
+      children: []
+    }
 
-
+    const tagsSitesMap ={}
+// loop over sites and then over the tags for each site
+// add each tag to the map with an array of sites that have that tag 
+    sites.forEach(site => {
+      site.tags?.forEach(tag => {
+        if (!tagsSitesMap[tag]) {
+          tagsSitesMap[tag] = []  
+        }
+        tagsSitesMap[tag].push(site)
+      })
     })
 
+// loop over all properties in tagsSitesMap and create a node for each tag
 
-    /*
-           {
-                key: '0-0',
-                label: 'Work',
-                data: 'Work Folder',
-                icon: 'mdi mdi-abacus',
-                children: [
-                    { key: '0-0-0', label: 'Expenses.doc', icon: 'pi pi-fw pi-file', data: 'Expenses Document' },
-                    { key: '0-0-1', label: 'Resume.doc', icon: 'pi pi-fw pi-file', data: 'Resume Document' }
-                ]
-            },
-            {
-                key: '0-1',
-                label: 'Home',
-                data: 'Home Folder',
-                icon: 'pi pi-fw pi-home',
-                children: [{ key: '0-1-0', label: 'Invoices.txt', icon: 'pi pi-fw pi-file', data: 'Invoices for this month' }]
-            }
-     */
-    return locationTreeData
+    Object.keys(tagsSitesMap).forEach(tag => {
+      const tagNode = {
+        key: tag, 
+        label: tag,
+        data: tag,
+        selectable: false,
+        icon: 'mdi mdi-tag-outline',
+        children: []
+      }
+      // loop over sites that have that tag and add to node for that tag to the tagNode children
+      tagsSitesMap[tag].forEach(site => {
+        const siteNode = {
+          key: site.id, // to allow the site to be found from the feature - as in the map only the feature will be available  
+          label: `${site.label} (${site.city}, ${site.country}) - ${formatDate(site.timestamp, 'medium')}`,
+          data: site,
+          icon: 'mdi mdi-city',
+          styleClass: `site-${site.id}`,
+          children: []
+        }
+        tagNode.children.push(siteNode)
+      })      
+      tagsTreeData.children.push(tagNode)
+    })
+    return tagsTreeData
   }
 
   const getSitesTreeData = (sites) => {
     const sitesTreeData = [];
     sitesTreeData.push(getLocationsTreeData(sites));
     sitesTreeData.push(getTimesTreeData(sites));
+    sitesTreeData.push(getTagsTreeData(sites));
     return sitesTreeData;
   }
 

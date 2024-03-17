@@ -12,7 +12,7 @@ export const useStorieStore = defineStore('storyData', () => {
 
     const initializeCurrentStory = () => {
         if (stories.value.length==0) {
-            stories.value.push({ id: uuidv4(), name: 'New Story', sites: [], mapConfiguration: { customTileLayers: [], showTooltips: true } })
+            stories.value.push({ id: uuidv4(), name: 'New Story', sites: [], tags: [], mapConfiguration: { customTileLayers: [], showTooltips: true } })
             
         }
 
@@ -30,6 +30,9 @@ export const useStorieStore = defineStore('storyData', () => {
         }
         if (!story.sites) {
             story.sites = [];
+        }
+        if (!story.tags) {
+            story.tags = [];
         }
         if (!story.mapConfiguration) {
             story.mapConfiguration = { customTileLayers: [], showTooltips: true };
@@ -53,6 +56,29 @@ export const useStorieStore = defineStore('storyData', () => {
         }
     }
 
+    const getStoryTags = (storyId) => {
+        if (storyId) {
+            return stories.value.find(l => l.id === storyId).tags
+        } else {
+            console.log('getstorytags', currentStory.value.tags)
+            return currentStory.value.tags
+        }
+    }
+
+const mergeTags = (tags) => {
+// the array of tags is an array of unique strings
+
+    if (!currentStory.value.tags) {
+        currentStory.value.tags = tags
+    } else {
+        const array1 = currentStory.value.tags
+        const array2 = tags
+        const mergedArrayUnique = [...new Set([...array1, ...array2])];
+        currentStory.value.tags = mergedArrayUnique
+    }
+
+}
+
     const addSite = (site) => {
         if (!currentStory.value.sites) {
             currentStory.value.sites = [];
@@ -62,12 +88,14 @@ export const useStorieStore = defineStore('storyData', () => {
         }
         site.geoJSON.features[0].properties.id = site.id; // to allow the site to be found from the feature - as in the map only the feature will be available
         currentStory.value.sites.push(site)
+        if (site.tags) mergeTags(site.tags)
     }
 
     const updateSite = (site) => {
         const theIndex = currentStory.value.sites.findIndex(l => l.id === site.id);
         if (theIndex !== -1) {
             currentStory.value.sites[theIndex] = site;
+            if (site.tags) mergeTags(site.tags)
         }
     }
 
@@ -84,7 +112,7 @@ export const useStorieStore = defineStore('storyData', () => {
     }
 
     return {
-        stories, currentStory, addStory, updateStory, removeStory, setCurrentStory, addSite, removeSite, updateSite, getSite
+        stories, currentStory, addStory, updateStory, removeStory, setCurrentStory, addSite, removeSite, updateSite, getSite, getStoryTags
     };
 });
 
