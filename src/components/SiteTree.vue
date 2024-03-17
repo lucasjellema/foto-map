@@ -1,5 +1,6 @@
 <template>
-  <Tree :value="sitesTreeData" v-model:selectionKeys="selectedKey" class="w-full md:w-30rem tree-override" ref="treeRef" selectionMode="multiple" ></Tree>
+  <Tree :value="sitesTreeData" v-model:selectionKeys="selectedKey" class="w-full md:w-30rem tree-override" ref="treeRef"
+    selectionMode="multiple" :filter="true"></Tree>
 </template>
 <script setup>
 
@@ -33,7 +34,7 @@ watch(selectedKey, (newselectedKey) => {
   emit('siteSelected', siteIds)
 })
 
-const findSiteIdInTree= (currentElement)=> {
+const findSiteIdInTree = (currentElement) => {
   while (currentElement && currentElement !== document) {
     if (currentElement.classList) {
       for (let className of currentElement.classList) {
@@ -51,8 +52,8 @@ const findSiteIdInTree= (currentElement)=> {
   }
   return null;
 }
-const handleDoubleClickOnTree = (event)=> {
-  const {siteId} = findSiteIdInTree(event.target);
+const handleDoubleClickOnTree = (event) => {
+  const { siteId } = findSiteIdInTree(event.target);
   console.log(siteId)
 }
 
@@ -63,5 +64,14 @@ const handleDoubleClickOnTree = (event)=> {
 */
 .p-treenode-children {
   padding-left: 1rem !important;
+}
+
+.p-tree-filter-container .p-tree-filter {
+  padding-top: 0px;
+  padding-right: 1.125rem !important;
+  padding-bottom: 1.125rem !important;
+  padding-left: 1.125rem !important;
+  margin-top: 10px;
+
 }
 </style>

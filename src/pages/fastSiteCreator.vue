@@ -472,10 +472,13 @@ const dateFormatStyle = computed(() => {
     return "long"  // DD MON Y
 })
 
-// const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 function formatDate(timestamp) {
   const date = new Date(timestamp)
-
+  if (dateFormatStyle === "dow") {
+      const dayOfWeek = date.toLocaleString('default', { weekday: 'long' })
+      ;
+      return dayOfWeek
+    } else
   if (dateFormatStyle.value === "short") {
     const hour = date.getHours();
     const min = date.getMinutes();
@@ -488,7 +491,7 @@ function formatDate(timestamp) {
     return `${day} ${month} ${hour}:${min < 10 ? '0' : ''}${min}`
   } else {
     const day = date.getDate();
-    const month = months[date.getMonth()];
+    const month = date.toLocaleString('default', { month: 'long' });
     const year = date.getFullYear();
     return `${day} ${month} ${year}`
   }

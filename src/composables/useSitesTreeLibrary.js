@@ -1,77 +1,9 @@
 export function useSitesTreeLibrary() {
 
-
-  const treeData = [
-    {
-      key: '0',
-      label: 'Locations',
-      data: 'Documents Folder',
-      icon: 'mdi mdi-map-marker',
-      children: [
-        {
-          key: '0-0',
-          label: 'Work',
-          data: 'Work Folder',
-          icon: 'mdi mdi-abacus',
-          children: [
-            { key: '0-0-0', label: 'Expenses.doc', icon: 'pi pi-fw pi-file', data: 'Expenses Document' },
-            { key: '0-0-1', label: 'Resume.doc', icon: 'pi pi-fw pi-file', data: 'Resume Document' }
-          ]
-        },
-        {
-          key: '0-1',
-          label: 'Home',
-          data: 'Home Folder',
-          icon: 'pi pi-fw pi-home',
-          children: [{ key: '0-1-0', label: 'Invoices.txt', icon: 'pi pi-fw pi-file', data: 'Invoices for this month' }]
-        }
-      ]
-    },
-    {
-      key: '1',
-      label: 'Events',
-      data: 'Events Folder',
-      icon: 'pi pi-fw pi-calendar',
-      children: [
-        { key: '1-0', label: 'Meeting', icon: 'pi pi-fw pi-calendar-plus', data: 'Meeting' },
-        { key: '1-1', label: 'Product Launch', icon: 'pi pi-fw pi-calendar-plus', data: 'Product Launch' },
-        { key: '1-2', label: 'Report Review', icon: 'pi pi-fw pi-calendar-plus', data: 'Report Review' }
-      ]
-    },
-    {
-      key: '2',
-      label: 'Movies',
-      data: 'Movies Folder',
-      icon: 'pi pi-fw pi-star-fill',
-      children: [
-        {
-          key: '2-0',
-          icon: 'pi pi-fw pi-star-fill',
-          label: 'Al Pacino',
-          data: 'Pacino Movies',
-          children: [
-            { key: '2-0-0', label: 'Scarface', icon: 'pi pi-fw pi-video', data: 'Scarface Movie' },
-            { key: '2-0-1', label: 'Serpico', icon: 'pi pi-fw pi-video', data: 'Serpico Movie' }
-          ]
-        },
-        {
-          key: '2-1',
-          label: 'Robert De Niro',
-          icon: 'pi pi-fw pi-star-fill',
-          data: 'De Niro Movies',
-          children: [
-            { key: '2-1-0', label: 'Goodfellas', icon: 'pi pi-fw pi-video', data: 'Goodfellas Movie' },
-            { key: '2-1-1', label: 'Untouchables', icon: 'pi pi-fw pi-video', data: 'Untouchables Movie' }
-          ]
-        }
-      ]
-    }
-  ]
-
   const getTimesTreeData = (sites) => {
     const timesTreeData =
     {
-      key: '0',
+      key: '0-times',
       label: 'Times',
       data: 'Documents Folder',
       icon: 'mdi mdi-calendar-clock',
@@ -90,7 +22,9 @@ export function useSitesTreeLibrary() {
         selectable: false,
         children: []
       }
-      const uniqueMonths = [...new Set(sites.filter(site => new Date(site.timestamp).getFullYear() === year).map(site => new Date(site.timestamp).toLocaleString('default', { month: 'long' })))];
+      const uniqueMonths = [...new Set(sites.filter(site => new Date(site.timestamp).getFullYear() === year).sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
+        .map(site => new Date(site.timestamp).toLocaleString('default', { month: 'long' }))
+        )];
       uniqueMonths.forEach(month => {
         const monthNode = {
           key: month,
@@ -100,7 +34,61 @@ export function useSitesTreeLibrary() {
           selectable: false,
           children: []
         }
-        yearNode.children.push(monthNode)
+        // iterate over all sites with a timestamp that matches the year and month
+        const sitesWithYearAndMonth = sites.filter(site => new Date(site.timestamp).getFullYear() === year
+          && new Date(site.timestamp).toLocaleString('default', { month: 'long' }) === month)
+        // for all sites with the same year and month, add them to the month node
+        const uniqueDays = [...new Set(sitesWithYearAndMonth.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
+          .map(site => new Date(site.timestamp).getDate()))];
+        //iterate over all unique days sorted by date and create a node for each day
+        
+        uniqueDays.forEach(day => {
+
+          const date = new Date(`${year}-${month}-${day}`) 
+          const dayNode = {
+            key: day,
+            label: formatDate(date, 'dow') + ' '+day ,
+            data: day,
+            icon: 'mdi mdi-calendar-range',
+            selectable: false,
+            children: []
+          }
+          // iterate over all sites with a timestamp that matches the year, month, and day, sorted by timestamp
+          const sitesWithYearMonthAndDay = sitesWithYearAndMonth.filter(site => new Date(site.timestamp).getDate() === day).sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
+          sitesWithYearMonthAndDay.forEach(site => {
+            const siteNode = {
+              key: site.id, // to allow the site to be found from the feature - as in the map only the feature will be available
+              label: site.label + ' (' + formatDate(site.timestamp, 'short') + ')',
+              data: site,
+              icon: 'mdi mdi-clock-outline',
+              selectable: true,
+              styleClass: `site-${site.id}`,
+              leaf: true,
+              children: []
+            }
+            if (sitesWithYearMonthAndDay.length > 1)
+              dayNode.children.push(siteNode)
+            else {
+
+              dayNode.key = siteNode.key
+               dayNode.icon = siteNode.icon
+              dayNode.selectable = siteNode.selectable
+              dayNode.leaf = siteNode.leaf
+              dayNode.styleClass = siteNode.styleClass
+              dayNode.data = siteNode.data
+              dayNode.label = dayNode.label + ' - ' + siteNode.label
+            }
+          })
+          monthNode.children.push(dayNode)
+        })
+        if (uniqueMonths.length > 1) {
+          console.log(`push monthNode ${monthNode.label}`)
+          yearNode.children.push(monthNode)
+        } else {
+          yearNode.children = monthNode.children
+          yearNode.label = monthNode.label + ' - ' + yearNode.label
+        }
+
       })
       timesTreeData.children.push(yearNode)
 
@@ -110,22 +98,27 @@ export function useSitesTreeLibrary() {
     return timesTreeData
   }
 
-  const formatDate = (timestamp, dateFormatStyle)=> {
+  const formatDate = (timestamp, dateFormatStyle) => {
     const date = new Date(timestamp)
-  
-    if (dateFormatStyle === "short") {
+
+    if (dateFormatStyle === "dow") {
+      const dayOfWeek = date.toLocaleString('default', { weekday: 'long' })
+        ;
+      return dayOfWeek
+    }
+    else if (dateFormatStyle === "short") {
       const hour = date.getHours();
       const min = date.getMinutes();
       return `${hour}:${min < 10 ? '0' : ''}${min}`
     } else if (dateFormatStyle === "medium") {
       const day = date.getDate();
-      const month = date.toLocaleString('default', { month: 'long' }) 
+      const month = date.toLocaleString('default', { month: 'long' })
       const hour = date.getHours();
       const min = date.getMinutes();
       return `${day} ${month} ${hour}:${min < 10 ? '0' : ''}${min}`
     } else {
       const day = date.getDate();
-      const month = months[date.getMonth()];
+      const month = date.toLocaleString('default', { month: 'long' })
       const year = date.getFullYear();
       return `${day} ${month} ${year}`
     }
@@ -134,7 +127,7 @@ export function useSitesTreeLibrary() {
   const getLocationsTreeData = (sites) => {
     const locationTreeData =
     {
-      key: '0',
+      key: '0-locations',
       label: 'Locations',
       data: 'Documents Folder',
       icon: 'mdi mdi-map-marker',
@@ -167,7 +160,7 @@ export function useSitesTreeLibrary() {
         sites.filter(site => site.country === country && site.city === city).sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp)).forEach(site => {
           const siteNode = {
             key: site.id, // to allow the site to be found from the feature - as in the map only the feature will be available
-            label: site.label + ' - ' + formatDate(site.timestamp,'medium'),
+            label: site.label + ' - ' + formatDate(site.timestamp, 'medium'),
             data: site,
             icon: 'mdi mdi-city',
             styleClass: `site-${site.id}`,
