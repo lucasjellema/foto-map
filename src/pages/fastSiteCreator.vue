@@ -21,7 +21,7 @@
       </v-tab> -->
             </v-tabs>
             <div v-if="tab == 'tab-1'">
-              <SiteTree @site-selected="handleSiteSelected" ></SiteTree>
+              <SiteTree @site-selected="handleSiteSelected"></SiteTree>
             </div>
             <div v-if="tab == 'tab-2'">
               <v-text-field v-model="search" label="Search" clearable></v-text-field>
@@ -68,19 +68,18 @@
             <!-- contents for the popup on markers -->
             <div style="display: none;">
               <v-card class="mx-auto hover-zoom" max-width="600" :title="poppedupSite?.label"
-                :theme="poppedupFeature?.properties?.imageURL ? 'light' : 'light'" ref="popupContentRef">
-                <!-- :image="poppedupFeature?.properties?.imageURL" -->
+                :theme="poppedupSite?.imageURL ? 'light' : 'light'" ref="popupContentRef">
                 <v-card-text>{{ formatDate(poppedupSite?.timestamp) }}
-                  {{ poppedupFeature?.properties?.city }},{{ poppedupSite?.country }}
-                  {{ poppedupFeature?.geometry?.coordinates[2] ? ` (∆
-                  ${poppedupFeature?.geometry?.coordinates[2].toFixed(0)}m)` : '' }}
+                  {{ poppedupSite?.city }},{{ poppedupSite?.country }}
+
+                  {{ poppedupSite?.geoJSON?.features[0]?.geometry?.coordinates[2] ? ` (∆
+                  ${poppedupSite?.geoJSON.features[0].geometry.coordinates[2].toFixed(0)}m)` : '' }}
                   <div v-if="poppedupSite?.attachments?.length > 0">
                     <v-carousel :height="400" show-arrows="hover">
                       <v-carousel-item>
                         <div>
-                          <v-img width="500" cover :src="poppedupFeature?.properties?.imageURL"
-                            content-class="hover-zoom"></v-img>
-                          {{ poppedupFeature?.properties?.description }}
+                          <v-img width="500" cover :src="poppedupSite?.imageURL" content-class="hover-zoom"></v-img>
+                          {{ poppedupSite?.description }}
                         </div>
                       </v-carousel-item>
                       <v-carousel-item v-for="(attachment, index) in poppedupSite?.attachments">
@@ -92,16 +91,15 @@
                     </v-carousel>
                   </div>
                   <div v-else>
-                    <v-img width="500" cover :src="poppedupFeature?.properties?.imageURL"
-                      content-class="hover-zoom"></v-img>
-                    {{ poppedupFeature?.properties?.description }}
+                    <v-img width="500" cover :src="poppedupSite?.imageURL" content-class="hover-zoom"></v-img>
+                    {{ poppedupSite?.description }}
                   </div>
-                  
+
                   <div v-if="poppedupSite?.tags?.length > 0">
                     <v-chip v-for="tag in poppedupSite?.tags" class="ma-2">
                       {{ tag }}
                     </v-chip>
-                  </div> 
+                  </div>
                 </v-card-text>
               </v-card>
             </div>
@@ -117,7 +115,8 @@
       </v-main>
       <!-- Add/Edit Site Dialog -->
       <v-dialog v-model="showEditSitePopup" max-width="1000px">
-        <SiteEditor v-model:site="editedSite" :storyTags="storyTags"  @saveSite="saveItem" @closeDialog="closeDialog"></SiteEditor>
+        <SiteEditor v-model:site="editedSite" :storyTags="storyTags" @saveSite="saveItem" @closeDialog="closeDialog">
+        </SiteEditor>
       </v-dialog>
 
       <v-dialog v-model="showMapFiltersPopup" max-width="800px">
@@ -302,7 +301,8 @@ const handleImport = async (event) => {
 }
 
 const handleSiteSelected = (siteIds) => {
-  if (siteIds.length == 0) {return    
+  if (siteIds.length == 0) {
+    return
   }
   const coordinates = []
   for (const siteId of siteIds) {
@@ -482,26 +482,26 @@ const dateFormatStyle = computed(() => {
 function formatDate(timestamp) {
   const date = new Date(timestamp)
   if (dateFormatStyle === "dow") {
-      const dayOfWeek = date.toLocaleString('default', { weekday: 'long' })
+    const dayOfWeek = date.toLocaleString('default', { weekday: 'long' })
       ;
-      return dayOfWeek
-    } else
-  if (dateFormatStyle.value === "short") {
-    const hour = date.getHours();
-    const min = date.getMinutes();
-    return `${hour}:${min < 10 ? '0' : ''}${min}`
-  } else if (dateFormatStyle.value === "medium") {
-    const day = date.getDate();
-    const month = date.toLocaleString('default', { month: 'long' }) // months[date.getMonth()];
-    const hour = date.getHours();
-    const min = date.getMinutes();
-    return `${day} ${month} ${hour}:${min < 10 ? '0' : ''}${min}`
-  } else {
-    const day = date.getDate();
-    const month = date.toLocaleString('default', { month: 'long' });
-    const year = date.getFullYear();
-    return `${day} ${month} ${year}`
-  }
+    return dayOfWeek
+  } else
+    if (dateFormatStyle.value === "short") {
+      const hour = date.getHours();
+      const min = date.getMinutes();
+      return `${hour}:${min < 10 ? '0' : ''}${min}`
+    } else if (dateFormatStyle.value === "medium") {
+      const day = date.getDate();
+      const month = date.toLocaleString('default', { month: 'long' }) // months[date.getMonth()];
+      const hour = date.getHours();
+      const min = date.getMinutes();
+      return `${day} ${month} ${hour}:${min < 10 ? '0' : ''}${min}`
+    } else {
+      const day = date.getDate();
+      const month = date.toLocaleString('default', { month: 'long' });
+      const year = date.getFullYear();
+      return `${day} ${month} ${year}`
+    }
 }
 
 const customSort = (items, sortBy, sortDesc) => {
@@ -566,11 +566,11 @@ const editItem = (site) => {
   //    imageMetadata.value = null
   showEditSitePopup.value = true;
 }
-const editSiteFromPopup = () => {
-  const siteId = poppedupFeature.value.properties.id
-  const siteToEdit = storiesStore.getSite(siteId)
-  editItem(siteToEdit)
-}
+// const editSiteFromPopup = () => {
+//   const siteId = poppedupFeature.value.properties.id
+//   const siteToEdit = storiesStore.getSite(siteId)
+//   editItem(siteToEdit)
+// }
 
 const imageEditorRef = ref(null)
 
@@ -595,7 +595,9 @@ const removeSite = (site) => {
 
 const refreshSite = (site) => {
   hideSite(site);
-  geoJsonLayer.addData(site.geoJSON);
+  console.log("Refreshing site use drawMarkerForSite")
+  drawMarkerForSite(site)
+  //  geoJsonLayer.addData(site.geoJSON);
 }
 
 
@@ -607,17 +609,17 @@ const props = defineProps({
 const alignClustering = () => {
   if (mapClusterMode.value) {
     try {
-      map.value.removeLayer(geoJsonLayer);
+      map.value.removeLayer(markersLayer);
     } catch (error) {
     }
-    clustersLayer.addLayer(geoJsonLayer);
+    clustersLayer.addLayer(markersLayer);
   }
   else {
     try {
-      clustersLayer.removeLayer(geoJsonLayer);
+      clustersLayer.removeLayer(markersLayer);
     } catch (error) {
     }
-    map.value.addLayer(geoJsonLayer);
+    map.value.addLayer(markersLayer);
   }
 }
 
@@ -635,7 +637,9 @@ const applyFilters = (sites) => {
 const refreshMarkers = () => {
   geoJsonLayer.clearLayers();
   clustersLayer.clearLayers();
-  addSitesToLayer(geoJsonLayer, applyFilters(currentStory.value.sites));
+  markersLayer.clearLayers();
+  // addSitesToLayer(geoJsonLayer, applyFilters(currentStory.value.sites));
+  addSitesAsMarkersToLayer(markersLayer, applyFilters(currentStory.value.sites));
   alignClustering()
 }
 
@@ -649,12 +653,98 @@ onMounted(() => {
   refreshMarkers();
   dateRangeSlider.value = [minTimestamp.value, maxTimestamp.value];
 
- 
+
 });
 
 
 const map = ref(null)
-let geoJsonLayer, clustersLayer
+let geoJsonLayer, clustersLayer, markersLayer
+
+const drawMarkerForSite = (site) => {
+
+  const marker = L.marker([site.geoJSON.features[0].geometry.coordinates[1], site.geoJSON.features[0].geometry.coordinates[0]], {}
+    //    icon: L.icon({ className: `site-${site.id}` })
+  ).addTo(markersLayer);
+  marker.site = site // when we have the marker, we have the site!
+  const tooltip = `${site.label}`;
+  const tooltipClassName = `tooltip${site.id}`.replace(/-/g, "")
+  if (site.showTooltip) {
+
+
+    marker.bindTooltip(tooltip, {
+      permanent: true
+      , className: `my-custom-tooltip ${tooltipClassName}`
+      , direction: site.tooltipDirection ? site.tooltipDirection : 'auto' // derive direction from feature properties ; also opacity , 
+      , interactive: true // needed to handle tooltip click events
+    })
+// TODO now that we have the tooltip itself, is all of this needed?
+    setTimeout(() => {
+      const tooltipElement = document.querySelector(`.${tooltipClassName}`);
+      refreshTooltip(site, tooltipElement)
+
+    }, 50); // Small timeout to ensure the tooltip is rendered
+
+  }
+
+
+  marker.bindPopup((marker) => {
+    poppedupSite.value = site
+    if (mapEditMode.value) {
+      editItem(poppedupSite.value)
+      return popupContentRef.value.$el
+    }
+    if (site.imageId) {
+      setImageURLonObject(site.imageId, poppedupSite.value)
+    }
+    poppedupSite.value.attachments?.forEach(attachment => {
+      if (attachment.imageId) {
+        setImageURLonObject(attachment.imageId, attachment)
+      }
+    })
+    return popupContentRef.value.$el;
+  });
+  marker.bindContextMenu({
+    contextmenu: true,
+    contextmenuItems: [{
+      separator: true
+    }, {
+      text: 'Delete Site',
+      callback: (e) => {
+        const featureLayer = e.relatedTarget;
+        if (featureLayer) {
+          deleteMarker(featureLayer);
+        }
+      }
+    }, {
+      text: 'Hide Site',
+      callback: (e) => {
+        const marker = e.relatedTarget;
+        if (marker) {
+          hideMarker(marker);
+        }
+      }
+    }, {
+      text: 'Consolidate Site',
+      callback: (e) => {
+        const marker = e.relatedTarget;
+        if (marker) {
+          consolidateSite(marker);
+        }
+      }
+    }, {
+      text: 'Dump Site Details',
+      callback: (e) => {
+        const marker = e.relatedTarget;
+        if (marker) {
+          console.log(JSON.stringify(marker.site))
+        }
+      }
+    }]
+
+  })
+
+  return marker
+}
 
 
 const refreshMap = () => {
@@ -665,15 +755,15 @@ const refreshMap = () => {
 
   // find first marker and tilt
 
-  const firstMarker = geoJsonLayer.getLayers()[0]
-  if (firstMarker) {
+  // const firstMarker = geoJsonLayer.getLayers()[0]
+  // if (firstMarker) {
 
-    var icon = firstMarker._icon; // Access the DOM element of the marker icon
-    //    icon.style.transition = "transform 0.3s ease"; // Optional: smooth transition
-    console.log(`Icon style transform ${icon.style.transform}`)
-    icon.style.transform += "rotate(30deg)";
-    console.log(`NEW Icon style transform ${icon.style.transform}`)
-  }
+  //   var icon = firstMarker._icon; // Access the DOM element of the marker icon
+  //   //    icon.style.transition = "transform 0.3s ease"; // Optional: smooth transition
+  //   console.log(`Icon style transform ${icon.style.transform}`)
+  //   icon.style.transform += "rotate(30deg)";
+  //   console.log(`NEW Icon style transform ${icon.style.transform}`)
+  // }
 }
 
 
@@ -798,13 +888,12 @@ const centerMap = (e) => {
 const centerAndZoomMap = (e) => {
   map.value.panTo(e.latlng, { animate: false });
   map.value.zoomIn(4) // number of zoom levels to increase with
-
 }
 
 const geoJSONToClipboard = () => {
-  const geoJSON = geoJsonLayer.toGeoJSON()
-  //every feature should have a property called tooltip that contains the city and country and the formatted timestamp
-  geoJSON.features.forEach(feature => feature.properties.tooltip = `${feature.properties.city}, ${feature.properties.country} (${formatDate(feature.properties.timestamp)})`)
+  const geoJSON = markersLayer.toGeoJSON()
+  //TODO every feature should have a property called tooltip that contains the city and country and the formatted timestamp
+  //TODO geoJSON.features.forEach(feature => feature.properties.tooltip = `${feature.properties.city}, ${feature.properties.country} (${formatDate(feature.properties.timestamp)})`)
 
   // TODO set icon (based on site type), scale (derive from relevance!), color (per day/category),    
   // https://academy.datawrapper.de/article/177-how-to-style-your-markers-before-importing-them-to-datawrapper
@@ -842,27 +931,25 @@ const mapImageToClipboard = async () => {
 watch(mapEditMode, async (newMapEditMode) => {
   if (newMapEditMode) {
     map.value.doubleClickZoom.disable();
-    geoJsonLayer.eachLayer(function (marker) {
+    markersLayer.eachLayer((marker) => {
       marker.dragging.enable();
-      marker.on('dragend', function (e) {
+      marker.on('dragend', (e) => {
         var newLatLng = marker.getLatLng();
+        const site = marker.site // storiesStore.getSite(marker.feature.properties.id)
         // Update the GeoJSON feature with the new coordinates
-        const geoJsonFeature = marker.feature
-
+        const geoJsonFeature = site.geoJSON.features[0]
         geoJsonFeature.geometry.coordinates = [newLatLng.lng, newLatLng.lat];
         // now update site as well
-        const site = storiesStore.getSite(marker.feature.properties.id)
         site.geoJSON.features[0].geometry.coordinates = [newLatLng.lng, newLatLng.lat]
         site.geoJSONText = JSON.stringify(site.geoJSON)
         storiesStore.updateSite(site)
-        console.log(newLatLng); // New coordinates
         enqueueCallToReverseGeocode(geoJsonFeature, site);
       });
     });
 
   } else {
     map.value.doubleClickZoom.enable();
-    geoJsonLayer.eachLayer(function (marker) {
+    markersLayer.eachLayer(function (marker) {
       if (marker?.dragging) {
         marker.dragging.disable();
       }
@@ -913,13 +1000,14 @@ const drawMap = () => {
   const osmLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
   }).addTo(map.value);
-
-
   const EsriWorldImageryLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
     attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
   });
-
-  layerControl = L.control.layers({ OpenStreetMap: osmLayer, Satellite: EsriWorldImageryLayer }, {}).addTo(map.value);
+  markersLayer = L.featureGroup([], { draggable: true }).addTo(map.value);
+  const overlayLayers = {
+    "Markers": markersLayer
+  };
+  layerControl = L.control.layers({ OpenStreetMap: osmLayer, Satellite: EsriWorldImageryLayer }, overlayLayers).addTo(map.value);
 
   currentStory.value.mapConfiguration?.customTileLayers?.forEach(tileLayer => {
     const theTileLayer = L.tileLayer(tileLayer.url, { attribution: tileLayer.attribution }).addTo(map.value);
@@ -976,14 +1064,15 @@ const drawMap = () => {
         console.log(`open popup for ${marker.feature.properties.id} ${poppedupSite.value.label}`);
         if (poppedupSite.value.imageId) {
           try {
-            setImageURLonFeature(poppedupSite.value.imageId);
+            setImageURLonObject(poppedupSite.value.imageId, poppedupSite.value);
             //iterate over every attachment in the poppedupSite 
             poppedupSite.value.attachments.forEach(attachment => {
               if (attachment.imageId) {
+                setImageURLonObject(attachment.imageId, attachment);
 
-                imagesStore.getUrlForIndexedDBImage(attachment.imageId).then(url => {
-                  attachment.imageURL = url
-                })
+                // imagesStore.getUrlForIndexedDBImage(attachment.imageId).then(url => {
+                //   attachment.imageURL = url
+                // })
               }
             })
 
@@ -1162,12 +1251,29 @@ const attachMapListeners = () => {
 
 }
 
-const setImageURLonFeature = async (imageId) => {
+const setImageURLonObject = async (imageId, theObject) => {
   const url = await imagesStore.getUrlForIndexedDBImage(imageId)
-  poppedupFeature.value.properties.imageURL = url
+  //  poppedupFeature.value.properties.imageURL = url
+  theObject.imageURL = url
 
 }
+const addSitesAsMarkersToLayer = (layer, sites) => {
+  if (!sites) return
+  try {
+    // loop over sites and call drawMarkerForSite for each site
+    const markers = sites.map(site => drawMarkerForSite(site));
 
+
+  } catch (e) {
+    console.warn(`adding markers to layer failed`, e);
+  }
+  try {
+    const bounds = layer.getBounds();
+    if (bounds)
+      map.value.fitBounds(bounds, { padding: [15, 15] });
+    // if (layer.getBounds()) map.value.fitBounds(layer.getBounds());
+  } catch (e) { console.warn(`map.value.fitBounds(layer.getBounds() failed`); }
+}
 
 const addSitesToLayer = (layer, sites) => {
   if (!sites) return
@@ -1201,9 +1307,10 @@ function createSiteFromGeoJSON(newGeoJsonData, imageId, dateTimeOriginal) {
   console.warn(`request reverse geo call`);
 
   enqueueCallToReverseGeocode(newGeoJsonData.features[0], site);
-  geoJsonLayer.addData(newGeoJsonData);
+  drawMarkerForSite(site)
+  // geoJsonLayer.addData(newGeoJsonData);
   if (!mapEditMode.value) {
-    const bounds = geoJsonLayer.getBounds();
+    const bounds = markersLayer.getBounds();
     map.value.fitBounds(bounds);
   }
 }
