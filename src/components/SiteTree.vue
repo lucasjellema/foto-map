@@ -1,20 +1,30 @@
 <template>
   <Tree :value="sitesTreeData" v-model:selectionKeys="selectedKey" class="w-full md:w-30rem tree-override" ref="treeRef"
     selectionMode="multiple" :filter="true"></Tree>
+
+  <ContextMenu ref="contextMenu" :model="contextMenuItems"></ContextMenu>
 </template>
 <script setup>
 
 import { useStorieStore } from "@/store/storiesStore";
 import { computed } from 'vue';
 import Tree from 'primevue/tree';
+import ContextMenu from 'primevue/contextmenu';
 const storiesStore = useStorieStore()
 const currentStory = computed(() => storiesStore.currentStory)
+const contextMenu = ref(null);
 
 import { useSitesTreeLibrary } from '@/composables/useSitesTreeLibrary';
 const { getSitesTreeData } = useSitesTreeLibrary();
 const sitesTreeData = computed(() => getSitesTreeData(currentStory.value.sites));
+const contextMenuItems = ref([])
+//   { label: 'Select Site', icon: 'pi pi-fw pi-pencil', command: () => selectSite() },
+//   { label: 'Edit Site', icon: 'pi pi-fw pi-pencil', command: () => editSite() },
+//   { label: 'Delete Site', icon: 'mdi mdi-delete', command: () => deleteSite() }
+// ]
 
-const emit = defineEmits(['siteSelected']);
+
+const emit = defineEmits(['siteSelected','siteAction']);
 const props = defineProps({
 });
 
@@ -22,9 +32,11 @@ const treeRef = ref(null);
 const selectedKey = ref(null);
 
 
+
 onMounted(() => {
   const treeElement = treeRef.value.$el; // Access the Tree DOM element
   treeElement.addEventListener('dblclick', handleDoubleClickOnTree);
+  treeElement.addEventListener('contextmenu', handleContextMenuClickOnTree);
 
 });
 
@@ -50,11 +62,29 @@ const findSiteIdInTree = (currentElement) => {
     }
     currentElement = currentElement.parentNode;
   }
-  return null;
+  return { siteId: null };
 }
 const handleDoubleClickOnTree = (event) => {
   const { siteId } = findSiteIdInTree(event.target);
   console.log(siteId)
+}
+
+const handleContextMenuClickOnTree = (event) => {
+  console.log(`contextmenu clicked on site ${event.target}`)
+  contextMenuItems.value = []
+  const { siteId } = findSiteIdInTree(event.target);
+  if (siteId) {
+//    contextMenuItems.value.push({ label: `Select Site ${siteId} `, icon: 'pi pi-fw pi-pencil', command: () => selectSite(siteId) })
+    contextMenuItems.value.push({ label: `Edit Site`, icon: 'pi pi-fw pi-pencil'
+    , command: () => { emit('siteAction',{action: 'edit', siteId:siteId}) }})
+    contextMenuItems.value.push({ label: `Delete Site`, icon: 'midi mdi-delete'
+    , command: () => { emit('siteAction',{action: 'delete', siteId:siteId}) }})
+  
+  }
+
+  // const { siteId } = findSiteIdInTree(event.target);
+  //console.log(siteId)
+  contextMenu.value.show(event); // Show the PrimeVue ContextMenu
 }
 
 </script>
@@ -72,6 +102,24 @@ const handleDoubleClickOnTree = (event) => {
   padding-bottom: 1.125rem !important;
   padding-left: 1.125rem !important;
   margin-top: 10px;
+
+}
+
+.p-contextmenu {
+  padding-top: 0.7rem !important;
+  padding-right: 0.25rem !important;
+  padding-bottom: 0.7rem !important;
+  padding-left: 0.25rem !important;
+  margin-top: 10px;
+
+}
+
+.p-menuitem {
+  padding-top: 0.25rem !important;
+  padding-right: 0.25rem !important;
+  padding-bottom: 0.25rem !important;
+  padding-left: 0.3rem !important;
+
 
 }
 </style>

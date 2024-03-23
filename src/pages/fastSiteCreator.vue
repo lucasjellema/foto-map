@@ -21,7 +21,7 @@
       </v-tab> -->
             </v-tabs>
             <div v-if="tab == 'tab-1'">
-              <SiteTree @site-selected="handleSiteSelected"></SiteTree>
+              <SiteTree @site-selected="handleSiteSelected" @site-action="handleSiteAction"></SiteTree>
             </div>
             <div v-if="tab == 'tab-2'">
               <v-text-field v-model="search" label="Search" clearable></v-text-field>
@@ -212,6 +212,7 @@
         </v-card>
       </v-dialog>
 
+
     </v-container>
   </v-responsive>
 </template>
@@ -300,6 +301,18 @@ const handleImport = async (event) => {
 
 }
 
+const handleSiteAction = ({ siteId, action }) => {
+  const site = storiesStore.getSite(siteId)
+  if (site) {
+    if (action == 'edit') {
+      editItem(site)
+      return
+    } else if (action == 'delete') {
+      removeSite(site) //deleteSite(site)      
+    }
+  }
+}
+
 const handleSiteSelected = (siteIds) => {
   if (siteIds.length == 0) {
     return
@@ -310,10 +323,18 @@ const handleSiteSelected = (siteIds) => {
     if (site) {
       const siteCoordinates = site.geoJSON.features[0].geometry.coordinates
       coordinates.push([siteCoordinates[1], siteCoordinates[0]])
+
+      //TODO find marker for site and select it
+      const marker = findMarkerForSite(site);
+      selectMarker(marker, true);
+
     }
   }
-  const bounds = L.latLngBounds(coordinates);
-  map.value.fitBounds(bounds, { padding: [30, 30] });
+  if (coordinates.length > 0) {
+    const bounds = L.latLngBounds(coordinates);
+    map.value.fitBounds(bounds, { padding: [30, 30] });
+
+  }
 }
 
 const search = ref("")
@@ -635,7 +656,7 @@ const applyFilters = (sites) => {
 }
 
 const refreshMarkers = () => {
-  geoJsonLayer.clearLayers();
+  // geoJsonLayer.clearLayers();
   clustersLayer.clearLayers();
   markersLayer.clearLayers();
   // addSitesToLayer(geoJsonLayer, applyFilters(currentStory.value.sites));
@@ -658,26 +679,36 @@ onMounted(() => {
 
 
 const map = ref(null)
-let geoJsonLayer, clustersLayer, markersLayer
+let geoJsonLayer, clustersLayer, markersLayer, selectionLayer
+const iconMarkerSelectionHandlesUrl = new URL('/marker-selection-handles.png', import.meta.url).href;
+const selectionHandlesIcon = L.icon({
+  iconUrl: iconMarkerSelectionHandlesUrl, // Path to your selection icon
+  iconSize: [37, 53], // Size of the icon
+  iconAnchor: [18, 50], // Adjust to center the icon over the marker
+});
+const iconSelectedMarkerUrl = new URL('/selected-marker.png', import.meta.url).href;
+const selectedMarkerIcon = L.icon({
+  iconUrl: iconSelectedMarkerUrl,
+  iconSize: [37, 53],
+  iconAnchor: [18, 50],
+});
 
 const drawMarkerForSite = (site) => {
 
   const marker = L.marker([site.geoJSON.features[0].geometry.coordinates[1], site.geoJSON.features[0].geometry.coordinates[0]], {}
     //    icon: L.icon({ className: `site-${site.id}` })
   ).addTo(markersLayer);
-  marker.site = site // when we have the marker, we have the site!
+  marker.site = site
   const tooltip = `${site.label}`;
   const tooltipClassName = `tooltip${site.id}`.replace(/-/g, "")
   if (site.showTooltip) {
-
-
     marker.bindTooltip(tooltip, {
       permanent: true
       , className: `my-custom-tooltip ${tooltipClassName}`
       , direction: site.tooltipDirection ? site.tooltipDirection : 'auto' // derive direction from feature properties ; also opacity , 
       , interactive: true // needed to handle tooltip click events
     })
-// TODO now that we have the tooltip itself, is all of this needed?
+    // TODO now that we have the tooltip itself, is all of this needed?
     setTimeout(() => {
       const tooltipElement = document.querySelector(`.${tooltipClassName}`);
       refreshTooltip(site, tooltipElement)
@@ -710,9 +741,17 @@ const drawMarkerForSite = (site) => {
     }, {
       text: 'Delete Site',
       callback: (e) => {
-        const featureLayer = e.relatedTarget;
-        if (featureLayer) {
-          deleteMarker(featureLayer);
+        const marker = e.relatedTarget;
+        if (marker) {
+          deleteMarker(marker);
+        }
+      }
+    }, {
+      text: 'Select Site',
+      callback: (e) => {
+        const marker = e.relatedTarget;
+        if (marker) {
+          selectMarker(marker);
         }
       }
     }, {
@@ -742,7 +781,13 @@ const drawMarkerForSite = (site) => {
     }]
 
   })
-
+  // do not open popup for ctrl + click (instead, select/deselect the marker)
+  marker.on('click', (e) => {
+    if (e.originalEvent.ctrlKey) {
+      selectMarker(marker);
+      e.target.closePopup();
+    }
+  });
   return marker
 }
 
@@ -769,31 +814,43 @@ const refreshMap = () => {
 
 const deleteMarker = marker => {
   hideMarker(marker)
-  const feature = marker.feature;
-  const site = storiesStore.getSite(feature.properties.id)
-  removeSite(site)
+  removeSite(marker.site)
 }
 
 const hideMarker = marker => {
-  marker.setOpacity(0) // also hide tooltip?!
-  const tooltipClassName = `tooltip${marker.feature.properties.id}`.replace(/-/g, "")
-  const tooltipElement = document.querySelector(`.${tooltipClassName}`);
-  tooltipElement.style.opacity = 0
+  marker.remove()
+}
 
-  //  marker.remove()
+
+const selectMarker = (selectedMarker, forceSelect) => {
+  if (selectedMarker) {
+    if (selectedMarker.selected) {
+      if (forceSelect) return
+      selectedMarker.setIcon(selectedMarker.originalIcon)
+    } else {
+      selectedMarker.originalIcon = selectedMarker.getIcon()
+      selectedMarker.setIcon(selectedMarkerIcon)
+    }
+    selectedMarker.selected = !selectedMarker.selected
+  }
+}
+
+const findMarkerForSite = (site) => {
+  let theMarker
+  getAllMarkers().forEach(marker => {
+    if (marker.site === site) {
+      theMarker = marker
+    }
+  })
+    ;
+  return theMarker;
 }
 
 const hideSite = (site) => {
-  geoJsonLayer.eachLayer(function (marker) {
-    // Check if this layer's feature has the property 'id' equal to 87
-    if (marker.feature.properties.id === site.id) {
-      //geoJsonLayer.removeLayer(marker);
-      marker.remove()
-    }
-  });
+  findMarkerForSite(site)?.remove()
 }
 
-function findFeaturesWithinConsolidationRadius(targetFeature, geojsonLayer) {
+function findFeaturesWithinConsolidationRadius(targetFeature, theLayer) {
   // Array to store features within consolidation radius
   console.log(`finding features within ${consolidationRadius.value} km from ${targetFeature.properties.id} at ${targetFeature.geometry.coordinates[0]}, ${targetFeature.geometry.coordinates[1]}`)
 
@@ -803,8 +860,8 @@ function findFeaturesWithinConsolidationRadius(targetFeature, geojsonLayer) {
   // Convert target feature's coordinates to a Leaflet LatLng object
   let targetLatLng = L.latLng(targetFeature.geometry.coordinates[1], targetFeature.geometry.coordinates[0]);
 
-  // Iterate over each feature in the GeoJSON layer
-  geojsonLayer.eachLayer(function (marker) {
+  // Iterate over each feature in the  layer
+  theLayer.eachLayer(function (marker) {
     // do not process the target feature
     if (marker.feature === targetFeature) { } else {
 
@@ -831,15 +888,16 @@ const consolidateSite = (marker) => {
   // in theory all are merged into this one - however: what remains of these other sites? 
   // add their pictures in additional attachments for the site?
   let targetFeature = marker.feature;
-  const targetSite = storiesStore.getSite(targetFeature.properties.id)
+  const targetSite = marker.site
   if (!targetSite.attachments) {
     targetSite.attachments = []
   }
-  let nearbyFeatures = findFeaturesWithinConsolidationRadius(targetFeature, geoJsonLayer);
+  // todo find sites within consolidation range?
+  let nearbyFeatures = findFeaturesWithinConsolidationRadius(targetFeature, markersLayer);
   let removedFeatures = []
   // Remove all nearby sites
   // sort nearbyfeature by timestamp
-  nearbyFeatures.sort((a, b) => (a.feature.properties.timestamp > b.feature.properties.timestamp) ? 1 : -1).forEach(function (feature) {
+  nearbyFeatures.sort((a, b) => (a.site.timestamp > b.site.timestamp) ? 1 : -1).forEach(function (feature) {
 
     removedFeatures.push(feature)
     if (mapEditMode.value) {
@@ -872,7 +930,7 @@ const consolidateAllSites = () => {
   // loop over all markers/sites and consolidate each  
   // note: after a consolidation, sites may have been removed from the layer
   const recentlyRemovedMarkers = []
-  geoJsonLayer.eachLayer(function (marker) {
+  markersLayer.eachLayer(function (marker) {
     if (!recentlyRemovedMarkers.includes(marker)) {
       const removedFeatures = consolidateSite(marker);
       recentlyRemovedMarkers.push(...removedFeatures)
@@ -1004,6 +1062,11 @@ const drawMap = () => {
     attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
   });
   markersLayer = L.featureGroup([], { draggable: true }).addTo(map.value);
+
+  // Layer group for selection markers
+  selectionLayer = L.layerGroup().addTo(map.value);
+
+
   const overlayLayers = {
     "Markers": markersLayer
   };
@@ -1024,98 +1087,128 @@ const drawMap = () => {
   map.value.addLayer(clustersLayer);
 
 
-  geoJsonLayer = L.geoJSON(null, {
-    draggable: true,
-    onEachFeature: async (feature, marker) => {
-      const site = storiesStore.getSite(feature.properties.id)
-      const tooltip = `${feature.properties.name}`;
-      const tooltipClassName = `tooltip${feature.properties.id}`.replace(/-/g, "")
-      if (site.showTooltip) {
+  map.value.on('boxzoomend', (e) => {
+    // e.boxZoomBounds contains the LatLngBounds of the box zoom area
+    const bounds = e.boxZoomBounds;
+    console.log(`Box zoomed to bounds: `, bounds)
+    var markersWithinRectangle = [];
 
-
-        marker.bindTooltip(tooltip, {
-          permanent: true
-          , className: `my-custom-tooltip ${tooltipClassName}`
-          , direction: site.tooltipDirection ? site.tooltipDirection : 'auto' // derive direction from feature properties ; also opacity , 
-          , interactive: true // needed to handle tooltip click events
-        })
-
-        setTimeout(() => {
-          const tooltipElement = document.querySelector(`.${tooltipClassName}`);
-          refreshTooltip(site, tooltipElement)
-
-        }, 50); // Small timeout to ensure the tooltip is rendered
-
+    // Check each marker to see if it's within the bounds
+    getAllMarkers().forEach(function (marker) {
+      if (bounds.contains(marker.getLatLng())) {
+        markersWithinRectangle.push(marker);
+        console.log("Marker within rectangle:", marker);
+        selectMarker(marker, true)
       }
-      marker.bindPopup((marker) => {
-        poppedupSite.value = storiesStore.getSite(marker.feature.properties.id)
-        if (mapEditMode.value) {
-          // open edit dialog
-          // editedSite.value = poppedupSite.value
-          // showEditSitePopup.value = true
-          editItem(poppedupSite.value)
-          return popupContentRef.value.$el
-          //          return editSitePopupContentRef.value.$el;
-        }
+    });
 
-        poppedupFeature.value = marker.feature;
-        // get site from storiesStore for this feature
-
-        console.log(`open popup for ${marker.feature.properties.id} ${poppedupSite.value.label}`);
-        if (poppedupSite.value.imageId) {
-          try {
-            setImageURLonObject(poppedupSite.value.imageId, poppedupSite.value);
-            //iterate over every attachment in the poppedupSite 
-            poppedupSite.value.attachments.forEach(attachment => {
-              if (attachment.imageId) {
-                setImageURLonObject(attachment.imageId, attachment);
-
-                // imagesStore.getUrlForIndexedDBImage(attachment.imageId).then(url => {
-                //   attachment.imageURL = url
-                // })
-              }
-            })
-
-          }
-          catch (e) { }
-        }
-        return popupContentRef.value.$el;
-      });
-      marker.bindContextMenu({
-        contextmenu: true,
-        contextmenuItems: [{
-          separator: true
-        }, {
-          text: 'Delete Site',
-          callback: (e) => {
-            const featureLayer = e.relatedTarget;
-            if (featureLayer) {
-              deleteMarker(featureLayer);
-            }
-          }
-        }, {
-          text: 'Hide Site',
-          callback: (e) => {
-            const featureLayer = e.relatedTarget;
-            if (featureLayer) {
-              hideMarker(featureLayer);
-            }
-          }
-        }, {
-          text: 'Consolidate Site',
-          callback: (e) => {
-            const featureLayer = e.relatedTarget;
-            if (featureLayer) {
-              consolidateSite(featureLayer);
-            }
-          }
-        }]
-      });
-    }
+    console.log("Markers within rectangle:", markersWithinRectangle);
   })
+
+
+  // geoJsonLayer = L.geoJSON(null, {
+  //   draggable: true,
+  //   onEachFeature: async (feature, marker) => {
+  //     const site = storiesStore.getSite(feature.properties.id)
+  //     const tooltip = `${feature.properties.name}`;
+  //     const tooltipClassName = `tooltip${feature.properties.id}`.replace(/-/g, "")
+  //     if (site.showTooltip) {
+
+
+  //       marker.bindTooltip(tooltip, {
+  //         permanent: true
+  //         , className: `my-custom-tooltip ${tooltipClassName}`
+  //         , direction: site.tooltipDirection ? site.tooltipDirection : 'auto' // derive direction from feature properties ; also opacity , 
+  //         , interactive: true // needed to handle tooltip click events
+  //       })
+
+  //       setTimeout(() => {
+  //         const tooltipElement = document.querySelector(`.${tooltipClassName}`);
+  //         refreshTooltip(site, tooltipElement)
+
+  //       }, 50); // Small timeout to ensure the tooltip is rendered
+
+  //     }
+  //     marker.bindPopup((marker) => {
+  //       poppedupSite.value = storiesStore.getSite(marker.feature.properties.id)
+  //       if (mapEditMode.value) {
+  //         // open edit dialog
+  //         // editedSite.value = poppedupSite.value
+  //         // showEditSitePopup.value = true
+  //         editItem(poppedupSite.value)
+  //         return popupContentRef.value.$el
+  //         //          return editSitePopupContentRef.value.$el;
+  //       }
+
+  //       poppedupFeature.value = marker.feature;
+  //       // get site from storiesStore for this feature
+
+  //       console.log(`open popup for ${marker.feature.properties.id} ${poppedupSite.value.label}`);
+  //       if (poppedupSite.value.imageId) {
+  //         try {
+  //           setImageURLonObject(poppedupSite.value.imageId, poppedupSite.value);
+  //           //iterate over every attachment in the poppedupSite 
+  //           poppedupSite.value.attachments.forEach(attachment => {
+  //             if (attachment.imageId) {
+  //               setImageURLonObject(attachment.imageId, attachment);
+
+  //               // imagesStore.getUrlForIndexedDBImage(attachment.imageId).then(url => {
+  //               //   attachment.imageURL = url
+  //               // })
+  //             }
+  //           })
+
+  //         }
+  //         catch (e) { }
+  //       }
+  //       return popupContentRef.value.$el;
+  //     });
+  //     marker.bindContextMenu({
+  //       contextmenu: true,
+  //       contextmenuItems: [{
+  //         separator: true
+  //       }, {
+  //         text: 'Delete Site',
+  //         callback: (e) => {
+  //           const featureLayer = e.relatedTarget;
+  //           if (featureLayer) {
+  //             deleteMarker(featureLayer);
+  //           }
+  //         }
+  //       }, {
+  //         text: 'Hide Site',
+  //         callback: (e) => {
+  //           const featureLayer = e.relatedTarget;
+  //           if (featureLayer) {
+  //             hideMarker(featureLayer);
+  //           }
+  //         }
+  //       }, {
+  //         text: 'Consolidate Site',
+  //         callback: (e) => {
+  //           const featureLayer = e.relatedTarget;
+  //           if (featureLayer) {
+  //             consolidateSite(featureLayer);
+  //           }
+  //         }
+  //       }]
+  //     });
+  //   }
+  // })
 
 }
 
+
+
+const getAllMarkers = () => {
+  const allMarkers = [];
+  map.value.eachLayer(function (layer) {
+    if (layer instanceof L.Marker) {
+      allMarkers.push(layer);
+    }
+  });
+  return allMarkers
+}
 
 const addFilterControl = () => {
   const filterControl = L.control({ position: 'bottomleft' });
