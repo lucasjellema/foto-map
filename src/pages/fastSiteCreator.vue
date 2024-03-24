@@ -75,7 +75,8 @@
                   {{ poppedupSite?.geoJSON?.features[0]?.geometry?.coordinates[2] ? ` (∆
                   ${poppedupSite?.geoJSON.features[0].geometry.coordinates[2].toFixed(0)}m)` : '' }}
                   <div v-if="poppedupSite?.attachments?.length > 0">
-                    <v-carousel :height="400" show-arrows="hover">
+                    
+                    <!-- <v-carousel :height="400" show-arrows="hover">
                       <v-carousel-item>
                         <div>
                           <v-img width="500" cover :src="poppedupSite?.imageURL" content-class="hover-zoom"></v-img>
@@ -88,9 +89,9 @@
                           {{ attachment.description }}
                         </div>
                       </v-carousel-item>
-                    </v-carousel>
+                    </v-carousel> -->
                   </div>
-                  <div v-else>
+                  <div>
                     <v-img width="500" cover :src="poppedupSite?.imageURL" content-class="hover-zoom"></v-img>
                     {{ poppedupSite?.description }}
                   </div>
@@ -100,6 +101,9 @@
                       {{ tag }}
                     </v-chip>
                   </div>
+                  <div v-if="poppedupSite?.attachments?.length > 0">
+                    <v-btn @click="showSiteDetailsPopup = true" prepend-icon="mdi-attachment">Show</v-btn>
+                    </div>
                 </v-card-text>
               </v-card>
             </div>
@@ -107,16 +111,17 @@
 
           </v-col>
         </v-row>
-        <!-- <v-row>
-          <v-col>
-            <SiteMap v-model="sitesData" v-model:currentStory="currentStory">  </SiteMap>
-          </v-col>
-        </v-row> -->
+
       </v-main>
       <!-- Add/Edit Site Dialog -->
       <v-dialog v-model="showEditSitePopup" max-width="1000px">
         <SiteEditor v-model:site="editedSite" :storyTags="storyTags" @saveSite="saveItem" @closeDialog="closeDialog">
         </SiteEditor>
+      </v-dialog>
+
+      <v-dialog v-model="showSiteDetailsPopup" max-width="1000px" >
+        <SiteDetails v-model:site="poppedupSite" @closeDialog="showSiteDetailsPopup = false">
+        </SiteDetails>
       </v-dialog>
 
       <v-dialog v-model="showMapFiltersPopup" max-width="800px">
@@ -224,6 +229,8 @@ import ImageEditor from "@/components/imageEditor.vue"
 import SiteEditor from "@/components/SiteEditor.vue"
 import SiteMap from "@/components/SiteMap.vue"
 
+
+
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet-contextmenu';
@@ -257,6 +264,7 @@ import { useSitesTreeLibrary } from '@/composables/useSitesTreeLibrary';
 
 
 const tab = ref('tab-1')
+const showSiteDetailsPopup = ref(false)
 
 
 const exportMap = () => {
@@ -306,7 +314,8 @@ const handleSiteAction = ({ siteId, siteIds, action, payload }) => {
   if (siteIds) {
     if (action == 'siteFocus') {
       focusOnSites(siteIds)
-    } else {
+    } 
+    else {
       for (const siteId of siteIds) {
         handleSiteAction({ siteId, action, payload })
       }
