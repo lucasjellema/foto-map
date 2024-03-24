@@ -75,7 +75,7 @@
                   {{ poppedupSite?.geoJSON?.features[0]?.geometry?.coordinates[2] ? ` (∆
                   ${poppedupSite?.geoJSON.features[0].geometry.coordinates[2].toFixed(0)}m)` : '' }}
                   <div v-if="poppedupSite?.attachments?.length > 0">
-                    
+
                     <!-- <v-carousel :height="400" show-arrows="hover">
                       <v-carousel-item>
                         <div>
@@ -103,7 +103,7 @@
                   </div>
                   <div v-if="poppedupSite?.attachments?.length > 0">
                     <v-btn @click="showSiteDetailsPopup = true" prepend-icon="mdi-attachment">Show</v-btn>
-                    </div>
+                  </div>
                 </v-card-text>
               </v-card>
             </div>
@@ -119,7 +119,7 @@
         </SiteEditor>
       </v-dialog>
 
-      <v-dialog v-model="showSiteDetailsPopup" max-width="1000px" >
+      <v-dialog v-model="showSiteDetailsPopup" max-width="1000px">
         <SiteDetails v-model:site="poppedupSite" @closeDialog="showSiteDetailsPopup = false">
         </SiteDetails>
       </v-dialog>
@@ -314,7 +314,7 @@ const handleSiteAction = ({ siteId, siteIds, action, payload }) => {
   if (siteIds) {
     if (action == 'siteFocus') {
       focusOnSites(siteIds)
-    } 
+    }
     else {
       for (const siteId of siteIds) {
         handleSiteAction({ siteId, action, payload })
@@ -810,7 +810,7 @@ const drawMarkerForSite = (site) => {
       callback: (e) => {
         const marker = e.relatedTarget;
         if (marker) {
-          consolidateSite(marker);
+          consolidateSite(marker.site);
         }
       }
     }, {
@@ -893,59 +893,51 @@ const hideSite = (site) => {
   findMarkerForSite(site)?.remove()
 }
 
-function findFeaturesWithinConsolidationRadius(targetFeature, theLayer) {
+function findSitesWithinConsolidationRadius(targetSite) {
   // Array to store features within consolidation radius
-  console.log(`finding features within ${consolidationRadius.value} km from ${targetFeature.properties.id} at ${targetFeature.geometry.coordinates[0]}, ${targetFeature.geometry.coordinates[1]}`)
+  console.log(`finding sites within ${consolidationRadius.value} km from ${targetSite.id} 
+  at ${targetSite.geoJSON.features[0].geometry.coordinates[0]}, ${targetSite.geoJSON.features[0].geometry.coordinates[1]}`)
 
   const consolidationRangeInMeters = 1000 * consolidationRadius.value
-  let featuresWithinRadius = [];
+  let sitesWithinRadius = [];
 
-  // Convert target feature's coordinates to a Leaflet LatLng object
-  let targetLatLng = L.latLng(targetFeature.geometry.coordinates[1], targetFeature.geometry.coordinates[0]);
+  // // Convert target feature's coordinates to a Leaflet LatLng object
+  let targetLatLng = L.latLng(targetSite.geoJSON.features[0].geometry.coordinates[1], targetSite.geoJSON.features[0].geometry.coordinates[0]);
 
-  // Iterate over each feature in the  layer
-  theLayer.eachLayer(function (marker) {
-    // do not process the target feature
-    if (marker.feature === targetFeature) { } else {
+  // Iterate over all sites and check if they are within the consolidation radius
+  
+   applyFilters(currentStory.value.sites).forEach(site => {
+     if (site === targetSite) return
+     let siteLatLng = L.latLng(site.geoJSON.features[0].geometry.coordinates[1], site.geoJSON.features[0].geometry.coordinates[0]);
+     let distance = map.value.distance(targetLatLng, siteLatLng);
+     if (distance <= consolidationRangeInMeters) { // Distance in meters
+       sitesWithinRadius.push(site);
+     }
+   })
 
-
-      // Get the current feature's LatLng
-      let featureLatLng = L.latLng(marker.feature.geometry.coordinates[1], marker.feature.geometry.coordinates[0]);
-
-      // Calculate the distance between the target feature and the current feature
-      let distance = map.value.distance(targetLatLng, featureLatLng);
-
-      // If the distance is less than or equal to consolidation radius, add the feature to the array
-      if (distance <= consolidationRangeInMeters) { // Distance in meters
-        featuresWithinRadius.push(marker);
-        console.log(`-- found ${marker.feature.properties.id}`)
-      }
-    }
-  });
-
-  return featuresWithinRadius;
+  return sitesWithinRadius;
 }
 
-const consolidateSite = (marker) => {
+const consolidateSite = (targetSite) => {
   // remove all sites with in the specified consolidation radius
   // in theory all are merged into this one - however: what remains of these other sites? 
   // add their pictures in additional attachments for the site?
-  let targetFeature = marker.feature;
-  const targetSite = marker.site
+  //  let targetFeature = marker.feature;
+  //const targetSite = site
   if (!targetSite.attachments) {
     targetSite.attachments = []
   }
   // todo find sites within consolidation range?
-  let nearbyFeatures = findFeaturesWithinConsolidationRadius(targetFeature, markersLayer);
-  let removedFeatures = []
+  let nearbySites = findSitesWithinConsolidationRadius(targetSite);
+  let removedSites = []
   // Remove all nearby sites
   // sort nearbyfeature by timestamp
-  nearbyFeatures.sort((a, b) => (a.site.timestamp > b.site.timestamp) ? 1 : -1).forEach(function (feature) {
+  nearbySites.sort((a, b) => (a.timestamp > b.timestamp) ? 1 : -1).forEach(function (siteToRemove) {
 
-    removedFeatures.push(feature)
+    removedSites.push(siteToRemove)
     if (mapEditMode.value) {
 
-      const siteToRemove = storiesStore.getSite(feature.feature.properties.id)
+      //      const siteToRemove = storiesStore.getSite(feature.feature.properties.id)
       // add to targetSite.attachments an object with description (consisting of label, timestamp, description) and imageID
       if (siteToRemove.imageId || siteToRemove.description) {
         targetSite.attachments.push({
@@ -954,18 +946,21 @@ const consolidateSite = (marker) => {
         })
         siteToRemove.imageId = null // to prevent the removal of the site to alsoresult in removal of the referenced image 
 
-        // TODO process the attachments of the removed site - add those to the targerSet as well?!
+        if (siteToRemove.attachments){
+        targetSite.attachments.push(...siteToRemove.attachments)
+        siteToRemove.attachments = []
+        }
       }
-      deleteMarker(feature)
+      removeSite(siteToRemove)
     }
-    else hideMarker(feature)
+    else hideSite(siteToRemove)
 
   });
   console.log(targetSite)
   if (mapEditMode.value) {
     storiesStore.updateSite(targetSite)
   }
-  return removedFeatures
+  return removedSites
 }
 
 
