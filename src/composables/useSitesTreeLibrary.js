@@ -144,13 +144,13 @@ export function useSitesTreeLibrary() {
     // per country (if multiple countries) - if multiple cities, then children per city 
     const uniqueCountries = [...new Set(sites.map(site => site.country))];
     uniqueCountries.forEach(country => {
-      const key = suitableInClassName(country)
+      const countryKey = suitableInClassName(country)
       const countryNode = {
-        key: key,
+        key: countryKey,
         label: country,
         data: country,
         selectable: false,
-        styleClass: `treekey|country|${key}`,
+        styleClass: `treekey|country|${countryKey}`,
         icon: 'mdi mdi-map-marker',
         children: []
       }
@@ -158,12 +158,12 @@ export function useSitesTreeLibrary() {
       uniqueCities.forEach(city => {
         const cityKey = suitableInClassName(city)
         const cityNode = {
-          key: `${country}_${cityKey}`,
+          key: `${countryKey}_${cityKey}`,
           label: city,
           data: city,
           selectable: false,
           icon: 'mdi mdi-city',
-          styleClass: `treekey|city|${country}_${cityKey}`,
+          styleClass: `treekey|city|${countryKey}_${cityKey}`,
           children: []
         }
         // loop over sites, ordered by timestamp, filtered by city and add to children
