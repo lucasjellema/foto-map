@@ -43,6 +43,12 @@
 
               </v-expansion-panel-text>
             </v-expansion-panel>
+            <v-expansion-panel title="Attachments" collapse-icon="mdi-attachment" expand-icon="mdi-attachment">
+              <v-expansion-panel-text>
+                Attachments
+                <v-btn prepend-icon="mdi-attachment-plus" @click="addAndEditAttachment()">Add Attachment</v-btn>
+              </v-expansion-panel-text>
+            </v-expansion-panel>
             <v-expansion-panel title="Style" collapse-icon="mdi-brush" expand-icon="mdi-brush">
               <v-expansion-panel-text>
                 <v-container>
@@ -115,7 +121,9 @@
       <v-btn color="blue darken-1" text @click="saveSite">Save</v-btn>
     </v-card-actions>
   </v-card>
-
+  <v-dialog v-model="showAttachmentEditorPopup" max-width="800px">
+    <AttachmentEditor v-model="attachmentToEdit"   @saveAttachment="saveAttachment()" @closeDialog="showAttachmentEditorPopup=false"></AttachmentEditor>
+  </v-dialog>
 </template>
 <script setup>
 const modelSite = defineModel('site');
@@ -130,6 +138,7 @@ const imagesStore = useImagesStore()
 import { useLocationLibrary } from '@/composables/useLocationLibrary';
 import TooltipDirectionSelector from '@/components/TooltipDirectionSelector.vue'
 import IconSelector from '@/components/IconSelector.vue'
+import AttachmentEditor from '@/components/AttachmentEditor.vue'
 
 const { mapZoomToResolution, isValidCoordinateFormat, isValidGeoJSON, reverseGeocode, createSiteFromGeoJSON } = useLocationLibrary();
 import { useFunctionCallThrottler } from '@/composables/useFunctionCallThrottler';
@@ -138,8 +147,19 @@ const { enqueueCall: enqueueCallToReverseGeocode } = useFunctionCallThrottler(15
 import { ref, onMounted } from 'vue';
 
 const imageEditorRef = ref(null)
+const attachmentToEdit = ref(null)
+const showAttachmentEditorPopup = ref(false)
 
+const addAndEditAttachment = () => {
+  attachmentToEdit.value = { label: 'new attachment', description: 'new attachment description', imageUrl: null, imageId: null }
+  showAttachmentEditorPopup.value = true
+}
 
+const saveAttachment = () => {
+  if (!modelSite.value.attachments) modelSite.value.attachments = []
+  modelSite.value.attachments.push(attachmentToEdit.value) // this will work for new attachments; existing ones should be updated or replaced
+  showAttachmentEditorPopup.value = false
+}
 const handleTagChange = (newValue) => {
   // Handle the change event
   // This is where you might want to add logic to update the list of tags
