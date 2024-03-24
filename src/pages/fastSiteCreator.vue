@@ -301,7 +301,19 @@ const handleImport = async (event) => {
 
 }
 
-const handleSiteAction = ({ siteId, action }) => {
+const handleSiteAction = ({ siteId, siteIds, action, payload }) => {
+  // for all siteIds call siteAction
+  if (siteIds) {
+    if (action == 'siteFocus') {
+      focusOnSites(siteIds)
+    } else {
+      for (const siteId of siteIds) {
+        handleSiteAction({ siteId, action, payload })
+      }
+    }
+    return
+  }
+
   const site = storiesStore.getSite(siteId)
   if (site) {
     if (action == 'edit') {
@@ -309,7 +321,11 @@ const handleSiteAction = ({ siteId, action }) => {
       return
     } else if (action == 'delete') {
       removeSite(site) //deleteSite(site)      
+    } else if (action == 'highlight') {
+      highlightSite(site, payload)
+
     }
+
   }
 }
 
@@ -323,18 +339,36 @@ const handleSiteSelected = (siteIds) => {
     if (site) {
       const siteCoordinates = site.geoJSON.features[0].geometry.coordinates
       coordinates.push([siteCoordinates[1], siteCoordinates[0]])
-
-      //TODO find marker for site and select it
       const marker = findMarkerForSite(site);
       selectMarker(marker, true);
-
     }
   }
   if (coordinates.length > 0) {
     const bounds = L.latLngBounds(coordinates);
     map.value.fitBounds(bounds, { padding: [30, 30] });
-
   }
+}
+
+const highlightSite = (site, payload) => {
+  const marker = findMarkerForSite(site);
+  const color = payload.highlightStyle
+  if (!L.DomUtil.hasClass(marker._icon, `marker-highlight-style-${color}`)) {
+    L.DomUtil.addClass(marker._icon, `marker-highlight-style-${color}`);
+  } else {
+    L.DomUtil.removeClass(marker._icon, `marker-highlight-style-${color}`);
+  }
+}
+
+const focusOnSites = (siteIds) => {
+  const coordinatePairs = []
+  for (const siteId of siteIds) {
+    // get site 
+    const site = storiesStore.getSite(siteId)
+    const coordinates = site.geoJSON.features[0].geometry.coordinates
+    coordinatePairs.push([coordinates[1], coordinates[0]])
+  }
+  const bounds = L.latLngBounds(coordinatePairs);
+  map.value.fitBounds(bounds, { padding: [80, 80] }); // Adds padding around the bounds
 }
 
 const search = ref("")
@@ -1090,19 +1124,15 @@ const drawMap = () => {
   map.value.on('boxzoomend', (e) => {
     // e.boxZoomBounds contains the LatLngBounds of the box zoom area
     const bounds = e.boxZoomBounds;
-    console.log(`Box zoomed to bounds: `, bounds)
     var markersWithinRectangle = [];
 
     // Check each marker to see if it's within the bounds
     getAllMarkers().forEach(function (marker) {
       if (bounds.contains(marker.getLatLng())) {
         markersWithinRectangle.push(marker);
-        console.log("Marker within rectangle:", marker);
         selectMarker(marker, true)
       }
     });
-
-    console.log("Markers within rectangle:", markersWithinRectangle);
   })
 
 
@@ -1499,5 +1529,25 @@ img.hover-zoom {
 img.hover-zoom:hover {
   transform: scale(2);
   /* Adjust scale factor as needed */
+}
+
+.marker-highlight-style-yellow {
+  border: 1px dashed #d7d412;
+  background-color: yellow;
+}
+
+.marker-highlight-style-red {
+  border: 1px dashed #eab9b9;
+  background-color: rgb(206, 67, 67);
+}
+
+.marker-highlight-style-green {
+  border: 1px dashed #1e8b45;
+  background-color: rgb(9, 255, 0);
+}
+
+.marker-highlight-style-blue {
+  border: 1px dashed #3388ff;
+  background-color: rgb(136, 143, 221);
 }
 </style>

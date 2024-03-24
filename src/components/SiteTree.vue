@@ -15,16 +15,13 @@ const currentStory = computed(() => storiesStore.currentStory)
 const contextMenu = ref(null);
 
 import { useSitesTreeLibrary } from '@/composables/useSitesTreeLibrary';
-const { getSitesTreeData } = useSitesTreeLibrary();
+const { getSitesTreeData, findLeafNodes } = useSitesTreeLibrary();
 const sitesTreeData = computed(() => getSitesTreeData(currentStory.value.sites));
 const contextMenuItems = ref([])
-//   { label: 'Select Site', icon: 'pi pi-fw pi-pencil', command: () => selectSite() },
-//   { label: 'Edit Site', icon: 'pi pi-fw pi-pencil', command: () => editSite() },
-//   { label: 'Delete Site', icon: 'mdi mdi-delete', command: () => deleteSite() }
-// ]
 
 
-const emit = defineEmits(['siteSelected','siteAction']);
+
+const emit = defineEmits(['siteSelected', 'siteAction']);
 const props = defineProps({
 });
 
@@ -42,20 +39,24 @@ onMounted(() => {
 
 watch(selectedKey, (newselectedKey) => {
   // selectedkey is object with siteId as key and boolean as value
-  const siteIds = Object.keys(newselectedKey)
+  const siteIds = Object.keys(newselectedKey).filter(key => newselectedKey[key]);// only selected sites
   emit('siteSelected', siteIds)
 })
 
-const findSiteIdInTree = (currentElement) => {
+
+const findTreeKeyForElement = (currentElement) => {
   while (currentElement && currentElement !== document) {
     if (currentElement.classList) {
       for (let className of currentElement.classList) {
-        if (className.startsWith('site-')) {
-          // Extract the part of the class name after "site-"
-          const nameAfterSite = className.substring(5);
+        if (className.startsWith('treekey|')) {
+          // Extract the part of the class name after "treekey|"
+          const nameAfterTreeKey = className.substring(8);
+          nameAfterTreeKey.split('|')[0]
           return {
-            element: currentElement, // The matching element
-            siteId: nameAfterSite // The extracted string
+            element: currentElement,
+            treeKey: nameAfterTreeKey,
+            keyType: nameAfterTreeKey.split('|')[0],
+            key: nameAfterTreeKey.split('|')[1]
           };
         }
       }
@@ -64,26 +65,64 @@ const findSiteIdInTree = (currentElement) => {
   }
   return { siteId: null };
 }
+
+
 const handleDoubleClickOnTree = (event) => {
-  const { siteId } = findSiteIdInTree(event.target);
-  console.log(siteId)
+  const treeKey = findTreeKeyForElement(event.target)
+  let siteIds = []
+  if ((treeKey.keyType === 'year' || treeKey.keyType === 'month' || treeKey.keyType === 'day' || treeKey.keyType === 'tag' || treeKey.keyType === 'country' || treeKey.keyType === 'city')
+    && treeKey.key) {
+    const treeData = treeRef.value.value
+    // find all sites under this key 
+    siteIds = findLeafNodes(treeData, treeKey.key).map(siteNode => siteNode.key)
+  }
+
+  if (treeKey.keyType === 'site' && treeKey.key) {
+    siteIds = [treeKey.key]
+  }
+  emit('siteAction', { action: 'siteFocus', siteIds: siteIds })
 }
 
 const handleContextMenuClickOnTree = (event) => {
-  console.log(`contextmenu clicked on site ${event.target}`)
+
   contextMenuItems.value = []
-  const { siteId } = findSiteIdInTree(event.target);
-  if (siteId) {
-//    contextMenuItems.value.push({ label: `Select Site ${siteId} `, icon: 'pi pi-fw pi-pencil', command: () => selectSite(siteId) })
-    contextMenuItems.value.push({ label: `Edit Site`, icon: 'pi pi-fw pi-pencil'
-    , command: () => { emit('siteAction',{action: 'edit', siteId:siteId}) }})
-    contextMenuItems.value.push({ label: `Delete Site`, icon: 'midi mdi-delete'
-    , command: () => { emit('siteAction',{action: 'delete', siteId:siteId}) }})
-  
+  const treeKey = findTreeKeyForElement(event.target)
+  let siteIds = []
+  console.log(`treeKey ${JSON.stringify(treeKey)}`) //  console.log(`treeKey ${treeKey}`) 
+  if ((treeKey.keyType === 'year' || treeKey.keyType === 'month' || treeKey.keyType === 'day' || treeKey.keyType === 'tag')
+    || treeKey.keyType === 'country' || treeKey.keyType === 'city'
+    && treeKey.key) {
+    const treeData = treeRef.value.value
+    // find all sites under this key 
+    siteIds = findLeafNodes(treeData, treeKey.key).map(siteNode => siteNode.key)
   }
 
-  // const { siteId } = findSiteIdInTree(event.target);
-  //console.log(siteId)
+  if (treeKey.keyType === 'site' && treeKey.key) {
+    // https://primevue.org/contextmenu/
+    const siteId = treeKey.key
+    siteIds = [siteId]
+    contextMenuItems.value.push({
+      label: ` Edit Site`, icon: 'pi pi-fw pi-pencil'
+      , command: () => { emit('siteAction', { action: 'edit', siteIds: siteIds }) }
+    })
+    contextMenuItems.value.push({
+      label: ` Delete Site`, icon: 'mdi mdi-trash-can-outline'
+      , command: () => { emit('siteAction', { action: 'delete', siteIds: siteIds }) }
+    })
+  }
+  if (siteIds.length > 0) {
+    const highlightMenuItem = {
+      label: `Highlight`, icon: 'mdi mdi-format-color-highlight'
+      , items: []
+    }
+    contextMenuItems.value.push(highlightMenuItem)
+    for (let color of ['yellow', 'red', 'green', 'blue']) {
+      highlightMenuItem.items.push({
+        label: ``, class: `marker-highlight-style-${color}`, icon: 'mdi mdi-format-color-highlight'
+        , command: () => { emit('siteAction', { action: 'highlight', siteIds: siteIds, payload: { highlightStyle: color } }) }
+      })
+    }
+  }
   contextMenu.value.show(event); // Show the PrimeVue ContextMenu
 }
 
@@ -106,9 +145,9 @@ const handleContextMenuClickOnTree = (event) => {
 }
 
 .p-contextmenu {
-  padding-top: 0.7rem !important;
+  padding-top: 0.4rem !important;
   padding-right: 0.25rem !important;
-  padding-bottom: 0.7rem !important;
+  padding-bottom: 0.4rem !important;
   padding-left: 0.25rem !important;
   margin-top: 10px;
 
@@ -121,5 +160,25 @@ const handleContextMenuClickOnTree = (event) => {
   padding-left: 0.3rem !important;
 
 
+}
+
+.marker-highlight-style-yellow {
+  border: 1px dashed #d7d412;
+  background-color: yellow;
+}
+
+.marker-highlight-style-red {
+  border: 1px dashed #eab9b9;
+  background-color: rgb(206, 67, 67);
+}
+
+.marker-highlight-style-green {
+  border: 1px dashed #1e8b45;
+  background-color: rgb(9, 255, 0);
+}
+
+.marker-highlight-style-blue {
+  border: 1px dashed #3388ff;
+  background-color: rgb(136, 143, 221);
 }
 </style>
