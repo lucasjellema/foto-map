@@ -30,10 +30,10 @@ const icons = [
     'mdi-hospital-building',
     'mdi-school',
     'mdi-beach',
-    'mdi-martini',
+    'mdi-beer',
     'mdi-shopping',
     'mdi-gas-station',
-    'mdi-hotel',
+    'mdi-bed',
     'mdi-music-note',
     'mdi-silverware-variant'
 ]
