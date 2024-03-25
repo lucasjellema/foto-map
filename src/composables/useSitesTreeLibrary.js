@@ -174,6 +174,7 @@ export function useSitesTreeLibrary() {
             key: site.id, // to allow the site to be found from the feature - as in the map only the feature will be available
             label: site.label + ' - ' + formatDate(site.timestamp, 'medium'),
             data: site,
+            leaf: true,
             icon: 'mdi mdi-city',
             styleClass: `treekey|site|${site.id}`,
             children: [],
