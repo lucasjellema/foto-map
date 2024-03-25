@@ -1,7 +1,7 @@
 <template>
-  <Tree :value="sitesTreeData" v-model:selectionKeys="selectedKey" class="w-full md:w-30rem tree-override" ref="treeRef"
-    selectionMode="multiple" :filter="true"></Tree>
-
+  <Tree :value="sitesTreeData" v-model:selectionKeys="selectedKey" scrollable scrollHeight="700px"
+    class="w-full md:w-30rem tree-override" ref="treeRef" selectionMode="multiple" :filter="true"
+    filterPlaceholder="Enter search term" @node-select="handleNodeSelect" @node-unselect="handleNodeUnselect"></Tree>
   <ContextMenu ref="contextMenu" :model="contextMenuItems"></ContextMenu>
 </template>
 <script setup>
@@ -33,6 +33,7 @@ const selectedKey = ref(null);
 onMounted(() => {
   const treeElement = treeRef.value.$el; // Access the Tree DOM element
   treeElement.addEventListener('dblclick', handleDoubleClickOnTree);
+  treeElement.addEventListener('click', handleClickOnTree);
   treeElement.addEventListener('contextmenu', handleContextMenuClickOnTree);
 
 });
@@ -83,12 +84,80 @@ const handleDoubleClickOnTree = (event) => {
   emit('siteAction', { action: 'siteFocus', siteIds: siteIds })
 }
 
+let lastSelectedNode, previouslySelectedNode, lastClickWasASelection = false, previousClickWasASelection = false
+
+
+const handleNodeSelect = (selectedNode) => {
+  if (selectedNode.leaf) {
+    previousClickWasASelection = lastClickWasASelection
+    lastClickWasASelection = true
+    previouslySelectedNode = lastSelectedNode
+    lastSelectedNode = selectedNode
+  }
+}
+
+const handleNodeUnselect = (selectedNode) => {
+  if (selectedNode.leaf) {
+    previousClickWasASelection = lastClickWasASelection
+    lastClickWasASelection = false
+    previouslySelectedNode = lastSelectedNode
+    lastSelectedNode = selectedNode
+  }
+}
+
+const handleClickOnTree = (event) => {
+  const treeKey = findTreeKeyForElement(event.target)
+  if (treeKey.keyType === 'site' && treeKey.key) {
+    if (event.shiftKey) {
+      console.log(`tree was shift clicked - find all sites from ${previouslySelectedNode.key} to  ${lastSelectedNode.key}`)
+
+      const children = lastSelectedNode.parent.children
+      console.log(`children ${children.length}`)
+      // loop over children 
+      let inRange = false
+      const siteIdsToSelect = []
+      for (const child of children) {
+        let justNow = false
+        if (!inRange && (child.key == previouslySelectedNode.key || child.key == lastSelectedNode.key)) {
+
+          inRange = true
+          justNow = true
+        }
+        if (inRange) {
+          siteIdsToSelect.push(child.key)
+        }
+        if (inRange && (child.key == lastSelectedNode.key || child.key == previouslySelectedNode.key) && !justNow) {
+          inRange = false
+        }
+
+      }
+      console.log(`siteIdsToSelect or unselect ${previousClickWasASelection} ${siteIdsToSelect}`)
+      if (previousClickWasASelection) {
+
+        emit('siteAction', { action: 'selectChildren', siteIds: siteIdsToSelect });
+        const updatedSelection = { ...selectedKey.value };
+        siteIdsToSelect.forEach(key => {
+          updatedSelection[key] = true;
+        });
+        selectedKey.value = updatedSelection;
+      } else {
+        emit('siteAction', { action: 'unselectChildren', siteIds: siteIdsToSelect });
+        const updatedSelection = { ...selectedKey.value };
+        siteIdsToSelect.forEach(key => {
+          updatedSelection[key] = false;
+        });
+        selectedKey.value = updatedSelection;      
+      }
+    }
+  }
+}
+
 const handleContextMenuClickOnTree = (event) => {
 
   contextMenuItems.value = []
   const treeKey = findTreeKeyForElement(event.target)
   let siteIds = []
-  console.log(`treeKey ${JSON.stringify(treeKey)}`) //  console.log(`treeKey ${treeKey}`) 
+
   if ((treeKey.keyType === 'year' || treeKey.keyType === 'month' || treeKey.keyType === 'day' || treeKey.keyType === 'tag')
     || treeKey.keyType === 'country' || treeKey.keyType === 'city'
     && treeKey.key) {
@@ -111,6 +180,21 @@ const handleContextMenuClickOnTree = (event) => {
     })
   }
   if (siteIds.length > 0) {
+    if (treeKey.keyType != 'site') {
+      contextMenuItems.value.push({
+        label: `Select Child Sites`, icon: 'mdi mdi-file-tree'
+        , command: () => {
+          emit('siteAction', { action: 'selectChildren', siteIds: siteIds });
+          // extend selectionkey with all siteIds with true
+          const updatedSelection = { ...selectedKey.value };
+          siteIds.forEach(key => {
+            updatedSelection[key] = true;
+          });
+          selectedKey.value = updatedSelection;
+        }
+      })
+    }
+
     const highlightMenuItem = {
       label: `Highlight`, icon: 'mdi mdi-format-color-highlight'
       , items: []
