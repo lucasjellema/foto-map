@@ -67,7 +67,8 @@ export function useSitesTreeLibrary() {
               selectable: true,
               styleClass: `treekey|site|${site.id}`,
               leaf: true,
-              children: []
+              children: [],
+              parent: dayNode
             }
             if (sitesWithYearMonthAndDay.length > 1)
               dayNode.children.push(siteNode)
@@ -79,6 +80,7 @@ export function useSitesTreeLibrary() {
               dayNode.leaf = siteNode.leaf
               dayNode.styleClass = siteNode.styleClass
               dayNode.data = siteNode.data
+              dayNode.parent = monthNode
               dayNode.label = dayNode.label + ' - ' + siteNode.label
             }
           })
@@ -174,7 +176,8 @@ export function useSitesTreeLibrary() {
             data: site,
             icon: 'mdi mdi-city',
             styleClass: `treekey|site|${site.id}`,
-            children: []
+            children: [],
+            parent: uniqueCities.length > 1?cityNode:countryNode
           }
           cityNode.children.push(siteNode)
         })
@@ -235,7 +238,8 @@ export function useSitesTreeLibrary() {
           data: site,
           icon: 'mdi mdi-city',
           styleClass: `treekey|site|${site.id}`,
-          children: []
+          children: [],
+          parent: tagNode
         }
         tagNode.children.push(siteNode)
       })      
