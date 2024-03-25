@@ -240,6 +240,7 @@ import { useLocationLibrary } from '@/composables/useLocationLibrary';
 import TooltipDirectionSelector from '@/components/TooltipDirectionSelector.vue'
 import IconSelector from '@/components/IconSelector.vue'
 
+
 import 'leaflet.markercluster/dist/MarkerCluster.css';
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
 import { MarkerClusterGroup } from 'leaflet.markercluster';
@@ -314,7 +315,11 @@ const handleSiteAction = ({ siteId, siteIds, action, payload }) => {
   if (siteIds) {
     if (action == 'siteFocus') {
       focusOnSites(siteIds)
+    }else if (action == 'selectChildren') {
+    handleSiteSelected(siteIds)
     }
+    //TODO handle action == unselectChildren 
+    
     else {
       for (const siteId of siteIds) {
         handleSiteAction({ siteId, action, payload })
