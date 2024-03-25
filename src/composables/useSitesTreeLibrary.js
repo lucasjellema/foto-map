@@ -238,6 +238,7 @@ export function useSitesTreeLibrary() {
           label: `${site.label} (${site.city}, ${site.country}) - ${formatDate(site.timestamp, 'medium')}`,
           data: site,
           icon: 'mdi mdi-city',
+          leaf: true,
           styleClass: `treekey|site|${site.id}`,
           children: [],
           parent: tagNode
