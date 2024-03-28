@@ -152,60 +152,22 @@
         </v-card>
       </v-dialog>
 
-      <v-dialog v-model="showMapConfigurationPopup" max-width="800px">
+      <v-dialog v-model="showMapConfigurationPopup" max-width="1200px">
         <v-card>
           <v-card-title>
             <span class="headline">Map Configuration</span>
           </v-card-title>
           <v-card-text>
+            <MapConfigurator v-model:map="currentStory.mapConfiguration" >
+            </MapConfigurator>
             <v-container>
+
               <v-row>
                 <v-col cols="3">
                   <v-btn @click="exportMap()">Export Map</v-btn>
                 </v-col>
                 <v-col cols="8" offset="1">
                   <v-file-input label="Upload FotoMapp Archive" @change="handleImport" accept=".zip"></v-file-input>
-                </v-col>
-              </v-row>
-              <v-row>
-                <v-col cols="12">
-                  <v-checkbox v-model="currentStory.mapConfiguration.showTooltips"
-                    label="Show Tooltips for Markers"></v-checkbox>
-                </v-col>
-              </v-row>
-              <v-row>
-                <v-col cols="12">
-                  <h2>Custom tile layers</h2>
-                </v-col>
-              </v-row>
-              <v-row>
-                <v-col cols="4">
-                  <v-text-field v-model="newTileLayer.label" label="Label"></v-text-field>
-                </v-col>
-                <v-col cols="8">
-                  <v-text-field v-model="newTileLayer.url" label="URL"
-                    hint="https://provider.domain/optional- provider-specific-path/{z}/{x}/{y}.png"
-                    persistent-hint=""></v-text-field>
-                </v-col>
-              </v-row>
-              <v-row>
-                <v-col cols="12">
-                  <v-text-field v-model="newTileLayer.description" label="Description"></v-text-field>
-                  <v-text-field v-model="newTileLayer.attribution" label="Attribution"
-                    hint="Attribution to provider, for example '© OpenStreetMap contributors'"></v-text-field>
-                  <v-btn @click="addTileLayer">Add Tile Layer</v-btn>
-                </v-col>
-              </v-row>
-              <v-row>
-                <v-col>
-                  <v-data-table :headers="tileLayersHeaders" :items="currentStory.mapConfiguration.customTileLayers"
-                    item-key="label" class="elevation-1">
-                    <template v-slot:item.actions="{ item }">
-                      <v-icon small @click="removeTileLayer(item, index)">
-                        mdi-delete
-                      </v-icon>
-                    </template>
-                  </v-data-table>
                 </v-col>
               </v-row>
             </v-container>
@@ -228,6 +190,7 @@ import domtoimage from 'dom-to-image-more';
 import ImageEditor from "@/components/imageEditor.vue"
 import SiteEditor from "@/components/SiteEditor.vue"
 import SiteMap from "@/components/SiteMap.vue"
+import MapConfigurator from "@/components/MapConfigurator.vue"
 
 
 
@@ -239,7 +202,8 @@ import { ref, onMounted } from 'vue';
 import { useLocationLibrary } from '@/composables/useLocationLibrary';
 import TooltipDirectionSelector from '@/components/TooltipDirectionSelector.vue'
 import IconSelector from '@/components/IconSelector.vue'
-
+import GeometryUtil from "leaflet-geometryutil";
+import 'leaflet-polylinedecorator';
 
 import 'leaflet.markercluster/dist/MarkerCluster.css';
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
@@ -258,12 +222,16 @@ const storiesStore = useStorieStore()
 const currentStory = computed(() => storiesStore.currentStory)
 const sitesData = computed(() => currentStory.value.sites);
 const storyTags = computed(() => currentStory.value.tags);
+const storyTimelines = computed(() => currentStory.value.mapConfiguration.timelines);
 
 import { useImportExportLibrary } from '@/composables/useImportExportLibrary';
 const { exportStoryToZip, importStoryFromZip } = useImportExportLibrary();
 import { useSitesTreeLibrary } from '@/composables/useSitesTreeLibrary';
 
-
+import { useDateTimeLibrary } from '@/composables/useDateTimeLibrary';
+const { formatDate } = useDateTimeLibrary();
+import { useTimelinesLibrary } from '@/composables/useTimelinesLibrary';
+const { splitTimelineAtSiteX, drawTimelinesX, hideTimelines } = useTimelinesLibrary();
 const tab = ref('tab-1')
 const showSiteDetailsPopup = ref(false)
 
@@ -315,11 +283,11 @@ const handleSiteAction = ({ siteId, siteIds, action, payload }) => {
   if (siteIds) {
     if (action == 'siteFocus') {
       focusOnSites(siteIds)
-    }else if (action == 'selectChildren') {
-    handleSiteSelected(siteIds)
+    } else if (action == 'selectChildren') {
+      handleSiteSelected(siteIds)
     }
     //TODO handle action == unselectChildren 
-    
+
     else {
       for (const siteId of siteIds) {
         handleSiteAction({ siteId, action, payload })
@@ -337,7 +305,8 @@ const handleSiteAction = ({ siteId, siteIds, action, payload }) => {
       removeSite(site) //deleteSite(site)      
     } else if (action == 'highlight') {
       highlightSite(site, payload)
-
+    } else if (action == 'splitTimeline') {
+      splitTimelineAtSite(site)
     }
 
   }
@@ -386,25 +355,25 @@ const focusOnSites = (siteIds) => {
 }
 
 const search = ref("")
-const tileLayersHeaders = ref([
-  { text: 'Label', value: 'label' },
-  { text: 'URL', value: 'url' },
-  { text: 'Description', value: 'description' },
-  { text: 'Actions', value: 'actions' },
-])
-const newTileLayer = ref({})
+// const tileLayersHeaders = ref([
+//   { text: 'Label', value: 'label' },
+//   { text: 'URL', value: 'url' },
+//   { text: 'Description', value: 'description' },
+//   { text: 'Actions', value: 'actions' },
+// ])
+// const newTileLayer = ref({})
 
-const addTileLayer = () => {
-  currentStory.value.mapConfiguration.customTileLayers.push(newTileLayer.value)
+// const addTileLayer = () => {
+//   currentStory.value.mapConfiguration.customTileLayers.push(newTileLayer.value)
 
-  newTileLayer.value = {}
+//   newTileLayer.value = {}
 
-}
+// }
 
-const removeTileLayer = (item, index) => {
-  currentStory.value.mapConfiguration.customTileLayers.splice(index, 1)
+// const removeTileLayer = (item, index) => {
+//   currentStory.value.mapConfiguration.customTileLayers.splice(index, 1)
 
-}
+// }
 
 const popupContentRef = ref(null)
 const poppedupFeature = ref({})
@@ -418,6 +387,7 @@ const imageMetadata = ref()
 const mapEditMode = ref(false)
 const mapClusterMode = ref(false)
 const mapFilterMode = ref(false)
+const mapShowTimelines = ref(false)
 const consolidationRadius = ref(2)
 const dateRangeTicks = computed(() => {
   const start = minTimestamp.value
@@ -548,30 +518,30 @@ const dateFormatStyle = computed(() => {
     return "long"  // DD MON Y
 })
 
-function formatDate(timestamp) {
-  const date = new Date(timestamp)
-  if (dateFormatStyle === "dow") {
-    const dayOfWeek = date.toLocaleString('default', { weekday: 'long' })
-      ;
-    return dayOfWeek
-  } else
-    if (dateFormatStyle.value === "short") {
-      const hour = date.getHours();
-      const min = date.getMinutes();
-      return `${hour}:${min < 10 ? '0' : ''}${min}`
-    } else if (dateFormatStyle.value === "medium") {
-      const day = date.getDate();
-      const month = date.toLocaleString('default', { month: 'long' }) // months[date.getMonth()];
-      const hour = date.getHours();
-      const min = date.getMinutes();
-      return `${day} ${month} ${hour}:${min < 10 ? '0' : ''}${min}`
-    } else {
-      const day = date.getDate();
-      const month = date.toLocaleString('default', { month: 'long' });
-      const year = date.getFullYear();
-      return `${day} ${month} ${year}`
-    }
-}
+// function formatDate(timestamp) {
+//   const date = new Date(timestamp)
+//   if (dateFormatStyle === "dow") {
+//     const dayOfWeek = date.toLocaleString('default', { weekday: 'long' })
+//       ;
+//     return dayOfWeek
+//   } else
+//     if (dateFormatStyle.value === "short") {
+//       const hour = date.getHours();
+//       const min = date.getMinutes();
+//       return `${hour}:${min < 10 ? '0' : ''}${min}`
+//     } else if (dateFormatStyle.value === "medium") {
+//       const day = date.getDate();
+//       const month = date.toLocaleString('default', { month: 'long' }) // months[date.getMonth()];
+//       const hour = date.getHours();
+//       const min = date.getMinutes();
+//       return `${day} ${month} ${hour}:${min < 10 ? '0' : ''}${min}`
+//     } else {
+//       const day = date.getDate();
+//       const month = date.toLocaleString('default', { month: 'long' });
+//       const year = date.getFullYear();
+//       return `${day} ${month} ${year}`
+//     }
+// }
 
 const customSort = (items, sortBy, sortDesc) => {
   const [sortKey] = sortBy;
@@ -717,6 +687,21 @@ watch(mapClusterMode, () => {
   alignClustering()
 })
 
+watch(mapShowTimelines, (newValue) => {
+  if (newValue) {
+    console.log("Showing timelines")
+  } else {
+    console.log("Hide timelines")
+  }
+})
+
+watch(storyTimelines, () => {
+  if (mapShowTimelines.value) {
+    hideTimelines()
+    drawTimelines()
+  }
+})
+
 onMounted(() => {
   drawMap();
   refreshMarkers();
@@ -782,7 +767,8 @@ const drawMarkerForSite = (site) => {
     })
     return popupContentRef.value.$el;
   });
-  marker.bindContextMenu({
+
+  const markerContextMenu = {
     contextmenu: true,
     contextmenuItems: [{
       separator: true
@@ -827,8 +813,24 @@ const drawMarkerForSite = (site) => {
         }
       }
     }]
+  }
+  // TODO ideally this option to split timeline is only shown when timelines are shown
+  // however - redrawing all markers when timelines are enabled/disables seems a bit expensive. or is it?
+  //   if (mapShowTimelines.value ...
+  markerContextMenu.contextmenuItems.push(
+    {
+      text: 'Split Timeline',
+      callback: (e) => {
+        const marker = e.relatedTarget;
+        if (marker) {
+          console.log(`Split timeline at this marker ${JSON.stringify(marker.site)}`)
+          splitTimelineAtSite(marker.site)
+        }
+      }
+    })
 
-  })
+  marker.bindContextMenu(markerContextMenu)
+
   // do not open popup for ctrl + click (instead, select/deselect the marker)
   marker.on('click', (e) => {
     if (e.originalEvent.ctrlKey) {
@@ -846,17 +848,8 @@ const refreshMap = () => {
   refreshMarkers()
   mapEditMode.value = false
 
-  // find first marker and tilt
+  drawTimelines()
 
-  // const firstMarker = geoJsonLayer.getLayers()[0]
-  // if (firstMarker) {
-
-  //   var icon = firstMarker._icon; // Access the DOM element of the marker icon
-  //   //    icon.style.transition = "transform 0.3s ease"; // Optional: smooth transition
-  //   console.log(`Icon style transform ${icon.style.transform}`)
-  //   icon.style.transform += "rotate(30deg)";
-  //   console.log(`NEW Icon style transform ${icon.style.transform}`)
-  // }
 }
 
 
@@ -910,15 +903,15 @@ function findSitesWithinConsolidationRadius(targetSite) {
   let targetLatLng = L.latLng(targetSite.geoJSON.features[0].geometry.coordinates[1], targetSite.geoJSON.features[0].geometry.coordinates[0]);
 
   // Iterate over all sites and check if they are within the consolidation radius
-  
-   applyFilters(currentStory.value.sites).forEach(site => {
-     if (site === targetSite) return
-     let siteLatLng = L.latLng(site.geoJSON.features[0].geometry.coordinates[1], site.geoJSON.features[0].geometry.coordinates[0]);
-     let distance = map.value.distance(targetLatLng, siteLatLng);
-     if (distance <= consolidationRangeInMeters) { // Distance in meters
-       sitesWithinRadius.push(site);
-     }
-   })
+
+  applyFilters(currentStory.value.sites).forEach(site => {
+    if (site === targetSite) return
+    let siteLatLng = L.latLng(site.geoJSON.features[0].geometry.coordinates[1], site.geoJSON.features[0].geometry.coordinates[0]);
+    let distance = map.value.distance(targetLatLng, siteLatLng);
+    if (distance <= consolidationRangeInMeters) { // Distance in meters
+      sitesWithinRadius.push(site);
+    }
+  })
 
   return sitesWithinRadius;
 }
@@ -951,9 +944,9 @@ const consolidateSite = (targetSite) => {
         })
         siteToRemove.imageId = null // to prevent the removal of the site to alsoresult in removal of the referenced image 
 
-        if (siteToRemove.attachments){
-        targetSite.attachments.push(...siteToRemove.attachments)
-        siteToRemove.attachments = []
+        if (siteToRemove.attachments) {
+          targetSite.attachments.push(...siteToRemove.attachments)
+          siteToRemove.attachments = []
         }
       }
       removeSite(siteToRemove)
@@ -1125,6 +1118,7 @@ const drawMap = () => {
   attachMapListeners()
   addClusterControl()
   addEditModeControl()
+  addTimelinesControl()
   addFilterControl()
   clustersLayer = L.markerClusterGroup();
   map.value.addLayer(clustersLayer);
@@ -1143,97 +1137,6 @@ const drawMap = () => {
       }
     });
   })
-
-
-  // geoJsonLayer = L.geoJSON(null, {
-  //   draggable: true,
-  //   onEachFeature: async (feature, marker) => {
-  //     const site = storiesStore.getSite(feature.properties.id)
-  //     const tooltip = `${feature.properties.name}`;
-  //     const tooltipClassName = `tooltip${feature.properties.id}`.replace(/-/g, "")
-  //     if (site.showTooltip) {
-
-
-  //       marker.bindTooltip(tooltip, {
-  //         permanent: true
-  //         , className: `my-custom-tooltip ${tooltipClassName}`
-  //         , direction: site.tooltipDirection ? site.tooltipDirection : 'auto' // derive direction from feature properties ; also opacity , 
-  //         , interactive: true // needed to handle tooltip click events
-  //       })
-
-  //       setTimeout(() => {
-  //         const tooltipElement = document.querySelector(`.${tooltipClassName}`);
-  //         refreshTooltip(site, tooltipElement)
-
-  //       }, 50); // Small timeout to ensure the tooltip is rendered
-
-  //     }
-  //     marker.bindPopup((marker) => {
-  //       poppedupSite.value = storiesStore.getSite(marker.feature.properties.id)
-  //       if (mapEditMode.value) {
-  //         // open edit dialog
-  //         // editedSite.value = poppedupSite.value
-  //         // showEditSitePopup.value = true
-  //         editItem(poppedupSite.value)
-  //         return popupContentRef.value.$el
-  //         //          return editSitePopupContentRef.value.$el;
-  //       }
-
-  //       poppedupFeature.value = marker.feature;
-  //       // get site from storiesStore for this feature
-
-  //       console.log(`open popup for ${marker.feature.properties.id} ${poppedupSite.value.label}`);
-  //       if (poppedupSite.value.imageId) {
-  //         try {
-  //           setImageURLonObject(poppedupSite.value.imageId, poppedupSite.value);
-  //           //iterate over every attachment in the poppedupSite 
-  //           poppedupSite.value.attachments.forEach(attachment => {
-  //             if (attachment.imageId) {
-  //               setImageURLonObject(attachment.imageId, attachment);
-
-  //               // imagesStore.getUrlForIndexedDBImage(attachment.imageId).then(url => {
-  //               //   attachment.imageURL = url
-  //               // })
-  //             }
-  //           })
-
-  //         }
-  //         catch (e) { }
-  //       }
-  //       return popupContentRef.value.$el;
-  //     });
-  //     marker.bindContextMenu({
-  //       contextmenu: true,
-  //       contextmenuItems: [{
-  //         separator: true
-  //       }, {
-  //         text: 'Delete Site',
-  //         callback: (e) => {
-  //           const featureLayer = e.relatedTarget;
-  //           if (featureLayer) {
-  //             deleteMarker(featureLayer);
-  //           }
-  //         }
-  //       }, {
-  //         text: 'Hide Site',
-  //         callback: (e) => {
-  //           const featureLayer = e.relatedTarget;
-  //           if (featureLayer) {
-  //             hideMarker(featureLayer);
-  //           }
-  //         }
-  //       }, {
-  //         text: 'Consolidate Site',
-  //         callback: (e) => {
-  //           const featureLayer = e.relatedTarget;
-  //           if (featureLayer) {
-  //             consolidateSite(featureLayer);
-  //           }
-  //         }
-  //       }]
-  //     });
-  //   }
-  // })
 
 }
 
@@ -1269,6 +1172,27 @@ const addFilterControl = () => {
 }
 
 
+
+const addTimelinesControl = () => {
+  const timelinesControl = L.control({ position: 'bottomleft' });
+  myControls.push(timelinesControl);
+
+  timelinesControl.onAdd = function (map) {
+    const div = L.DomUtil.create('div', 'map-control');
+    div.innerHTML = `<form><input id="timelinesCheckbox" ${mapShowTimelines.value ? 'checked' : ''} type="checkbox" title="Show Timelines"> Show Timelines</form>`;
+    return div;
+  };
+  timelinesControl.addTo(map.value);
+  document.getElementById('timelinesCheckbox').addEventListener('change', function () {
+    if (this.checked) {
+      mapShowTimelines.value = true;
+      drawTimelines();
+    } else {
+      mapShowTimelines.value = false;
+      hideTimelines();
+    }
+  });
+}
 const addClusterControl = () => {
   const clusteringControl = L.control({ position: 'bottomleft' });
   myControls.push(clusteringControl);
@@ -1482,6 +1406,35 @@ const handlePastedText = (text) => {
   }
 }
 
+const splitTimelineAtSite = (siteToSplitAt) => {
+  if (!currentStory.value.mapConfiguration.timelines) {
+    currentStory.value.mapConfiguration.timelines = []
+  }   
+  splitTimelineAtSiteX(siteToSplitAt,sitesData.value,currentStory.value.mapConfiguration.timelines, map.value)
+}
+
+
+const drawTimelines = () => {
+  drawTimelinesX(sitesData.value, currentStory.value.mapConfiguration.timelines,map.value)
+}
+
+
+
+function findClosestSegment(polyline, clickLatLng) {
+  const latLngs = polyline.getLatLngs();
+  let closestSegment = null;
+  // Iterate through each pair of points
+  for (let i = 0; i < latLngs.length - 1; i++) {
+    const segmentStart = latLngs[i];
+    const segmentEnd = latLngs[i + 1];
+    if (GeometryUtil.belongsSegment(clickLatLng, segmentStart, segmentEnd, 0.01)) {
+      console.log(`clicked belongs to this segment ${segmentStart.lng},${segmentStart.lat}`)
+      closestSegment = [segmentStart, segmentEnd];
+      break;
+    }
+  }
+  return closestSegment;
+}
 
 
 
