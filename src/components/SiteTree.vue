@@ -178,6 +178,10 @@ const handleContextMenuClickOnTree = (event) => {
       label: ` Delete Site`, icon: 'mdi mdi-trash-can-outline'
       , command: () => { emit('siteAction', { action: 'delete', siteIds: siteIds }) }
     })
+    contextMenuItems.value.push({
+      label: ` Split Timeline at Site`, icon: 'mdi mdi-timeline-clock-outline'
+      , command: () => { emit('siteAction', { action: 'splitTimeline', siteIds: siteIds }) }
+    })
   }
   if (siteIds.length > 0) {
     if (treeKey.keyType != 'site') {
