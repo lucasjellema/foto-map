@@ -161,7 +161,7 @@ export function useTimelinesLibrary() {
          label: `from ${sites[0].label} to ${sites[sites.length - 1].label}`,
          color:'blue' 
        }
-       const { polyline, timelineDecorator } = drawTimeline(dummyEndToEndTimeline, sites)
+       const { polyline, timelineDecorator } = drawTimeline(dummyEndToEndTimeline, sites,map)
        drawnTimelines.push(polyline)
        drawnTimelineDecorators.push(timelineDecorator)
      }
