@@ -183,10 +183,10 @@
     </v-container>
 
     <v-container id="timelinesLegend" ref="timelinesLegendRef" style="max-width: 300px">
-      <v-row v-for="timeline in currentStory.mapConfiguration.timelines"
+      <v-row v-for="timeline in currentStory.mapConfiguration.timelines" @dblclick.stop="focusOnTimeline(timeline)"
         @mouseover="highlightTimeline(timeline.startSiteId)" @mouseout="unhighlightTimeline(timeline.startSiteId)">
         <v-col cols="2">
-            <hr :style="{ border: 'none',  height: '4px', 'background-color': timeline.color }">
+          <hr :style="{ border: 'none', height: '4px', 'background-color': timeline.color }">
         </v-col>
         <v-col cols="10">
           {{ timeline.label }}
@@ -376,6 +376,27 @@ const focusOnSites = (siteIds) => {
   }
   const bounds = L.latLngBounds(coordinatePairs);
   map.value.fitBounds(bounds, { padding: [80, 80] }); // Adds padding around the bounds
+}
+
+const focusOnTimeline = (timeline) => {
+  // using sorted list of sites, create a collection of all sites starting from timeline.startSiteId and ending with timeline.endSiteId
+
+  const siteIds = []
+
+  const sites = sitesData.value.sort((a, b) => (a.timestamp > b.timestamp) ? 1 : -1)
+  let inTimelineRange = false
+  for (const site of sites) {
+    if (site.id == timeline.startSiteId) {
+      inTimelineRange = true
+    }
+    if (inTimelineRange) {
+    siteIds.push(site.id)
+    }
+    if (site.id == timeline.endSiteId) {
+      break
+    }
+  }
+  focusOnSites(siteIds)
 }
 
 const search = ref("")
