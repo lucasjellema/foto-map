@@ -158,7 +158,7 @@
             <span class="headline">Map Configuration</span>
           </v-card-title>
           <v-card-text>
-            <MapConfigurator v-model:map="currentStory.mapConfiguration" >
+            <MapConfigurator v-model:map="currentStory.mapConfiguration">
             </MapConfigurator>
             <v-container>
 
@@ -181,6 +181,29 @@
 
 
     </v-container>
+
+    <v-container id="timelinesLegend" ref="timelinesLegendRef" style="max-width: 300px">
+      <v-row v-for="timeline in currentStory.mapConfiguration.timelines"
+        @mouseover="highlightTimeline(timeline.startSiteId)" @mouseout="unhighlightTimeline(timeline.startSiteId)">
+        <v-col cols="2">
+            <hr :style="{ border: 'none',  height: '4px', 'background-color': timeline.color }">
+        </v-col>
+        <v-col cols="10">
+          {{ timeline.label }}
+        </v-col>
+      </v-row>
+    </v-container>
+
+
+
+
+    <!-- <span @mouseover="highlightTimeline(timeline.startSiteId)" @mouseout="unhighlightTimeline(timeline.startSiteId)"
+        v-for="timeline in currentStory.mapConfiguration.timelines" v-if="mapShowTimelines">
+        <i
+          :style="background: '{{timeline.color}}';width:20px;height:3px;float:left;margin-right:5px;">{{ timeline.label }}
+      </span> -->
+
+
   </v-responsive>
 </template>
 
@@ -222,7 +245,7 @@ const storiesStore = useStorieStore()
 const currentStory = computed(() => storiesStore.currentStory)
 const sitesData = computed(() => currentStory.value.sites);
 const storyTags = computed(() => currentStory.value.tags);
-const storyTimelines = computed(() => currentStory.value.mapConfiguration.timelines);
+
 
 import { useImportExportLibrary } from '@/composables/useImportExportLibrary';
 const { exportStoryToZip, importStoryFromZip } = useImportExportLibrary();
@@ -231,10 +254,11 @@ import { useSitesTreeLibrary } from '@/composables/useSitesTreeLibrary';
 import { useDateTimeLibrary } from '@/composables/useDateTimeLibrary';
 const { formatDate } = useDateTimeLibrary();
 import { useTimelinesLibrary } from '@/composables/useTimelinesLibrary';
-const { splitTimelineAtSiteX, drawTimelinesX, hideTimelines } = useTimelinesLibrary();
+const { splitTimelineAtSiteX, drawTimelinesX, hideTimelines, startTimelineAtSite, highlightTimeline, unhighlightTimeline, endTimelineAtSite } = useTimelinesLibrary();
 const tab = ref('tab-1')
 const showSiteDetailsPopup = ref(false)
 
+const timelinesLegendRef = ref(null)
 
 const exportMap = () => {
   exportStoryToZip(currentStory.value)
@@ -355,25 +379,6 @@ const focusOnSites = (siteIds) => {
 }
 
 const search = ref("")
-// const tileLayersHeaders = ref([
-//   { text: 'Label', value: 'label' },
-//   { text: 'URL', value: 'url' },
-//   { text: 'Description', value: 'description' },
-//   { text: 'Actions', value: 'actions' },
-// ])
-// const newTileLayer = ref({})
-
-// const addTileLayer = () => {
-//   currentStory.value.mapConfiguration.customTileLayers.push(newTileLayer.value)
-
-//   newTileLayer.value = {}
-
-// }
-
-// const removeTileLayer = (item, index) => {
-//   currentStory.value.mapConfiguration.customTileLayers.splice(index, 1)
-
-// }
 
 const popupContentRef = ref(null)
 const poppedupFeature = ref({})
@@ -518,30 +523,6 @@ const dateFormatStyle = computed(() => {
     return "long"  // DD MON Y
 })
 
-// function formatDate(timestamp) {
-//   const date = new Date(timestamp)
-//   if (dateFormatStyle === "dow") {
-//     const dayOfWeek = date.toLocaleString('default', { weekday: 'long' })
-//       ;
-//     return dayOfWeek
-//   } else
-//     if (dateFormatStyle.value === "short") {
-//       const hour = date.getHours();
-//       const min = date.getMinutes();
-//       return `${hour}:${min < 10 ? '0' : ''}${min}`
-//     } else if (dateFormatStyle.value === "medium") {
-//       const day = date.getDate();
-//       const month = date.toLocaleString('default', { month: 'long' }) // months[date.getMonth()];
-//       const hour = date.getHours();
-//       const min = date.getMinutes();
-//       return `${day} ${month} ${hour}:${min < 10 ? '0' : ''}${min}`
-//     } else {
-//       const day = date.getDate();
-//       const month = date.toLocaleString('default', { month: 'long' });
-//       const year = date.getFullYear();
-//       return `${day} ${month} ${year}`
-//     }
-// }
 
 const customSort = (items, sortBy, sortDesc) => {
   const [sortKey] = sortBy;
@@ -628,6 +609,11 @@ const handleGPSData = (event) => {
 }
 
 const removeSite = (site) => {
+  // TODO fix any timeline that starts or ends at this site
+  // in case of start: find next site on the timeline as the new start
+  // in case of end: find previous site on the timeline as the new end
+
+
   hideSite(site);
   storiesStore.removeSite(site)
 }
@@ -695,12 +681,7 @@ watch(mapShowTimelines, (newValue) => {
   }
 })
 
-watch(storyTimelines, () => {
-  if (mapShowTimelines.value) {
-    hideTimelines()
-    drawTimelines()
-  }
-})
+
 
 onMounted(() => {
   drawMap();
@@ -812,9 +793,13 @@ const drawMarkerForSite = (site) => {
           console.log(JSON.stringify(marker.site))
         }
       }
+    }, {
+      separator: true
     }]
   }
   // TODO ideally this option to split timeline is only shown when timelines are shown
+
+  // TODO also: only show this option if the site is the part of a timeline (and not the beginning or end)
   // however - redrawing all markers when timelines are enabled/disables seems a bit expensive. or is it?
   //   if (mapShowTimelines.value ...
   markerContextMenu.contextmenuItems.push(
@@ -828,6 +813,36 @@ const drawMarkerForSite = (site) => {
         }
       }
     })
+  // ideally ony show when timelines are showing and when this site is not part of a timeline (except for being its endsite)
+  markerContextMenu.contextmenuItems.push(
+    {
+      text: 'Start New Timeline Here',
+      callback: (e) => {
+        const marker = e.relatedTarget;
+        if (marker) {
+          if (!currentStory.value.mapConfiguration.timelines) {
+            currentStory.value.mapConfiguration.timelines = []
+          }
+          startTimelineAtSite(marker.site, sitesData.value, currentStory.value.mapConfiguration.timelines, map.value)
+          console.log(`Start timeline at this marker ${JSON.stringify(marker.site)}`)
+          // TODO create new timeline that starts at his marker's site and ends at the first following site that is the start of a timeline or the last site (if not timeline follows) 
+        }
+      }
+    })
+  // ideally ony show when timelines are showing and when this site is part of a timeline (though not its first nor its last site)
+  markerContextMenu.contextmenuItems.push(
+    {
+      text: 'End Timeline Here',
+      callback: (e) => {
+        const marker = e.relatedTarget;
+        if (marker) {
+          endTimelineAtSite(marker.site, sitesData.value, currentStory.value.mapConfiguration.timelines, map.value)
+          console.log(`End existing timeline at this marker ${JSON.stringify(marker.site)}`)
+        }
+      }
+    })
+
+
 
   marker.bindContextMenu(markerContextMenu)
 
@@ -1120,6 +1135,8 @@ const drawMap = () => {
   addEditModeControl()
   addTimelinesControl()
   addFilterControl()
+  addTimelinesLegendControl()
+
   clustersLayer = L.markerClusterGroup();
   map.value.addLayer(clustersLayer);
 
@@ -1172,6 +1189,27 @@ const addFilterControl = () => {
 }
 
 
+let timelinesLegendControl, timelinesLegendDiv
+const addTimelinesLegendControl = () => {
+
+
+  timelinesLegendControl = L.control({ position: 'bottomright' });
+  timelinesLegendControl.onAdd = function (map) {
+
+    timelinesLegendDiv = L.DomUtil.create('div', 'info legend');
+    timelinesLegendDiv.style.overflowY = 'auto'; // Enable vertical scroll
+    timelinesLegendDiv.style.maxHeight = '150px'; // Set a max height for scroll
+    timelinesLegendDiv.style.opacity = '0.6 ';
+    timelinesLegendDiv.style.background = 'white';
+    refreshTimelinesLegendControl()
+    return timelinesLegendDiv;
+  };
+}
+
+const refreshTimelinesLegendControl = () => {
+  const el = timelinesLegendRef.value.$el
+  timelinesLegendDiv.appendChild(el);
+}
 
 const addTimelinesControl = () => {
   const timelinesControl = L.control({ position: 'bottomleft' });
@@ -1187,9 +1225,11 @@ const addTimelinesControl = () => {
     if (this.checked) {
       mapShowTimelines.value = true;
       drawTimelines();
+      timelinesLegendControl.addTo(map.value)
     } else {
       mapShowTimelines.value = false;
       hideTimelines();
+      timelinesLegendControl.remove()
     }
   });
 }
@@ -1409,13 +1449,13 @@ const handlePastedText = (text) => {
 const splitTimelineAtSite = (siteToSplitAt) => {
   if (!currentStory.value.mapConfiguration.timelines) {
     currentStory.value.mapConfiguration.timelines = []
-  }   
-  splitTimelineAtSiteX(siteToSplitAt,sitesData.value,currentStory.value.mapConfiguration.timelines, map.value)
+  }
+  splitTimelineAtSiteX(siteToSplitAt, sitesData.value, currentStory.value.mapConfiguration.timelines, map.value)
 }
 
 
 const drawTimelines = () => {
-  drawTimelinesX(sitesData.value, currentStory.value.mapConfiguration.timelines,map.value)
+  drawTimelinesX(sitesData.value, currentStory.value.mapConfiguration.timelines, map.value)
 }
 
 
