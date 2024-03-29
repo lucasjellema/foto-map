@@ -18,10 +18,10 @@
                   <v-data-table :headers="timelineHeaders" :items="modelMap.timelines" item-key="label"
                     class="elevation-1">
                     <template v-slot:item.fromSite="{ item, index }">
-                      {{ item.startSite?.label }} {{ formatDate(item.startSite.timestamp) }}
+                      {{ item.startSite?.label }} {{ formatDate(item.startTimestamp) }}
                     </template>
                     <template v-slot:item.toSite="{ item }">
-                      {{ item.endSite?.label }} {{  formatDate(item.endSite.timestamp) }}
+                      {{ item.endSite?.label }} {{  formatDate(item.endTimestamp) }}
                     </template>
                     <template v-slot:item.actions="{ item, index }">
                       <v-icon small @click="editTimeline(item, index)">
