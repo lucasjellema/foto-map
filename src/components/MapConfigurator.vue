@@ -17,6 +17,15 @@
                 <v-col cols="12">
                   <v-data-table :headers="timelineHeaders" :items="modelMap.timelines" item-key="label"
                     class="elevation-1">
+                    <template v-slot:item.preview="{ item, index }">
+                      <hr :style="{
+                    'border-style': `${item.lineStyle} none none none`
+                    , 'border-width': item.width + 'px'
+                    , 'border-color': item.color
+                    , 'background-color': 'none'
+                }" />
+
+                    </template>
                     <template v-slot:item.fromSite="{ item, index }">
                       {{ item.startSite?.label }} {{ formatDate(item.startTimestamp) }}
                     </template>
@@ -131,7 +140,8 @@ const newTileLayer = ref({})
 const timelineHeaders = ref([
 
 
-  { title: 'Label', value: 'label' },
+{ title: 'Preview', value: 'preview' },
+{ title: 'Label', value: 'label' },
   { title: 'From Site', value: 'fromSite' },
   { title: 'To Site', value: 'toSite' },
   { title: 'Actions', value: 'actions' },

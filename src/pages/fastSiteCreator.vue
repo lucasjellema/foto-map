@@ -184,12 +184,19 @@
 
     <v-container id="timelinesLegend" ref="timelinesLegendRef" style="max-width: 300px">
       <v-row v-for="timeline in currentStory.mapConfiguration.timelines" @dblclick.stop="focusOnTimeline(timeline)"
-        @mouseover="highlightTimeline(timeline.startSiteId)" @mouseout="unhighlightTimeline(timeline.startSiteId)">
-        <v-col cols="2">
-          <hr :style="{ border: 'none', height: '4px', 'background-color': timeline.color }">
+        @mouseover="highlightTimeline(timeline.startSiteId)" @mouseout="unhighlightTimeline(timeline.startSiteId)"
+        class="timelineLegendLine">
+        <v-col cols="2" class="timelineLegendLine">
+          <hr :style="{
+              'border-style': timeline.lineStyle + ' none none none'
+              , 'border-width': timeline.width + 'px'
+              , 'border-color': timeline.color
+              , 'background-color': 'none'
+            }" />
+
         </v-col>
-        <v-col cols="10">
-          {{ timeline.label }}
+        <v-col cols="10" class="timelineLegendLine">
+          {{ timeline.label }} -{{ timeline.lineStyle }}
         </v-col>
       </v-row>
     </v-container>
@@ -390,7 +397,7 @@ const focusOnTimeline = (timeline) => {
       inTimelineRange = true
     }
     if (inTimelineRange) {
-    siteIds.push(site.id)
+      siteIds.push(site.id)
     }
     if (site.id == timeline.endSiteId) {
       break
@@ -1572,5 +1579,13 @@ img.hover-zoom:hover {
 .marker-highlight-style-blue {
   border: 1px dashed #3388ff;
   background-color: rgb(136, 143, 221);
+}
+
+.timelineLegendLine {
+
+  padding-top: 1px;
+  padding-right: 6px;
+  padding-bottom: 1px;
+  padding-left: 6px;
 }
 </style>

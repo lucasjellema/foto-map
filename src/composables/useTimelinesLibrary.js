@@ -144,7 +144,11 @@ export function useTimelinesLibrary() {
 
     const polyline = L.polyline(sites.map(site => [site.geoJSON.features[0].geometry.coordinates[1], site.geoJSON.features[0].geometry.coordinates[0]])
       , {
-        color: timeline.color ? timeline.color : 'red', weight: 5, contextmenu: true, contextmenuInheritItems: false,
+        color: timeline.color ? timeline.color : 'red'
+        , weight: timeline.width ? timeline.width : 3
+        
+        
+        , contextmenu: true, contextmenuInheritItems: false,
         contextmenuItems: [{
           text: 'Edit timeline',
           index: 0,
@@ -180,6 +184,14 @@ export function useTimelinesLibrary() {
           //  }
         ]
       }).addTo(map);
+
+      if (timeline.lineStyle == 'dotted') {
+        polyline.setStyle({dashArray: '1, 10'});
+      } else       if (timeline.lineStyle == 'dashed') {
+        polyline.setStyle({dashArray: '5,9'});
+      }
+
+
     // see https://bbecquet.github.io/Leaflet.PolylineDecorator/ and https://github.com/bbecquet/Leaflet.PolylineDecorator/blob/master/example/example.js 
     // TODO use definition of timeline to create decorator     
     timelineDecorator = L.polylineDecorator(polyline, {
