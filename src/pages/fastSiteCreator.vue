@@ -264,7 +264,7 @@ import { useSitesTreeLibrary } from '@/composables/useSitesTreeLibrary';
 import { useDateTimeLibrary } from '@/composables/useDateTimeLibrary';
 const { formatDate } = useDateTimeLibrary();
 import { useTimelinesLibrary } from '@/composables/useTimelinesLibrary';
-const { splitTimelineAtSiteX, drawTimelinesX, hideTimelines, startTimelineAtSite, highlightTimeline, unhighlightTimeline, endTimelineAtSite,refreshTimelines,registerEventCallback } = useTimelinesLibrary();
+const { splitTimelineAtSiteX, drawTimelinesX, hideTimelines, startTimelineAtSite, highlightTimeline, unhighlightTimeline, endTimelineAtSite,refreshTimelines,registerEventCallback,fuseTimelinesAtSite } = useTimelinesLibrary();
 const tab = ref('tab-1')
 const showSiteDetailsPopup = ref(false)
 
@@ -888,8 +888,18 @@ const drawMarkerForSite = (site) => {
         }
       }
     })
-
-
+ // ideally ony show when site is both end and start of a timeline 
+ 
+    markerContextMenu.contextmenuItems.push(
+    {
+      text: 'Fuse Timelines',
+      callback: (e) => {
+        const marker = e.relatedTarget;
+        if (marker) {
+          fuseTimelinesAtSite(marker.site, sitesData.value, currentStory.value.mapConfiguration.timelines, map.value)
+        }
+      }
+    })
 
   marker.bindContextMenu(markerContextMenu)
 
@@ -1499,7 +1509,6 @@ const splitTimelineAtSite = (siteToSplitAt) => {
   }
   splitTimelineAtSiteX(siteToSplitAt, sitesData.value, currentStory.value.mapConfiguration.timelines, map.value)
 }
-
 
 const drawTimelines = () => {
   drawTimelinesX(sitesData.value, currentStory.value.mapConfiguration.timelines, map.value)

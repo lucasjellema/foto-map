@@ -5,9 +5,21 @@ import 'leaflet-polylinedecorator';
 export function useTimelinesLibrary() {
 
   const findTimelineForSite = (siteToLocate, allSortedSites, timelines) => {
+    const sites = findTimelinesForSite(siteToLocate, allSortedSites, timelines)
+
+    if (sites.length > 0) {
+      return sites[0]
+    }
+    return null
+  }
+
+
+  const findTimelinesForSite = (siteToLocate, allSortedSites, timelines) => {
     // loop over timelines and find the timeline this site is part of ; 
-    for (let i = 0; i < timelines.length; i++) {
-      const timeline = timelines[i]
+    const timelinesForSite = []
+    // iterate over timelines sorted by startTimestamp
+    timelines.slice().sort((a, b) => a.startTimestamp - b.startTimestamp).forEach(timeline => {
+
       // loop over sites
       let inRangeTimeline = false
       for (const site of allSortedSites) {
@@ -16,15 +28,14 @@ export function useTimelinesLibrary() {
         }
         if (inRangeTimeline)
           if (site.id === siteToLocate.id) {
-            return timeline
+            timelinesForSite.push(timeline)
           }
         if (inRangeTimeline && site.id === timeline.endSiteId) { // stop looking for site at the  end of the timeline
           break
         }
       }
-    }
-
-    return null
+    })
+    return timelinesForSite
   }
 
   const startTimelineAtSite = (siteToStartAt, allSites, timelines, map) => {
@@ -76,6 +87,26 @@ export function useTimelinesLibrary() {
     theTimeline.endTimestamp = siteToEndAt.timestamp
     // refresh timelines 
     refreshTimelines(allSites, timelines, map)
+  }
+
+  const fuseTimelinesAtSite = (siteToFuseAt, allSites, timelines, map) => {
+    if (!timelines || timelines.length == 0) { return }
+
+    const sites = allSites.sort((a, b) => (a.timestamp > b.timestamp) ? 1 : -1)
+    const theTimelines = findTimelinesForSite(siteToFuseAt, sites, timelines)
+
+    if (!theTimelines || theTimelines.length != 2) { return } // there is no timeline to split or the site is not in exactly two timelines
+    const sortedTimelines = theTimelines.sort((a, b) => a.startTimestamp - b.startTimestamp)
+    const firstTimeline = sortedTimelines[0]
+    const secondTimeline = sortedTimelines[1]
+    firstTimeline.endSiteId = secondTimeline.endSiteId
+    firstTimeline.endTimestamp = secondTimeline.endTimestamp
+    firstTimeline.label += ' *'
+
+    timelines.splice(timelines.indexOf(secondTimeline), 1)
+
+    refreshTimelines(allSites, timelines, map)
+
   }
 
   const splitTimelineAtSiteX = (siteToSplitAt, allSites, timelines, map) => {
@@ -180,7 +211,7 @@ export function useTimelinesLibrary() {
           index: 2,
           callback: (context) => {
             const latlng = context.latlng
-            snipTimelineFromLatLng(latlng, timeline, polyline, sites, map,_timelines)
+            snipTimelineFromLatLng(latlng, timeline, polyline, sites, map, _timelines)
           }
         }
           // , {
@@ -266,22 +297,26 @@ export function useTimelinesLibrary() {
   const highlightTimeline = (timelineStartSiteId) => {
     const polyline = drawnTimelines.find(drawnTimeline => drawnTimeline.timeline.startSiteId === timelineStartSiteId)
     if (polyline) {
-      polyline.setStyle({ color: 'white'
+      polyline.setStyle({
+        color: 'white'
         , weight: 7
-          ,dashArray: '3,  10' });
-      }
+        , dashArray: '3,  10'
+      });
+    }
   }
 
   const unhighlightTimeline = (timelineStartSiteId) => {
     const polyline = drawnTimelines.find(drawnTimeline => drawnTimeline.timeline.startSiteId === timelineStartSiteId)
     if (polyline) {
-      polyline.setStyle({ color: polyline.timeline.color
-      , weight: polyline.timeline.width ? polyline.timeline.width : 3
-    , dashArray:null})
+      polyline.setStyle({
+        color: polyline.timeline.color
+        , weight: polyline.timeline.width ? polyline.timeline.width : 3
+        , dashArray: null
+      })
 
       if (polyline.timeline.lineStyle == 'dotted') {
         polyline.setStyle({ dashArray: '1, 10' });
-      } else if (timeline.lineStyle == 'dashed') {
+      } else if (polyline.timeline.lineStyle == 'dashed') {
         polyline.setStyle({ dashArray: '5,9' });
       }
     }
@@ -325,7 +360,7 @@ export function useTimelinesLibrary() {
     const closestSegment = findClosestSegment(polyline, latlng);
 
     if (closestSegment) {
-    
+
       // find the site at the start and the end of the segment
       const startSite = sites.find(site => site.geoJSON.features[0].geometry.coordinates[1] === closestSegment[0].lat && site.geoJSON.features[0].geometry.coordinates[0] === closestSegment[0].lng);
       const endSite = sites.find(site => site.geoJSON.features[0].geometry.coordinates[1] === closestSegment[1].lat && site.geoJSON.features[0].geometry.coordinates[0] === closestSegment[1].lng);
@@ -350,7 +385,7 @@ export function useTimelinesLibrary() {
     eventCallback = callback
   }
 
-  return { endTimelineAtSite, startTimelineAtSite, splitTimelineAtSiteX, drawTimelinesX, hideTimelines, refreshTimelines, highlightTimeline, unhighlightTimeline, deleteTimeline, registerEventCallback };
+  return { endTimelineAtSite, startTimelineAtSite, splitTimelineAtSiteX, drawTimelinesX, hideTimelines, refreshTimelines, highlightTimeline, unhighlightTimeline, deleteTimeline, registerEventCallback, fuseTimelinesAtSite };
 }
 
 
