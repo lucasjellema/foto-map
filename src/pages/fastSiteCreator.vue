@@ -196,12 +196,15 @@
 
         </v-col>
         <v-col cols="10" class="timelineLegendLine">
-          {{ timeline.label }} -{{ timeline.lineStyle }}
+          {{ timeline.label }}
         </v-col>
       </v-row>
     </v-container>
 
-
+    <v-dialog v-model="showTimelineEditorPopup" max-width="800px">
+    <TimelineEditor v-model="timelineToEdit" @saveTimeline="saveTimeline" @closeDialog="showTimelineEditorPopup=false">
+    </TimelineEditor>
+  </v-dialog>
 
 
     <!-- <span @mouseover="highlightTimeline(timeline.startSiteId)" @mouseout="unhighlightTimeline(timeline.startSiteId)"
@@ -261,11 +264,26 @@ import { useSitesTreeLibrary } from '@/composables/useSitesTreeLibrary';
 import { useDateTimeLibrary } from '@/composables/useDateTimeLibrary';
 const { formatDate } = useDateTimeLibrary();
 import { useTimelinesLibrary } from '@/composables/useTimelinesLibrary';
-const { splitTimelineAtSiteX, drawTimelinesX, hideTimelines, startTimelineAtSite, highlightTimeline, unhighlightTimeline, endTimelineAtSite } = useTimelinesLibrary();
+const { splitTimelineAtSiteX, drawTimelinesX, hideTimelines, startTimelineAtSite, highlightTimeline, unhighlightTimeline, endTimelineAtSite,refreshTimelines,registerEventCallback } = useTimelinesLibrary();
 const tab = ref('tab-1')
 const showSiteDetailsPopup = ref(false)
 
 const timelinesLegendRef = ref(null)
+
+
+const timelineToEdit = ref(null)
+const showTimelineEditorPopup = ref(false)
+const saveTimeline = () => {
+  showTimelineEditorPopup.value = false
+  // TODO update timeline??
+  refreshTimelines( sitesData.value, currentStory.value.mapConfiguration.timelines, map.value) 
+}
+
+const editTimeline = (timeline) => {
+  timelineToEdit.value = timeline
+  showTimelineEditorPopup.value = true
+}
+
 
 const exportMap = () => {
   exportStoryToZip(currentStory.value)
@@ -614,11 +632,7 @@ const editItem = (site) => {
   //    imageMetadata.value = null
   showEditSitePopup.value = true;
 }
-// const editSiteFromPopup = () => {
-//   const siteId = poppedupFeature.value.properties.id
-//   const siteToEdit = storiesStore.getSite(siteId)
-//   editItem(siteToEdit)
-// }
+
 
 const imageEditorRef = ref(null)
 
@@ -710,12 +724,17 @@ watch(mapShowTimelines, (newValue) => {
 })
 
 
+const timelineEventHandler = (event) => {
+  console.log("Timeline event handler", event)
+  editTimeline (event.timeline)
+}
+
 
 onMounted(() => {
   drawMap();
   refreshMarkers();
   dateRangeSlider.value = [minTimestamp.value, maxTimestamp.value];
-
+  registerEventCallback(timelineEventHandler)
 
 });
 

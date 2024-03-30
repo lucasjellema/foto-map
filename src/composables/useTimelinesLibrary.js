@@ -53,7 +53,10 @@ export function useTimelinesLibrary() {
       startTimestamp: siteToStartAt.timestamp,
       endTimestamp: nextSiteInTimeline.timestamp,
       label: `from ${siteToStartAt.label}`,
-      color: 'green' // TODO some other color than the color of theTimeline if theTimeline exists
+      color: 'green', // TODO some other color than the color of theTimeline if theTimeline exists
+      width: 3,
+      lineStyle: 'dashed'
+
     })
 
     // refresh timelines 
@@ -88,7 +91,10 @@ export function useTimelinesLibrary() {
         startTimestamp: sites[0].timestamp,
         endTimestamp: siteToSplitAt.timestamp,
         label: `from ${sites[0].label} to ${siteToSplitAt.label}`,
-        color: 'green'
+        color: 'green',
+        width: 3,
+        lineStyle: 'dashed'
+
       })
       timelines.push({
         startSite: siteToSplitAt,
@@ -98,7 +104,10 @@ export function useTimelinesLibrary() {
         startTimestamp: siteToSplitAt.timestamp,
         endTimestamp: sites[sites.length - 1].timestamp,
         label: `from ${siteToSplitAt.label} to ${sites[sites.length - 1].label}`,
-        color: 'red'
+        color: 'red',
+        width: 3,
+        lineStyle: 'dashed'
+
       })
 
       refreshTimelines(allSites, timelines, map)
@@ -128,7 +137,9 @@ export function useTimelinesLibrary() {
         startTimestamp: siteToSplitAt.timestamp,
         endTimestamp: originalEndsite.timestamp,
         label: `from ${siteToSplitAt.label} to ${originalEndsite.label}`,
-        color: 'yellow' // TODO pick a color that is different from the theTimeLine's color 
+        color: 'yellow', // TODO pick a color that is different from the theTimeLine's color 
+        width: 3,
+        lineStyle: 'dashed'
       })
       refreshTimelines(allSites, timelines, map)
       //TODO what if the siteToSplitAt is not in any of the timelines? start a new timeline - but where does it start?
@@ -140,20 +151,22 @@ export function useTimelinesLibrary() {
   let timeline, timelineDecorator
   let drawnTimelines = [] // the currently created polylines on the map that represent timelines
   let drawnTimelineDecorators = []
-  const drawTimeline = (timeline, sites, map) => {
+  const drawTimeline = (timeline, sites, map, timelines) => {
 
     const polyline = L.polyline(sites.map(site => [site.geoJSON.features[0].geometry.coordinates[1], site.geoJSON.features[0].geometry.coordinates[0]])
       , {
         color: timeline.color ? timeline.color : 'red'
         , weight: timeline.width ? timeline.width : 3
-        
-        
+
+
         , contextmenu: true, contextmenuInheritItems: false,
         contextmenuItems: [{
           text: 'Edit timeline',
           index: 0,
           callback: (context) => {
             // open timeline editor ??
+            eventCallback({ type: 'editTimeline', timeline: timeline })
+
 
           }
         }, {
@@ -163,19 +176,11 @@ export function useTimelinesLibrary() {
             deleteTimeline(timeline)
           }
         }, {
-          text: 'Split timeline',
+          text: 'Snip timeline',
           index: 2,
           callback: (context) => {
             const latlng = context.latlng
-            const closestSegment = findClosestSegment(polyline, latlng);
-            //TODO  split polyline in two - one ending at the first pair of the closest segment, the other starting at the second pair 
-            console.log('Closest segment:', closestSegment);
-
-            // Optionally, highlight or mark the closest segment on the map
-            // TODO is not closestSegment then try again with higher tolerance
-            if (closestSegment) {
-              L.polyline([closestSegment[0], closestSegment[1]], { color: 'blue' }).addTo(map);
-            }
+            snipTimelineFromLatLng(latlng, timeline, polyline, sites, map,_timelines)
           }
         }
           // , {
@@ -185,11 +190,11 @@ export function useTimelinesLibrary() {
         ]
       }).addTo(map);
 
-      if (timeline.lineStyle == 'dotted') {
-        polyline.setStyle({dashArray: '1, 10'});
-      } else       if (timeline.lineStyle == 'dashed') {
-        polyline.setStyle({dashArray: '5,9'});
-      }
+    if (timeline.lineStyle == 'dotted') {
+      polyline.setStyle({ dashArray: '1, 10' });
+    } else if (timeline.lineStyle == 'dashed') {
+      polyline.setStyle({ dashArray: '5,9' });
+    }
 
 
     // see https://bbecquet.github.io/Leaflet.PolylineDecorator/ and https://github.com/bbecquet/Leaflet.PolylineDecorator/blob/master/example/example.js 
@@ -207,12 +212,8 @@ export function useTimelinesLibrary() {
       const clickLatLng = e.latlng;
       const clickContent = timeline.label
       polyline.bindTooltip(clickContent).openTooltip(clickLatLng);
-
-
     });
-
     return { polyline, timelineDecorator }
-
   }
 
   const deleteTimeline = (timeline) => {
@@ -265,21 +266,29 @@ export function useTimelinesLibrary() {
   const highlightTimeline = (timelineStartSiteId) => {
     const polyline = drawnTimelines.find(drawnTimeline => drawnTimeline.timeline.startSiteId === timelineStartSiteId)
     if (polyline) {
-      polyline.setStyle({ color: 'red' })
-    }
+      polyline.setStyle({ color: 'white'
+        , weight: 7
+          ,dashArray: '3,  10' });
+      }
   }
 
   const unhighlightTimeline = (timelineStartSiteId) => {
     const polyline = drawnTimelines.find(drawnTimeline => drawnTimeline.timeline.startSiteId === timelineStartSiteId)
     if (polyline) {
-      polyline.setStyle({ color: polyline.timeline.color })
+      polyline.setStyle({ color: polyline.timeline.color
+      , weight: polyline.timeline.width ? polyline.timeline.width : 3
+    , dashArray:null})
+
+      if (polyline.timeline.lineStyle == 'dotted') {
+        polyline.setStyle({ dashArray: '1, 10' });
+      } else if (timeline.lineStyle == 'dashed') {
+        polyline.setStyle({ dashArray: '5,9' });
+      }
     }
   }
 
 
   const hideTimelines = () => {
-
-    // loop over all timelines and remove
     drawnTimelines.forEach(timeline => {
       timeline.remove();
     })
@@ -292,21 +301,56 @@ export function useTimelinesLibrary() {
 
   function findClosestSegment(polyline, clickLatLng) {
     const latLngs = polyline.getLatLngs();
-    let closestSegment = null;
-    // Iterate through each pair of points
-    for (let i = 0; i < latLngs.length - 1; i++) {
-      const segmentStart = latLngs[i];
-      const segmentEnd = latLngs[i + 1];
-      if (GeometryUtil.belongsSegment(clickLatLng, segmentStart, segmentEnd, 0.01)) {
-        console.log(`clicked belongs to this segment ${segmentStart.lng},${segmentStart.lat}`)
-        closestSegment = [segmentStart, segmentEnd];
+    let closestSegment, closestSegmentFound = false;
+
+    for (const tolerance of [0.01, 0.05, 0.1, 0.2, 0.3]) {
+      for (let i = 0; i < latLngs.length - 1; i++) {
+        const segmentStart = latLngs[i];
+        const segmentEnd = latLngs[i + 1];
+        if (GeometryUtil.belongsSegment(clickLatLng, segmentStart, segmentEnd, tolerance)) {
+          console.log(`clicked belongs to this segment ${segmentStart.lng},${segmentStart.lat}`)
+          closestSegment = [segmentStart, segmentEnd];
+          closestSegmentFound = true
+          break;
+        }
+      }
+      if (closestSegmentFound) {
         break;
       }
     }
     return closestSegment;
   }
 
-  return { endTimelineAtSite, startTimelineAtSite, splitTimelineAtSiteX, drawTimelinesX, hideTimelines, refreshTimelines, highlightTimeline, unhighlightTimeline, deleteTimeline };
+  const snipTimelineFromLatLng = (latlng, timeline, polyline, sites, map, timelines) => {
+    const closestSegment = findClosestSegment(polyline, latlng);
+
+    if (closestSegment) {
+    
+      // find the site at the start and the end of the segment
+      const startSite = sites.find(site => site.geoJSON.features[0].geometry.coordinates[1] === closestSegment[0].lat && site.geoJSON.features[0].geometry.coordinates[0] === closestSegment[0].lng);
+      const endSite = sites.find(site => site.geoJSON.features[0].geometry.coordinates[1] === closestSegment[1].lat && site.geoJSON.features[0].geometry.coordinates[0] === closestSegment[1].lng);
+
+      console.log('snip timeline startSite', startSite, 'endSite', endSite)
+      const cloneTimeline = Object.assign({}, timeline);
+      cloneTimeline.startSiteId = endSite.id;
+      cloneTimeline.startTimestamp = endSite.timestamp;
+      cloneTimeline.label = `from  ${endSite.label}`
+      timelines.push(cloneTimeline)
+      timeline.endSiteId = startSite.id;
+      timeline.endTimestamp = startSite.timestamp;
+      timeline.label += ` *`
+
+      refreshTimelines(sites, timelines, map)
+    }
+  }
+
+
+  let eventCallback
+  const registerEventCallback = (callback) => {
+    eventCallback = callback
+  }
+
+  return { endTimelineAtSite, startTimelineAtSite, splitTimelineAtSiteX, drawTimelinesX, hideTimelines, refreshTimelines, highlightTimeline, unhighlightTimeline, deleteTimeline, registerEventCallback };
 }
 
 
