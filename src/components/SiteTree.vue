@@ -82,7 +82,7 @@ const handleDoubleClickOnTree = (event) => {
     // find all sites under this key 
     siteIds = findLeafNodes(treeData, treeKey.key).map(siteNode => siteNode.key)
   }
-
+  resetSelection()
   if (treeKey.keyType === 'site' && treeKey.key) {
     siteIds = [treeKey.key]
   }
@@ -161,13 +161,13 @@ const handleContextMenuClickOnTree = (event) => {
 
   contextMenuItems.value = []
   const treeKey = findTreeKeyForElement(event.target)
-if (treeKey.keyType === 'locations'|| treeKey.keyType === 'tags'|| treeKey.keyType === 'times') {
-  contextMenuItems.value.push({
+  if (treeKey.keyType === 'locations' || treeKey.keyType === 'tags' || treeKey.keyType === 'times') {
+    contextMenuItems.value.push({
       label: ` Reset Selection`, icon: 'mdi mdi-cancel'
       , command: () => { resetSelection() }
     })
-  
-}
+
+  }
 
   let siteIds = []
 
