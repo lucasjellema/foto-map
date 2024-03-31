@@ -76,20 +76,7 @@
                   ${poppedupSite?.geoJSON.features[0].geometry.coordinates[2].toFixed(0)}m)` : '' }}
                   <div v-if="poppedupSite?.attachments?.length > 0">
 
-                    <!-- <v-carousel :height="400" show-arrows="hover">
-                      <v-carousel-item>
-                        <div>
-                          <v-img width="500" cover :src="poppedupSite?.imageURL" content-class="hover-zoom"></v-img>
-                          {{ poppedupSite?.description }}
-                        </div>
-                      </v-carousel-item>
-                      <v-carousel-item v-for="(attachment, index) in poppedupSite?.attachments">
-                        <div>
-                          <v-img width="500" cover :src="attachment.imageURL"></v-img>
-                          {{ attachment.description }}
-                        </div>
-                      </v-carousel-item>
-                    </v-carousel> -->
+                   
                   </div>
                   <div>
                     <v-img width="500" cover :src="poppedupSite?.imageURL" content-class="hover-zoom"></v-img>
@@ -101,6 +88,10 @@
                       {{ tag }}
                     </v-chip>
                   </div>
+                  <div >
+                    <ShowTimeAnalog  v-if="poppedupSite?.timestamp"  
+                    :timestamp="poppedupSite.timestamp" ></ShowTimeAnalog>
+                   </div> 
                   <div v-if="poppedupSite?.attachments?.length > 0">
                     <v-btn @click="showSiteDetailsPopup = true" prepend-icon="mdi-attachment">Show</v-btn>
                   </div>
@@ -225,6 +216,7 @@ import ImageEditor from "@/components/imageEditor.vue"
 import SiteEditor from "@/components/SiteEditor.vue"
 import SiteMap from "@/components/SiteMap.vue"
 import MapConfigurator from "@/components/MapConfigurator.vue"
+import ShowTimeAnalog from "@/components/ShowTimeAnalog.vue"
 
 
 
@@ -984,7 +976,8 @@ const selectMarker = (selectedMarker, forceSelect) => {
       selectedMarker.setIcon(selectedMarker.originalIcon)
     } else {
       selectedMarker.originalIcon = selectedMarker.getIcon()
-      selectedMarker.setIcon(selectedMarkerIcon)
+// TODO for the time being - do not show the selectedMarker icon; reconsider if we want to use selection at all
+      // selectedMarker.setIcon(selectedMarkerIcon)
     }
     selectedMarker.selected = !selectedMarker.selected
   }
