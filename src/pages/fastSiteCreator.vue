@@ -183,7 +183,7 @@
     </v-container>
 
     <v-container id="timelinesLegend" ref="timelinesLegendRef" style="max-width: 300px">
-      <v-row v-for="timeline in currentStory.mapConfiguration.timelines" @dblclick.stop="focusOnTimeline(timeline)"
+      <v-row v-for="timeline in currentStory.mapConfiguration?.timelines" @dblclick.stop="focusOnTimeline(timeline)"
         @mouseover="highlightTimeline(timeline.startSiteId)" @mouseout="unhighlightTimeline(timeline.startSiteId)"
         class="timelineLegendLine">
         <v-col cols="2" class="timelineLegendLine">
@@ -202,9 +202,10 @@
     </v-container>
 
     <v-dialog v-model="showTimelineEditorPopup" max-width="800px">
-    <TimelineEditor v-model="timelineToEdit" @saveTimeline="saveTimeline" @closeDialog="showTimelineEditorPopup=false">
-    </TimelineEditor>
-  </v-dialog>
+      <TimelineEditor v-model="timelineToEdit" @saveTimeline="saveTimeline"
+        @closeDialog="showTimelineEditorPopup = false">
+      </TimelineEditor>
+    </v-dialog>
 
 
     <!-- <span @mouseover="highlightTimeline(timeline.startSiteId)" @mouseout="unhighlightTimeline(timeline.startSiteId)"
@@ -264,7 +265,7 @@ import { useSitesTreeLibrary } from '@/composables/useSitesTreeLibrary';
 import { useDateTimeLibrary } from '@/composables/useDateTimeLibrary';
 const { formatDate } = useDateTimeLibrary();
 import { useTimelinesLibrary } from '@/composables/useTimelinesLibrary';
-const { splitTimelineAtSiteX, drawTimelinesX, hideTimelines, startTimelineAtSite, highlightTimeline, unhighlightTimeline, endTimelineAtSite,refreshTimelines,registerEventCallback,fuseTimelinesAtSite } = useTimelinesLibrary();
+const { splitTimelineAtSiteX, drawTimelinesX, hideTimelines, startTimelineAtSite, highlightTimeline, unhighlightTimeline, endTimelineAtSite, refreshTimelines, registerEventCallback, fuseTimelinesAtSite } = useTimelinesLibrary();
 const tab = ref('tab-1')
 const showSiteDetailsPopup = ref(false)
 
@@ -276,7 +277,7 @@ const showTimelineEditorPopup = ref(false)
 const saveTimeline = () => {
   showTimelineEditorPopup.value = false
   // TODO update timeline??
-  refreshTimelines( sitesData.value, currentStory.value.mapConfiguration.timelines, map.value) 
+  refreshTimelines(sitesData.value, currentStory.value.mapConfiguration.timelines, map.value)
 }
 
 const editTimeline = (timeline) => {
@@ -334,6 +335,19 @@ const handleSiteAction = ({ siteId, siteIds, action, payload }) => {
       focusOnSites(siteIds)
     } else if (action == 'selectChildren') {
       handleSiteSelected(siteIds)
+    } else if (action == 'consolidateSitesToTargetSite') {
+      const targetSite = storiesStore.getSite(payload.targetSiteId)
+      // create collection of sites from the siteIds  
+
+      const sites = []
+      for (const siteId of siteIds) {
+        const site = storiesStore.getSite(siteId)
+        if (site) {
+          sites.push(site)
+        }
+      }
+
+      consolidateSitesToTargetSite(targetSite, sites)
     }
     //TODO handle action == unselectChildren 
 
@@ -344,20 +358,23 @@ const handleSiteAction = ({ siteId, siteIds, action, payload }) => {
     }
     return
   }
+  if (!siteId) {
+    
+  } else {
 
-  const site = storiesStore.getSite(siteId)
-  if (site) {
-    if (action == 'edit') {
-      editItem(site)
-      return
-    } else if (action == 'delete') {
-      removeSite(site) //deleteSite(site)      
-    } else if (action == 'highlight') {
-      highlightSite(site, payload)
-    } else if (action == 'splitTimeline') {
-      splitTimelineAtSite(site)
+    const site = storiesStore.getSite(siteId)
+    if (site) {
+      if (action == 'edit') {
+        editItem(site)
+        return
+      } else if (action == 'delete') {
+        removeSite(site) //deleteSite(site)      
+      } else if (action == 'highlight') {
+        highlightSite(site, payload)
+      } else if (action == 'splitTimeline') {
+        splitTimelineAtSite(site)
+      }
     }
-
   }
 }
 
@@ -377,7 +394,14 @@ const handleSiteSelected = (siteIds) => {
   }
   if (coordinates.length > 0) {
     const bounds = L.latLngBounds(coordinates);
-    map.value.fitBounds(bounds, { padding: [30, 30] });
+    try {
+      // if bounds are actually the same, this call will fail
+      // TODO fix this by extending one set of bounds
+      map.value.fitBounds(bounds, { padding: [30, 30] });
+
+    } catch (error) {
+
+    }
   }
 }
 
@@ -718,6 +742,7 @@ watch(mapClusterMode, () => {
 watch(mapShowTimelines, (newValue) => {
   if (newValue) {
     console.log("Showing timelines")
+    drawTimelines()
   } else {
     console.log("Hide timelines")
   }
@@ -726,7 +751,22 @@ watch(mapShowTimelines, (newValue) => {
 
 const timelineEventHandler = (event) => {
   console.log("Timeline event handler", event)
-  editTimeline (event.timeline)
+
+if (event.type == 'editTimeline'){
+  editTimeline(event.timeline)
+} else if (event.type == 'createSite') {
+      console.log(`createSite`)
+      const newGeoJsonData =
+    {
+      "type": "FeatureCollection", "features": [{
+        "type": "Feature", "properties": { name: event.label }
+        , "geometry": { "coordinates": [event.latlng.lng, event.latlng.lat], "type": "Point" }
+      }]
+    }
+    createSiteFromGeoJSON(newGeoJsonData, event.imageId, event.timestamp);
+      //eventCallback({ type: 'creaeSite', latlng: latlng, timestamp:centerPointDate, label:`create in timeline ${timeline.label}`  })
+    }
+
 }
 
 
@@ -760,24 +800,26 @@ const drawMarkerForSite = (site) => {
     //    icon: L.icon({ className: `site-${site.id}` })
   ).addTo(markersLayer);
   marker.site = site
-  const tooltip = `${site.label}`;
-  const tooltipClassName = `tooltip${site.id}`.replace(/-/g, "")
-  if (site.showTooltip) {
-    marker.bindTooltip(tooltip, {
-      permanent: true
-      , className: `my-custom-tooltip ${tooltipClassName}`
-      , direction: site.tooltipDirection ? site.tooltipDirection : 'auto' // derive direction from feature properties ; also opacity , 
-      , interactive: true // needed to handle tooltip click events
-    })
-    // TODO now that we have the tooltip itself, is all of this needed?
-    setTimeout(() => {
-      const tooltipElement = document.querySelector(`.${tooltipClassName}`);
-      refreshTooltip(site, tooltipElement)
+  if (currentStory.value.mapConfiguration?.showTooltips && currentStory.value.mapConfiguration?.showTooltipsMode !== 'never') {  // not having to work on the tooltip saves on performance for large numbers of markers/sites
 
-    }, 50); // Small timeout to ensure the tooltip is rendered
+    if (site.showTooltip) {
 
+
+      const tooltip = `${site.label}`;
+      const tooltipClassName = `tooltip${site.id}`.replace(/-/g, "")
+      marker.bindTooltip(tooltip, {
+        permanent: currentStory.value.mapConfiguration?.showTooltipsMode === 'always' // TODO can the site override this - and make the tooltip sticky even if the map wide setting is not??
+        , className: `my-custom-tooltip ${tooltipClassName}`
+        , direction: site.tooltipDirection ? site.tooltipDirection : 'auto' // derive direction from feature properties ; also opacity , 
+        , interactive: true // needed to handle tooltip click events
+      })
+      // TODO now that we have the tooltip itself, is all of this elaborate way to set the content of the tooltip still needed?
+      setTimeout(() => {
+        const tooltipElement = document.querySelector(`.${tooltipClassName}`);
+        refreshTooltip(site, tooltipElement)
+      }, 50); // Small timeout to ensure the tooltip is rendered
+    }
   }
-
 
   marker.bindPopup((marker) => {
     poppedupSite.value = site
@@ -888,9 +930,9 @@ const drawMarkerForSite = (site) => {
         }
       }
     })
- // ideally ony show when site is both end and start of a timeline 
- 
-    markerContextMenu.contextmenuItems.push(
+  // ideally ony show when site is both end and start of a timeline 
+
+  markerContextMenu.contextmenuItems.push(
     {
       text: 'Fuse Timelines',
       callback: (e) => {
@@ -988,21 +1030,14 @@ function findSitesWithinConsolidationRadius(targetSite) {
   return sitesWithinRadius;
 }
 
-const consolidateSite = (targetSite) => {
-  // remove all sites with in the specified consolidation radius
-  // in theory all are merged into this one - however: what remains of these other sites? 
-  // add their pictures in additional attachments for the site?
-  //  let targetFeature = marker.feature;
-  //const targetSite = site
+const consolidateSitesToTargetSite = (targetSite, sitesToConsolidate) => {
   if (!targetSite.attachments) {
     targetSite.attachments = []
   }
-  // todo find sites within consolidation range?
-  let nearbySites = findSitesWithinConsolidationRadius(targetSite);
   let removedSites = []
   // Remove all nearby sites
   // sort nearbyfeature by timestamp
-  nearbySites.sort((a, b) => (a.timestamp > b.timestamp) ? 1 : -1).forEach(function (siteToRemove) {
+  sitesToConsolidate.sort((a, b) => (a.timestamp > b.timestamp) ? 1 : -1).filter((siteToRemove) => { return siteToRemove !== targetSite }).forEach(function (siteToRemove) {
 
     removedSites.push(siteToRemove)
     if (mapEditMode.value) {
@@ -1026,11 +1061,20 @@ const consolidateSite = (targetSite) => {
     else hideSite(siteToRemove)
 
   });
-  console.log(targetSite)
   if (mapEditMode.value) {
     storiesStore.updateSite(targetSite)
   }
   return removedSites
+}
+
+
+const consolidateSite = (targetSite) => {
+  // remove all sites with in the specified consolidation radius
+  // in theory all are merged into this one - however: what remains of these other sites? 
+  // add their pictures in additional attachments for the site?
+  // todo find sites within consolidation range?
+  let nearbySites = findSitesWithinConsolidationRadius(targetSite);
+  return consolidateSitesToTargetSite(targetSite, nearbySites)
 }
 
 
@@ -1446,7 +1490,7 @@ const addSitesToLayer = (layer, sites) => {
   } catch (e) { console.warn(`map.value.fitBounds(layer.getBounds() failed`); }
 }
 
-function createSiteFromGeoJSON(newGeoJsonData, imageId, dateTimeOriginal) {
+function createSiteFromGeoJSON(newGeoJsonData, imageId, dateTimeOriginal, rezoom) {
   const site = {
     label: "To be geo-encoded",
     imageId: imageId,
@@ -1462,9 +1506,13 @@ function createSiteFromGeoJSON(newGeoJsonData, imageId, dateTimeOriginal) {
   enqueueCallToReverseGeocode(newGeoJsonData.features[0], site);
   drawMarkerForSite(site)
   // geoJsonLayer.addData(newGeoJsonData);
-  if (!mapEditMode.value) {
-    const bounds = markersLayer.getBounds();
-    map.value.fitBounds(bounds);
+  // TODO if rezoom - then zoom to make sure that newly added marker is visible
+  if (!mapEditMode.value && rezoom) {    
+    try {
+      const bounds = markersLayer.getBounds();
+        map.value.fitBounds(bounds);  
+    } catch (e) { console.warn(`map.value.fitBounds(markersLayer.getBounds() failed`); }
+    
   }
 }
 
@@ -1511,7 +1559,9 @@ const splitTimelineAtSite = (siteToSplitAt) => {
 }
 
 const drawTimelines = () => {
-  drawTimelinesX(sitesData.value, currentStory.value.mapConfiguration.timelines, map.value)
+  if (currentStory.value.mapConfiguration?.timelines) {
+    drawTimelinesX(sitesData.value, currentStory.value.mapConfiguration?.timelines, map.value)
+  }
 }
 
 

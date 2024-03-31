@@ -12,8 +12,12 @@ export const useStorieStore = defineStore('storyData', () => {
 
     const initializeCurrentStory = () => {
         if (stories.value.length==0) {
-            stories.value.push({ id: uuidv4(), name: 'New Story', sites: [], tags: [], mapConfiguration: { customTileLayers: [], showTooltips: true } })
+            stories.value.push({ id: uuidv4(), name: 'New Story', sites: [], tags: [], mapConfiguration: { customTileLayers: [], showTooltips: true, showTooltipsMode: 'hover', timelines: [] } })
             
+        } else {
+            if (!currentStory.value.mapConfiguration) {
+                currentStory.value.mapConfiguration = { customTileLayers: [], showTooltips: false, showTooltipsMode: 'hover', timelines: [] }
+            }
         }
 
     }
@@ -35,7 +39,7 @@ export const useStorieStore = defineStore('storyData', () => {
             story.tags = [];
         }
         if (!story.mapConfiguration) {
-            story.mapConfiguration = { customTileLayers: [], showTooltips: true };
+            story.mapConfiguration = { customTileLayers: [], showTooltips: true , timelines: [] };
         }
         stories.value.push(story);
     }

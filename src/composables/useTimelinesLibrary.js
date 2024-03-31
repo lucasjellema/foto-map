@@ -197,8 +197,6 @@ export function useTimelinesLibrary() {
           callback: (context) => {
             // open timeline editor ??
             eventCallback({ type: 'editTimeline', timeline: timeline })
-
-
           }
         }, {
           text: 'Delete timeline',
@@ -212,6 +210,13 @@ export function useTimelinesLibrary() {
           callback: (context) => {
             const latlng = context.latlng
             snipTimelineFromLatLng(latlng, timeline, polyline, sites, map, _timelines)
+          }
+        }, {
+          text: 'Create Site in Timeline',
+          index: 3,
+          callback: (context) => {
+            const latlng = context.latlng
+            createSiteInTimeline(latlng, timeline, polyline, sites, map, _timelines)
           }
         }
           // , {
@@ -354,6 +359,24 @@ export function useTimelinesLibrary() {
       }
     }
     return closestSegment;
+  }
+
+  const createSiteInTimeline = (latlng, timeline, polyline, sites, map, timelines) => {
+    const closestSegment = findClosestSegment(polyline, latlng);
+
+    if (closestSegment) {
+
+      // find the site at the start and the end of the segment
+      const startSite = sites.find(site => site.geoJSON.features[0].geometry.coordinates[1] === closestSegment[0].lat && site.geoJSON.features[0].geometry.coordinates[0] === closestSegment[0].lng);
+      const endSite = sites.find(site => site.geoJSON.features[0].geometry.coordinates[1] === closestSegment[1].lat && site.geoJSON.features[0].geometry.coordinates[0] === closestSegment[1].lng);
+
+      console.log('create site in timeline between startSite', startSite.timestamp, 'endSite', endSite.timestamp)
+      // calculate newTimestamp as the midpoint between startSite.timestamp and endSite.timestamp
+      const midpointTime = (new Date(startSite.timestamp).getTime() + new Date(endSite.timestamp).getTime()) / 2;
+      const centerPointDate = new Date(midpointTime);    
+      eventCallback({ type: 'createSite', latlng: latlng, timestamp:centerPointDate, label:`create in timeline ${timeline.label}`  })
+    }
+
   }
 
   const snipTimelineFromLatLng = (latlng, timeline, polyline, sites, map, timelines) => {

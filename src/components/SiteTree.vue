@@ -45,6 +45,11 @@ watch(selectedKey, (newselectedKey) => {
 })
 
 
+const resetSelection = () => {
+  // remove all elements from the collection selectedKey without destroying the object
+  selectedKey.value = {}
+}
+
 const findTreeKeyForElement = (currentElement) => {
   while (currentElement && currentElement !== document) {
     if (currentElement.classList) {
@@ -146,7 +151,7 @@ const handleClickOnTree = (event) => {
         siteIdsToSelect.forEach(key => {
           updatedSelection[key] = false;
         });
-        selectedKey.value = updatedSelection;      
+        selectedKey.value = updatedSelection;
       }
     }
   }
@@ -156,6 +161,14 @@ const handleContextMenuClickOnTree = (event) => {
 
   contextMenuItems.value = []
   const treeKey = findTreeKeyForElement(event.target)
+if (treeKey.keyType === 'locations'|| treeKey.keyType === 'tags'|| treeKey.keyType === 'times') {
+  contextMenuItems.value.push({
+      label: ` Reset Selection`, icon: 'mdi mdi-cancel'
+      , command: () => { resetSelection() }
+    })
+  
+}
+
   let siteIds = []
 
   if ((treeKey.keyType === 'year' || treeKey.keyType === 'month' || treeKey.keyType === 'day' || treeKey.keyType === 'tag')
@@ -182,6 +195,18 @@ const handleContextMenuClickOnTree = (event) => {
       label: ` Split Timeline at Site`, icon: 'mdi mdi-timeline-clock-outline'
       , command: () => { emit('siteAction', { action: 'splitTimeline', siteIds: siteIds }) }
     })
+    // if multiple sites are selected, they can all be consolidated into the site for which the menu is shown
+    const selectedSiteIds =
+      // get all keys from selectedKey.value for which the value is boolean True
+      Object.keys(selectedKey.value).filter(key => selectedKey.value[key])
+
+    if (selectedSiteIds.length > 1) {
+      contextMenuItems.value.push({
+        label: ` Consolidate Selected Sites to this Site`, icon: 'mdi mdi-consolidate'
+        , command: () => { emit('siteAction', { action: 'consolidateSitesToTargetSite', siteIds: selectedSiteIds, payload: { targetSiteId: treeKey.key } }); resetSelection() }
+      })
+
+    }
   }
   if (siteIds.length > 0) {
     if (treeKey.keyType != 'site') {

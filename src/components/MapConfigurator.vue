@@ -50,6 +50,12 @@
         <v-expansion-panel title="Tooltips" collapse-icon="mdi-tooltip-outline" expand-icon="mdi-tooltip-outline">
           <v-expansion-panel-text>
             <v-checkbox v-model="modelMap.showTooltips" label="Show Tooltips for Markers"></v-checkbox>
+
+            <v-radio-group v-model="modelMap.showTooltipsMode" label="Show Tooltips for Markers" inline>
+                    <v-radio label="Always" value="always"></v-radio>
+                    <v-radio label="On Hover" value="hover"></v-radio>
+                    <v-radio label="Never" value="never"></v-radio>
+                </v-radio-group>
           </v-expansion-panel-text>
         </v-expansion-panel> <v-expansion-panel title="Custom Tile Layers" collapse-icon="mdi-layers-edit"
           expand-icon="mdi-layers-edit">
@@ -113,7 +119,6 @@ import { useDateTimeLibrary } from '@/composables/useDateTimeLibrary';
 const { formatDate } = useDateTimeLibrary();
 
 const timelineToEdit = ref(null)
-
 const showTimelineEditorPopup = ref(false)
 const saveTimeline = () => {
   showTimelineEditorPopup.value = false
