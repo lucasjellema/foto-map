@@ -5,23 +5,27 @@
 
             <v-card-text>
                 <v-text-field v-model="model.label" label="Label"></v-text-field>
-                <v-text-field v-model="model.color" label="Color"></v-text-field>
-                <v-text-field v-model="model.width" label="Width" hint="thickness in pixels" suffix="px"></v-text-field>
-                <v-radio-group v-model="model.lineStyle" label="Style" hint="solid, dotted, dashed" inline>
-                    <v-radio label="Solid" value="solid"></v-radio>
-                    <v-radio label="Dashed" value="dashed"></v-radio>
-                    <v-radio label="Dotted" value="dotted"></v-radio>
-                </v-radio-group>
-                <v-spacer></v-spacer>
-                <v-spacer></v-spacer>
-                <span>Preview:
-                    <hr :style="{
+                <div class="mb-5">
+                    <span>Preview:
+                        <hr :style="{
                     'border-style': `${model.lineStyle} none none none`
                     , 'border-width': model.width + 'px'
                     , 'border-color': model.color
                     , 'background-color': 'none'
                 }" />
-                </span>
+                    </span>
+                </div>
+
+                <!-- <v-text-field v-model="model.width" label="Width" hint="thickness in pixels" suffix="px"></v-text-field> -->
+                <v-slider label="Width" v-model="model.width" min="1" max="10"></v-slider>
+                <v-radio-group v-model="model.lineStyle" label="Style" hint="solid, dotted, dashed" inline>
+                    <v-radio label="Solid" value="solid"></v-radio>
+                    <v-radio label="Dashed" value="dashed"></v-radio>
+                    <v-radio label="Dotted" value="dotted"></v-radio>
+                </v-radio-group>
+                <v-color-picker v-model="model.color" hide-inputs
+                        label="Line Color" class="mb-5"></v-color-picker>
+                
             </v-card-text>
             <v-card-actions>
                 <v-spacer></v-spacer>
