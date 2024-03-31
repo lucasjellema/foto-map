@@ -51,6 +51,9 @@
           </v-col>
           <v-col cols="7" offset="0">
             <div id="mapid" style="height: 700px; width:900px"></div>
+            <TimelineProfile :thetimeline="timelineProfileToShow?timelineProfileToShow:currentStory.mapConfiguration.timelines[0]" :sites="sitesData"
+            @clickSite="handleClickSite" @dblclickSite="handleDblClickSite"
+            v-if="mapShowTimelines"></TimelineProfile>
             <v-container>
               <v-row align="center">
                 <v-col cols="auto">
@@ -88,7 +91,7 @@
                       {{ tag }}
                     </v-chip>
                   </div>
-                  <div >
+                  <div class="mt-3">
                     <ShowTimeAnalog  v-if="poppedupSite?.timestamp"  
                     :timestamp="poppedupSite.timestamp" ></ShowTimeAnalog>
                    </div> 
@@ -173,8 +176,9 @@
 
     </v-container>
 
-    <v-container id="timelinesLegend" ref="timelinesLegendRef" style="max-width: 300px">
+    <v-container id="timelinesLegend" ref="timelinesLegendRef" style="max-width: 300px" >
       <v-row v-for="timeline in currentStory.mapConfiguration?.timelines" @dblclick.stop="focusOnTimeline(timeline)"
+      @click.stop="showTimelineProfile(timeline)"
         @mouseover="highlightTimeline(timeline.startSiteId)" @mouseout="unhighlightTimeline(timeline.startSiteId)"
         class="timelineLegendLine">
         <v-col cols="2" class="timelineLegendLine">
@@ -260,6 +264,7 @@ import { useTimelinesLibrary } from '@/composables/useTimelinesLibrary';
 const { splitTimelineAtSiteX, drawTimelinesX, hideTimelines, startTimelineAtSite, highlightTimeline, unhighlightTimeline, endTimelineAtSite, refreshTimelines, registerEventCallback, fuseTimelinesAtSite } = useTimelinesLibrary();
 const tab = ref('tab-1')
 const showSiteDetailsPopup = ref(false)
+const timelineProfileToShow = ref(null)
 
 const timelinesLegendRef = ref(null)
 
@@ -277,6 +282,20 @@ const editTimeline = (timeline) => {
   showTimelineEditorPopup.value = true
 }
 
+const showTimelineProfile = (timeline)=> {
+  console.log(`sjhow timeline profile`,timeline)
+  timelineProfileToShow.value = timeline
+}
+
+const handleClickSite = ({site}) => {
+  console.log(`handleClickSite`, site)
+  handleSiteSelected  ([site.id])
+}
+
+
+const handleDblClickSite = ({site}) => {
+  console.log(`handleDblClickSite`, site)
+}
 
 const exportMap = () => {
   exportStoryToZip(currentStory.value)
