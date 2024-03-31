@@ -4,7 +4,10 @@ import 'leaflet-polylinedecorator';
 // TODO startSite and endSite should be startSiteId and endSiteId - do not rely on objects but on the hard, fixed ids
 export function useTimelinesLibrary() {
 
-  const findTimelineForSite = (siteToLocate, allSortedSites, timelines) => {
+const getSortedSites = (allSites) => {
+  return  allSites.sort((a, b) => (new Date(a.timestamp).getTime() > new Date(b.timestamp).getTime()) ? 1 : -1)   
+}
+ const findTimelineForSite = (siteToLocate, allSortedSites, timelines) => {
     const sites = findTimelinesForSite(siteToLocate, allSortedSites, timelines)
 
     if (sites.length > 0) {
@@ -39,7 +42,8 @@ export function useTimelinesLibrary() {
   }
 
   const startTimelineAtSite = (siteToStartAt, allSites, timelines, map) => {
-    const sites = allSites.sort((a, b) => (a.timestamp > b.timestamp) ? 1 : -1)
+    const sites = getSortedSites(allSites)
+ //   allSites.sort((a, b) => (a.timestamp > b.timestamp) ? 1 : -1)
 
     //create new timeline - provided site is not currently in another timeline
 
@@ -76,7 +80,8 @@ export function useTimelinesLibrary() {
 
 
   const endTimelineAtSite = (siteToEndAt, allSites, timelines, map) => {
-    const sites = allSites.sort((a, b) => (a.timestamp > b.timestamp) ? 1 : -1)
+    //const sites = allSites.sort((a, b) => (a.timestamp > b.timestamp) ? 1 : -1)
+    const sites = getSortedSites(allSites)
 
     const theTimeline = findTimelineForSite(siteToEndAt, sites, timelines)
 
@@ -92,7 +97,8 @@ export function useTimelinesLibrary() {
   const fuseTimelinesAtSite = (siteToFuseAt, allSites, timelines, map) => {
     if (!timelines || timelines.length == 0) { return }
 
-    const sites = allSites.sort((a, b) => (a.timestamp > b.timestamp) ? 1 : -1)
+//    const sites = allSites.sort((a, b) => (a.timestamp > b.timestamp) ? 1 : -1)
+    const sites = getSortedSites(allSites)
     const theTimelines = findTimelinesForSite(siteToFuseAt, sites, timelines)
 
     if (!theTimelines || theTimelines.length != 2) { return } // there is no timeline to split or the site is not in exactly two timelines
@@ -111,7 +117,8 @@ export function useTimelinesLibrary() {
 
   const splitTimelineAtSiteX = (siteToSplitAt, allSites, timelines, map) => {
 
-    const sites = allSites.sort((a, b) => (a.timestamp > b.timestamp) ? 1 : -1)
+    //const sites = allSites.sort((a, b) => (a.timestamp > b.timestamp) ? 1 : -1)
+    const sites = getSortedSites(allSites)
     if (timelines.length === 0) {
       // create two timelines, from the first site to siteToSplitAt and the second from the siteToSplitAt to the last site
       timelines.push({
