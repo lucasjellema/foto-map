@@ -1,68 +1,51 @@
 <template>
-  <v-card>
-    <v-card-title>
-      <v-icon>mdi-attachment</v-icon>
-      <span class="headline">Attachments for Site {{ modelSite.label }}</span>
-    </v-card-title>
-    <v-card-text>
-      <v-container>
+    <v-card-text>{{ formatDate(site?.timestamp) }}
+      {{ site?.city }},{{ site?.country }}
 
-        <!-- <Carousel :value="modelSite?.attachments" :numVisible="1" :numScroll="1" verticalViewPortHeight="350px"
-          contentClass="flex align-items-center">
-          <template #item="slotProps">
-            <div class="border-1 surface-border border-round m-2  p-3">
-              <div class="mb-3">
-                <div class="relative mx-auto">
-                  <v-img width="400" cover :src="slotProps.data.imageURL"></v-img>
+      {{ site?.geoJSON?.features[0]?.geometry?.coordinates[2] ? ` (∆
+      ${site?.geoJSON.features[0].geometry.coordinates[2].toFixed(0)}m)` : '' }}
+      <div v-if="site?.attachments?.length > 0">
 
-                </div>
-              </div>
-              <div class="mb-3 ">{{ slotProps.data.label }}</div>
-              <div class="flex justify-content-between align-items-center">
-                <div class="mt-0 font-semibold text-xl">{{ slotProps.data.description }}</div>
 
-              </div>
-            </div>
-          </template>
-</Carousel> -->
-        <v-carousel :height="550" show-arrows="hover">
+      </div>
+      <div>
+        <v-img width="500" cover :src="site?.imageURL" content-class="hover-zoom"></v-img>
+        {{ site?.description }}
+      </div>
 
-          <v-carousel-item v-for="(attachment, index) in modelSite?.attachments">
-            <v-container>
-              <v-row>
-                <v-col cols="7" offset="1">
-                  <v-img width="400" cover :src="attachment.imageURL"></v-img>
-                </v-col>
-                <v-col cols="4">
-                  <div>
-                    <h2>{{ attachment.label }}</h2>
-                    <v-spacer></v-spacer>
-                    {{ attachment.description }}
-                  </div>
-                </v-col>
-              </v-row>
-            </v-container>
-
-          </v-carousel-item>
-        </v-carousel>
-
-      </v-container>
+      <div v-if="site?.tags?.length > 0">
+        <v-chip v-for="tag in site?.tags" class="ma-2">
+          {{ tag }}
+        </v-chip>
+      </div>
+      <div class="mt-3">
+        <ShowTimeAnalog v-if="site?.timestamp" :timestamp="site.timestamp"></ShowTimeAnalog>
+      </div>
+      <div v-if="site?.attachments?.length > 0">
+        <v-btn @click="showSiteDetailAttachmentsPopup = true" prepend-icon="mdi-attachment">Show</v-btn>
+      </div>
     </v-card-text>
-    <v-card-actions>
-      <v-spacer></v-spacer>
-      <v-btn color="blue darken-1" text @click="closeDialog">Close</v-btn>
-    </v-card-actions>
-  </v-card>
+  
+
+  <v-dialog v-model="showSiteDetailAttachmentsPopup" max-width="1000px">
+    <SiteDetailAttachments v-model:site="site" @closeDialog="showSiteDetailAttachmentsPopup = false">
+    </SiteDetailAttachments>
+  </v-dialog>
 </template>
 <script setup>
-const modelSite = defineModel('site');
+const site = defineModel('site');
 const emit = defineEmits(['closeDialog']);
+const showSiteDetailAttachmentsPopup = ref(false);
 
 
 import Carousel from 'primevue/carousel';
+import { useDateTimeLibrary } from '@/composables/useDateTimeLibrary';
+const { formatDate } = useDateTimeLibrary();
+
 
 
 onMounted(() => {
+  console.log("siteDetails mounted", site.value)
 });
 
 

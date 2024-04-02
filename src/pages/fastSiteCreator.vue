@@ -51,9 +51,11 @@
           </v-col>
           <v-col cols="7" offset="0">
             <div id="mapid" style="height: 700px; width:900px"></div>
-            <TimelineProfile :thetimeline="timelineProfileToShow?timelineProfileToShow:currentStory.mapConfiguration.timelines[0]" :sites="sitesData"
-            @clickSite="handleClickSite" @dblclickSite="handleDblClickSite"
-            v-if="mapShowTimelines"></TimelineProfile>
+            <TimelineProfile
+              :thetimeline="timelineProfileToShow ? timelineProfileToShow : currentStory.mapConfiguration.timelines[0]"
+              :sites="sitesData" @clickSite="handleClickSite" @dblclickSite="handleDblClickSite"
+              v-if="mapShowTimelines">
+            </TimelineProfile>
             <v-container>
               <v-row align="center">
                 <v-col cols="auto">
@@ -68,39 +70,6 @@
               </v-row>
 
             </v-container>
-            <!-- contents for the popup on markers -->
-            <div style="display: none;">
-              <v-card class="mx-auto hover-zoom" max-width="600" :title="poppedupSite?.label"
-                :theme="poppedupSite?.imageURL ? 'light' : 'light'" ref="popupContentRef">
-                <v-card-text>{{ formatDate(poppedupSite?.timestamp) }}
-                  {{ poppedupSite?.city }},{{ poppedupSite?.country }}
-
-                  {{ poppedupSite?.geoJSON?.features[0]?.geometry?.coordinates[2] ? ` (∆
-                  ${poppedupSite?.geoJSON.features[0].geometry.coordinates[2].toFixed(0)}m)` : '' }}
-                  <div v-if="poppedupSite?.attachments?.length > 0">
-
-                   
-                  </div>
-                  <div>
-                    <v-img width="500" cover :src="poppedupSite?.imageURL" content-class="hover-zoom"></v-img>
-                    {{ poppedupSite?.description }}
-                  </div>
-
-                  <div v-if="poppedupSite?.tags?.length > 0">
-                    <v-chip v-for="tag in poppedupSite?.tags" class="ma-2">
-                      {{ tag }}
-                    </v-chip>
-                  </div>
-                  <div class="mt-3">
-                    <ShowTimeAnalog  v-if="poppedupSite?.timestamp"  
-                    :timestamp="poppedupSite.timestamp" ></ShowTimeAnalog>
-                   </div> 
-                  <div v-if="poppedupSite?.attachments?.length > 0">
-                    <v-btn @click="showSiteDetailsPopup = true" prepend-icon="mdi-attachment">Show</v-btn>
-                  </div>
-                </v-card-text>
-              </v-card>
-            </div>
 
 
           </v-col>
@@ -111,11 +80,6 @@
       <v-dialog v-model="showEditSitePopup" max-width="1000px">
         <SiteEditor v-model:site="editedSite" :storyTags="storyTags" @saveSite="saveItem" @closeDialog="closeDialog">
         </SiteEditor>
-      </v-dialog>
-
-      <v-dialog v-model="showSiteDetailsPopup" max-width="1000px">
-        <SiteDetails v-model:site="poppedupSite" @closeDialog="showSiteDetailsPopup = false">
-        </SiteDetails>
       </v-dialog>
 
       <v-dialog v-model="showMapFiltersPopup" max-width="800px">
@@ -176,11 +140,10 @@
 
     </v-container>
 
-    <v-container id="timelinesLegend" ref="timelinesLegendRef" style="max-width: 300px" >
+    <v-container id="timelinesLegend" ref="timelinesLegendRef" style="max-width: 300px">
       <v-row v-for="timeline in currentStory.mapConfiguration?.timelines" @dblclick.stop="focusOnTimeline(timeline)"
-      @click.stop="showTimelineProfile(timeline)"
-        @mouseover="highlightTimeline(timeline.startSiteId)" @mouseout="unhighlightTimeline(timeline.startSiteId)"
-        class="timelineLegendLine">
+        @click.stop="showTimelineProfile(timeline)" @mouseover="highlightTimeline(timeline.startSiteId)"
+        @mouseout="unhighlightTimeline(timeline.startSiteId)" class="timelineLegendLine">
         <v-col cols="2" class="timelineLegendLine">
           <hr :style="{
               'border-style': timeline.lineStyle + ' none none none'
@@ -202,12 +165,14 @@
       </TimelineEditor>
     </v-dialog>
 
+    <!-- contents for the popup on markers; note: this content is moved to the leaflet popup by referencing the $el under the popupContentRef -->
+    <div style="display: none;">
+      <v-card class="mx-auto hover-zoom" max-width="600" :title="poppedupSite?.label"
+        :theme="poppedupSite?.imageURL ? 'light' : 'light'" ref="popupContentRef">
+        <SiteDetails v-model:site="poppedupSite" ref="popupContentRef"></SiteDetails>
+      </v-card>
+    </div>
 
-    <!-- <span @mouseover="highlightTimeline(timeline.startSiteId)" @mouseout="unhighlightTimeline(timeline.startSiteId)"
-        v-for="timeline in currentStory.mapConfiguration.timelines" v-if="mapShowTimelines">
-        <i
-          :style="background: '{{timeline.color}}';width:20px;height:3px;float:left;margin-right:5px;">{{ timeline.label }}
-      </span> -->
 
 
   </v-responsive>
@@ -282,18 +247,18 @@ const editTimeline = (timeline) => {
   showTimelineEditorPopup.value = true
 }
 
-const showTimelineProfile = (timeline)=> {
-  console.log(`sjhow timeline profile`,timeline)
+const showTimelineProfile = (timeline) => {
+  console.log(`sjhow timeline profile`, timeline)
   timelineProfileToShow.value = timeline
 }
 
-const handleClickSite = ({site}) => {
+const handleClickSite = ({ site }) => {
   console.log(`handleClickSite`, site)
-  handleSiteSelected  ([site.id])
+  handleSiteSelected([site.id])
 }
 
 
-const handleDblClickSite = ({site}) => {
+const handleDblClickSite = ({ site }) => {
   console.log(`handleDblClickSite`, site)
 }
 
@@ -370,7 +335,7 @@ const handleSiteAction = ({ siteId, siteIds, action, payload }) => {
     return
   }
   if (!siteId) {
-    
+
   } else {
 
     const site = storiesStore.getSite(siteId)
@@ -443,7 +408,7 @@ const focusOnTimeline = (timeline) => {
 
   const siteIds = []
 
-  const sites = sitesData.value.sort((a, b) => (a.timestamp > b.timestamp) ? 1 : -1)
+  const sites = sitesData.value.sort((a, b) => (new Date(a.timestamp) > new Date(b.timestamp)) ? 1 : -1)
   let inTimelineRange = false
   for (const site of sites) {
     if (site.id == timeline.startSiteId) {
@@ -763,11 +728,11 @@ watch(mapShowTimelines, (newValue) => {
 const timelineEventHandler = (event) => {
   console.log("Timeline event handler", event)
 
-if (event.type == 'editTimeline'){
-  editTimeline(event.timeline)
-} else if (event.type == 'createSite') {
-      console.log(`createSite`)
-      const newGeoJsonData =
+  if (event.type == 'editTimeline') {
+    editTimeline(event.timeline)
+  } else if (event.type == 'createSite') {
+    console.log(`createSite`)
+    const newGeoJsonData =
     {
       "type": "FeatureCollection", "features": [{
         "type": "Feature", "properties": { name: event.label }
@@ -775,8 +740,8 @@ if (event.type == 'editTimeline'){
       }]
     }
     createSiteFromGeoJSON(newGeoJsonData, event.imageId, event.timestamp);
-      //eventCallback({ type: 'creaeSite', latlng: latlng, timestamp:centerPointDate, label:`create in timeline ${timeline.label}`  })
-    }
+    //eventCallback({ type: 'creaeSite', latlng: latlng, timestamp:centerPointDate, label:`create in timeline ${timeline.label}`  })
+  }
 
 }
 
@@ -995,7 +960,7 @@ const selectMarker = (selectedMarker, forceSelect) => {
       selectedMarker.setIcon(selectedMarker.originalIcon)
     } else {
       selectedMarker.originalIcon = selectedMarker.getIcon()
-// TODO for the time being - do not show the selectedMarker icon; reconsider if we want to use selection at all
+      // TODO for the time being - do not show the selectedMarker icon; reconsider if we want to use selection at all
       // selectedMarker.setIcon(selectedMarkerIcon)
     }
     selectedMarker.selected = !selectedMarker.selected
@@ -1015,7 +980,7 @@ const findMarkerForSite = (site) => {
   //     theMarker = marker
   //   }
   // })
-    
+
   return theMarker;
 }
 
@@ -1055,8 +1020,7 @@ const consolidateSitesToTargetSite = (targetSite, sitesToConsolidate) => {
   let removedSites = []
   // Remove all nearby sites
   // sort nearbyfeature by timestamp
-  for (const siteToRemove of sitesToConsolidate.sort((a, b) => (a.timestamp > b.timestamp) ? 1 : -1).filter((siteToRemove) => { return siteToRemove !== targetSite }))
-   {
+  for (const siteToRemove of sitesToConsolidate.sort((a, b) => (new Date(a.timestamp) > new Date(b.timestamp)) ? 1 : -1).filter((siteToRemove) => { return siteToRemove !== targetSite })) {
 
     removedSites.push(siteToRemove)
     if (mapEditMode.value) {
@@ -1527,12 +1491,12 @@ function createSiteFromGeoJSON(newGeoJsonData, imageId, dateTimeOriginal, rezoom
   drawMarkerForSite(site)
   // geoJsonLayer.addData(newGeoJsonData);
   // TODO if rezoom - then zoom to make sure that newly added marker is visible
-  if (!mapEditMode.value && rezoom) {    
+  if (!mapEditMode.value && rezoom) {
     try {
       const bounds = markersLayer.getBounds();
-        map.value.fitBounds(bounds);  
+      map.value.fitBounds(bounds);
     } catch (e) { console.warn(`map.value.fitBounds(markersLayer.getBounds() failed`); }
-    
+
   }
 }
 
