@@ -1004,12 +1004,18 @@ const selectMarker = (selectedMarker, forceSelect) => {
 
 const findMarkerForSite = (site) => {
   let theMarker
-  getAllMarkers().forEach(marker => {
+  for (const marker of getAllMarkers()) {
     if (marker.site === site) {
       theMarker = marker
+      break;
     }
-  })
-    ;
+  }
+  // getAllMarkers().forEach(marker => {
+  //   if (marker.site === site) {
+  //     theMarker = marker
+  //   }
+  // })
+    
   return theMarker;
 }
 
@@ -1049,7 +1055,8 @@ const consolidateSitesToTargetSite = (targetSite, sitesToConsolidate) => {
   let removedSites = []
   // Remove all nearby sites
   // sort nearbyfeature by timestamp
-  sitesToConsolidate.sort((a, b) => (a.timestamp > b.timestamp) ? 1 : -1).filter((siteToRemove) => { return siteToRemove !== targetSite }).forEach(function (siteToRemove) {
+  for (const siteToRemove of sitesToConsolidate.sort((a, b) => (a.timestamp > b.timestamp) ? 1 : -1).filter((siteToRemove) => { return siteToRemove !== targetSite }))
+   {
 
     removedSites.push(siteToRemove)
     if (mapEditMode.value) {
@@ -1072,7 +1079,8 @@ const consolidateSitesToTargetSite = (targetSite, sitesToConsolidate) => {
     }
     else hideSite(siteToRemove)
 
-  });
+  }
+  //);
   if (mapEditMode.value) {
     storiesStore.updateSite(targetSite)
   }

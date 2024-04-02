@@ -161,13 +161,26 @@ const handleContextMenuClickOnTree = (event) => {
 
   contextMenuItems.value = []
   const treeKey = findTreeKeyForElement(event.target)
+  console.log(`keyType`, treeKey.keyType)
   if (treeKey.keyType === 'locations' || treeKey.keyType === 'tags' || treeKey.keyType === 'times') {
     contextMenuItems.value.push({
       label: ` Reset Selection`, icon: 'mdi mdi-cancel'
       , command: () => { resetSelection() }
     })
-
   }
+  if (treeKey.keyType ==='times') {
+    const createTimelineMenuItem = {
+      label: ` Create Timeline`, icon: 'mdi mdi-sort-clock-ascending-outline'
+      , items:[] }
+    
+    createTimelineMenuItem.items.push({label: `Per Day`,  command: () => { emit('siteAction', { action: 'createTimelinesPerDay'})}})
+    createTimelineMenuItem.items.push({label: `Per Week`,  command: () => { emit('siteAction', { action: 'createTimelinesPerWeek'})}})
+    createTimelineMenuItem.items.push({label: `Per Month`,  command: () => { emit('siteAction', { action: 'createTimelinesPerMonth'})}})
+    createTimelineMenuItem.items.push({label: `Per Year`,  command: () => { emit('siteAction', { action: 'createTimelinesPerYear'})}})
+
+    contextMenuItems.value.push(createTimelineMenuItem)
+  }
+
 
   let siteIds = []
 
@@ -200,13 +213,20 @@ const handleContextMenuClickOnTree = (event) => {
       // get all keys from selectedKey.value for which the value is boolean True
       Object.keys(selectedKey.value).filter(key => selectedKey.value[key])
 
+    if (selectedSiteIds.length == 2) {
+      contextMenuItems.value.push({
+        label: ` Create timeline between selected sites`, icon: 'mdi mdi-sort-clock-ascending-outline'
+        , command: () => { emit('siteAction', { action: 'createTimelineBetweenTwoSites', siteIds: selectedSiteIds }); }
+      })
+    }
     if (selectedSiteIds.length > 1) {
       contextMenuItems.value.push({
         label: ` Consolidate Selected Sites to this Site`, icon: 'mdi mdi-consolidate'
         , command: () => { emit('siteAction', { action: 'consolidateSitesToTargetSite', siteIds: selectedSiteIds, payload: { targetSiteId: treeKey.key } }); resetSelection() }
       })
-
     }
+
+
   }
   if (siteIds.length > 0) {
     if (treeKey.keyType != 'site') {

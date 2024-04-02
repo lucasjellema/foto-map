@@ -4,10 +4,15 @@ import 'leaflet-polylinedecorator';
 // TODO startSite and endSite should be startSiteId and endSiteId - do not rely on objects but on the hard, fixed ids
 export function useTimelinesLibrary() {
 
-const getSortedSites = (allSites) => {
-  return  allSites.sort((a, b) => (new Date(a.timestamp).getTime() > new Date(b.timestamp).getTime()) ? 1 : -1)   
-}
- const findTimelineForSite = (siteToLocate, allSortedSites, timelines) => {
+  const getSortedSites = (allSites) => {
+    return allSites.sort((a, b) => (new Date(a.timestamp).getTime() > new Date(b.timestamp).getTime()) ? 1 : -1)
+  }
+
+  const getSortedTimelines = (theTimelines) => {
+    return theTimelines.sort((a, b) => new Date(a.startTimestamp).getTime() - new Date(b.startTimestamp).getTime())
+  }
+
+  const findTimelineForSite = (siteToLocate, allSortedSites, timelines) => {
     const sites = findTimelinesForSite(siteToLocate, allSortedSites, timelines)
 
     if (sites.length > 0) {
@@ -21,8 +26,8 @@ const getSortedSites = (allSites) => {
     // loop over timelines and find the timeline this site is part of ; 
     const timelinesForSite = []
     // iterate over timelines sorted by startTimestamp
-    timelines.slice().sort((a, b) => a.startTimestamp - b.startTimestamp).forEach(timeline => {
-
+    const sortedTimelines = getSortedTimelines(timelines)
+    for (timeline of sortedTimelines) {
       // loop over sites
       let inRangeTimeline = false
       for (const site of allSortedSites) {
@@ -37,13 +42,13 @@ const getSortedSites = (allSites) => {
           break
         }
       }
-    })
+    }
     return timelinesForSite
   }
 
   const startTimelineAtSite = (siteToStartAt, allSites, timelines, map) => {
     const sites = getSortedSites(allSites)
- //   allSites.sort((a, b) => (a.timestamp > b.timestamp) ? 1 : -1)
+    //   allSites.sort((a, b) => (a.timestamp > b.timestamp) ? 1 : -1)
 
     //create new timeline - provided site is not currently in another timeline
 
@@ -97,12 +102,12 @@ const getSortedSites = (allSites) => {
   const fuseTimelinesAtSite = (siteToFuseAt, allSites, timelines, map) => {
     if (!timelines || timelines.length == 0) { return }
 
-//    const sites = allSites.sort((a, b) => (a.timestamp > b.timestamp) ? 1 : -1)
+    //    const sites = allSites.sort((a, b) => (a.timestamp > b.timestamp) ? 1 : -1)
     const sites = getSortedSites(allSites)
     const theTimelines = findTimelinesForSite(siteToFuseAt, sites, timelines)
 
     if (!theTimelines || theTimelines.length != 2) { return } // there is no timeline to split or the site is not in exactly two timelines
-    const sortedTimelines = theTimelines.sort((a, b) => a.startTimestamp - b.startTimestamp)
+    const sortedTimelines = getSortedTimelines(timelines)
     const firstTimeline = sortedTimelines[0]
     const secondTimeline = sortedTimelines[1]
     firstTimeline.endSiteId = secondTimeline.endSiteId
@@ -277,10 +282,11 @@ const getSortedSites = (allSites) => {
     _timelines = timelines
     _allSites = allSites
     _map = map
-    const sites = allSites.sort((a, b) => (a.timestamp > b.timestamp) ? 1 : -1)
+
+    const sites = getSortedSites(allSites)
     const siteIds = sites.map(site => site.id)
     if (timelines && timelines.length > 0) {
-      for (const timeline of timelines.sort((a, b) => (a.startTimestamp > b.startTimestamp ? 1 : -1))) {
+      for (const timeline of getSortedTimelines(timelines)) {
         // TODO find site in array of sites properly - this does not work!
         const startIndex = siteIds.indexOf(timeline.startSiteId)
         const endIndex = siteIds.indexOf(timeline.endSiteId)
@@ -298,6 +304,8 @@ const getSortedSites = (allSites) => {
         color: 'blue',
         startTimestamp: sites[0].timestamp,
         endTimestamp: sites[sites.length - 1].timestamp
+        , width: 3
+        , lineStyle: 'dashed'
       }
       const { polyline, timelineDecorator } = drawTimeline(dummyEndToEndTimeline, sites, map)
 
@@ -380,8 +388,8 @@ const getSortedSites = (allSites) => {
       console.log('create site in timeline between startSite', startSite.timestamp, 'endSite', endSite.timestamp)
       // calculate newTimestamp as the midpoint between startSite.timestamp and endSite.timestamp
       const midpointTime = (new Date(startSite.timestamp).getTime() + new Date(endSite.timestamp).getTime()) / 2;
-      const centerPointDate = new Date(midpointTime);    
-      eventCallback({ type: 'createSite', latlng: latlng, timestamp:centerPointDate, label:`create in timeline ${timeline.label}`  })
+      const centerPointDate = new Date(midpointTime);
+      eventCallback({ type: 'createSite', latlng: latlng, timestamp: centerPointDate, label: `create in timeline ${timeline.label}` })
     }
 
   }

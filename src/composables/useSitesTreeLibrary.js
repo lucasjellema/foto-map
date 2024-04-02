@@ -10,13 +10,14 @@ export function useSitesTreeLibrary() {
       label: 'Times',
       data: 'Documents Folder',
       icon: 'mdi mdi-calendar-clock',
+      styleClass: `treekey|times`,
       children: []
     }
     // if multiple years/months/days, then add children for years/months/days
 
 
     const uniqueYears = [...new Set(sites.map(site => new Date(site.timestamp).getFullYear()))];
-    uniqueYears.forEach(year => {
+    for (const year of uniqueYears) {
       const yearNode = {
         key: `${year}`,
         label: year,
@@ -30,7 +31,8 @@ export function useSitesTreeLibrary() {
       const uniqueMonths = [...new Set(sites.filter(site => new Date(site.timestamp).getFullYear() === year).sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
         .map(site => new Date(site.timestamp).toLocaleString('default', { month: 'long' }))
       )];
-      uniqueMonths.forEach(month => {
+      for (const month of uniqueMonths) {
+//      uniqueMonths.forEach(month => {
         const monthNode = {
           key: `${year}_${month}`,
           label: month,
@@ -47,8 +49,8 @@ export function useSitesTreeLibrary() {
         const uniqueDays = [...new Set(sitesWithYearAndMonth.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
           .map(site => new Date(site.timestamp).getDate()))];
         //iterate over all unique days sorted by date and create a node for each day
-
-        uniqueDays.forEach(day => {
+        for (const day of uniqueDays) {
+//        uniqueDays.forEach(day => {
           const date = new Date(`${year}-${month}-${day}`)
           const dayNode = {
             key: `${year}_${month}_${day}`,
@@ -61,7 +63,8 @@ export function useSitesTreeLibrary() {
           }
           // iterate over all sites with a timestamp that matches the year, month, and day, sorted by timestamp
           const sitesWithYearMonthAndDay = sitesWithYearAndMonth.filter(site => new Date(site.timestamp).getDate() === day).sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
-          sitesWithYearMonthAndDay.forEach(site => {
+          for (const site of sitesWithYearMonthAndDay) {
+//          sitesWithYearMonthAndDay.forEach(site => {
             const siteNode = {
               key: site.id, 
               label: site.label + ' (' + formatDate(site.timestamp, 'short') + ')',
@@ -86,9 +89,11 @@ export function useSitesTreeLibrary() {
               dayNode.parent = monthNode
               dayNode.label = dayNode.label + ' - ' + siteNode.label
             }
-          })
+          }
+          //)
           monthNode.children.push(dayNode)
-        })
+        }
+        //)
         if (uniqueMonths.length > 1) {
           console.log(`push monthNode ${monthNode.label}`)
           yearNode.children.push(monthNode)
@@ -96,9 +101,11 @@ export function useSitesTreeLibrary() {
           yearNode.children = monthNode.children
           yearNode.label = monthNode.label + ' - ' + yearNode.label
         }
-      })
+      }
+      //)
       timesTreeData.children.push(yearNode)
-    })
+    }
+    //)
     return timesTreeData
   }
 
@@ -108,31 +115,6 @@ export function useSitesTreeLibrary() {
      someString.replace(/[^a-zA-Z0-9]/g, '_'):''
   }
 
-  // const formatDate = (timestamp, dateFormatStyle) => {
-  //   const date = new Date(timestamp)
-
-  //   if (dateFormatStyle === "dow") {
-  //     const dayOfWeek = date.toLocaleString('default', { weekday: 'long' })
-  //       ;
-  //     return dayOfWeek
-  //   }
-  //   else if (dateFormatStyle === "short") {
-  //     const hour = date.getHours();
-  //     const min = date.getMinutes();
-  //     return `${hour}:${min < 10 ? '0' : ''}${min}`
-  //   } else if (dateFormatStyle === "medium") {
-  //     const day = date.getDate();
-  //     const month = date.toLocaleString('default', { month: 'long' })
-  //     const hour = date.getHours();
-  //     const min = date.getMinutes();
-  //     return `${day} ${month} ${hour}:${min < 10 ? '0' : ''}${min}`
-  //   } else {
-  //     const day = date.getDate();
-  //     const month = date.toLocaleString('default', { month: 'long' })
-  //     const year = date.getFullYear();
-  //     return `${day} ${month} ${year}`
-  //   }
-  // }
 
   const getLocationsTreeData = (sites) => {
     const locationTreeData =
@@ -148,8 +130,9 @@ export function useSitesTreeLibrary() {
     // if multiple countries, then add children for countries
     // per country (if multiple countries) - if multiple cities, then children per city 
     const uniqueCountries = [...new Set(sites.map(site => site.country))];
-    uniqueCountries.forEach(country => {
-      const countryKey = suitableInClassName(country)
+    for (const country of uniqueCountries) {
+      //    uniqueCountries.forEach(country => {
+         const countryKey = suitableInClassName(country)
       const countryNode = {
         key: countryKey,
         label: country,
@@ -160,7 +143,8 @@ export function useSitesTreeLibrary() {
         children: []
       }
       const uniqueCities = [...new Set(sites.filter(site => site.country === country).map(site => site.city))];
-      uniqueCities.forEach(city => {
+      for (const city of uniqueCities) {
+        //      uniqueCities.forEach(city => {
         const cityKey = suitableInClassName(city)
         const cityNode = {
           key: `${countryKey}_${cityKey}`,
@@ -172,7 +156,9 @@ export function useSitesTreeLibrary() {
           children: []
         }
         // loop over sites, ordered by timestamp, filtered by city and add to children
-        sites.filter(site => site.country === country && site.city === city).sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp)).forEach(site => {
+        for (const site of sites.filter(site => site.country === country && site.city === city).sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))) {
+
+//        sites.filter(site => site.country === country && site.city === city).sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp)).forEach(site => {
           const siteNode = {
             key: site.id, // to allow the site to be found from the feature - as in the map only the feature will be available
             label: site.label + ' - ' + formatDate(site.timestamp, 'medium'),
@@ -184,16 +170,19 @@ export function useSitesTreeLibrary() {
             parent: uniqueCities.length > 1?cityNode:countryNode
           }
           cityNode.children.push(siteNode)
-        })
+        }
+        //)
         if (uniqueCities.length > 1)
           countryNode.children.push(cityNode)
         else {
           countryNode.children = cityNode.children
           countryNode.label = cityNode.label + ' - ' + countryNode.label
         }
-      })
+      }
+      //)
       locationTreeData.children.push(countryNode)
-    })
+    }
+    //)
     return locationTreeData
   }
 
@@ -223,7 +212,7 @@ export function useSitesTreeLibrary() {
     })
 
 // loop over all properties in tagsSitesMap and create a node for each tag
-
+// TODO sort tags
     Object.keys(tagsSitesMap).forEach(tag => {
       const tagNode = {
         key: tag, 
