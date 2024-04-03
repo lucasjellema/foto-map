@@ -139,7 +139,7 @@
 
 
     </v-container>
-
+    <div style="display: none;"> <!-- the content for timeline legend is referenced by $el in the Leaflet legend control  -->
     <v-container id="timelinesLegend" ref="timelinesLegendRef" style="max-width: 300px">
       <v-row v-for="timeline in currentStory.mapConfiguration?.timelines" @dblclick.stop="focusOnTimeline(timeline)"
         @click.stop="showTimelineProfile(timeline)" @mouseover="highlightTimeline(timeline.startSiteId)"
@@ -158,7 +158,7 @@
         </v-col>
       </v-row>
     </v-container>
-
+</div>
     <v-dialog v-model="showTimelineEditorPopup" max-width="800px">
       <TimelineEditor v-model="timelineToEdit" @saveTimeline="saveTimeline"
         @closeDialog="showTimelineEditorPopup = false">
@@ -416,7 +416,11 @@ const focusOnSites = (siteIds) => {
     coordinatePairs.push([coordinates[1], coordinates[0]])
   }
   const bounds = L.latLngBounds(coordinatePairs);
+  try {
   map.value.fitBounds(bounds, { padding: [80, 80] }); // Adds padding around the bounds
+  } catch (error) {
+    console.log(`map.value.fitBounds(bounds, { padding: [80, 80] }) failed`, error)
+  }
 }
 
 const focusOnTimeline = (timeline) => {
@@ -576,14 +580,14 @@ const headers = [
 ]
 
 const oneDayInMS = 86400000
-const dateFormatStyle = computed(() => {
-  const timerange = maxTimestamp.value - minTimestamp.value
-  if (timerange < oneDayInMS) {
-    return "short"  // HH:MI
-  } else if (timerange < 50 * oneDayInMS) return "medium"  // DD MON HH
-  else
-    return "long"  // DD MON Y
-})
+// const dateFormatStyle = computed(() => {
+//   const timerange = maxTimestamp.value - minTimestamp.value
+//   if (timerange < oneDayInMS) {
+//     return "short"  // HH:MI
+//   } else if (timerange < 50 * oneDayInMS) return "medium"  // DD MON HH
+//   else
+//     return "long"  // DD MON Y
+// })
 
 
 const customSort = (items, sortBy, sortDesc) => {
