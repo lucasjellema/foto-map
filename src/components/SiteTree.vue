@@ -225,7 +225,24 @@ const handleContextMenuClickOnTree = (event) => {
         , command: () => { emit('siteAction', { action: 'consolidateSitesToTargetSite', siteIds: selectedSiteIds, payload: { targetSiteId: treeKey.key } }); resetSelection() }
       })
     }
-
+    if (selectedSiteIds.length > 1) {
+      contextMenuItems.value.push({
+        label: ` Add Tag(s) to all Selected Sites`, icon: 'mdi mdi-tag-plus-outline'
+        , command: () => { emit('siteAction', { action: 'addTagsToSites', siteIds: selectedSiteIds }) }
+      })
+    }
+    if (selectedSiteIds.length > 1) {
+      contextMenuItems.value.push({
+        label: ` Hide All Selected Sites`, icon: 'mdi mdi-eye-off'
+        , command: () => { emit('siteAction', { action: 'hideSelectedSites', siteIds: selectedSiteIds }) }
+      })
+    }
+    if (selectedSiteIds.length > 1) {
+      contextMenuItems.value.push({
+        label: ` Only Show Selected Sites`, icon: 'mdi mdi-curtains'
+        , command: () => { emit('siteAction', { action: 'hideUnselectedSites', siteIds: selectedSiteIds }) }
+      })
+    }
 
   }
   if (siteIds.length > 0) {
