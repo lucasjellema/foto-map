@@ -139,26 +139,27 @@
 
 
     </v-container>
-    <div style="display: none;"> <!-- the content for timeline legend is referenced by $el in the Leaflet legend control  -->
-    <v-container id="timelinesLegend" ref="timelinesLegendRef" style="max-width: 300px">
-      <v-row v-for="timeline in currentStory.mapConfiguration?.timelines" @dblclick.stop="focusOnTimeline(timeline)"
-        @click.stop="showTimelineProfile(timeline)" @mouseover="highlightTimeline(timeline.startSiteId)"
-        @mouseout="unhighlightTimeline(timeline.startSiteId)" class="timelineLegendLine">
-        <v-col cols="2" class="timelineLegendLine">
-          <hr :style="{
+    <div style="display: none;">
+      <!-- the content for timeline legend is referenced by $el in the Leaflet legend control  -->
+      <v-container id="timelinesLegend" ref="timelinesLegendRef" style="max-width: 300px">
+        <v-row v-for="timeline in currentStory.mapConfiguration?.timelines" @dblclick.stop="focusOnTimeline(timeline)"
+          @click.stop="showTimelineProfile(timeline)" @mouseover="highlightTimeline(timeline.startSiteId)"
+          @mouseout="unhighlightTimeline(timeline.startSiteId)" class="timelineLegendLine">
+          <v-col cols="2" class="timelineLegendLine">
+            <hr :style="{
               'border-style': timeline.lineStyle + ' none none none'
               , 'border-width': timeline.width + 'px'
               , 'border-color': timeline.color
               , 'background-color': 'none'
             }" />
 
-        </v-col>
-        <v-col cols="10" class="timelineLegendLine">
-          {{ timeline.label }}
-        </v-col>
-      </v-row>
-    </v-container>
-</div>
+          </v-col>
+          <v-col cols="10" class="timelineLegendLine">
+            {{ timeline.label }}
+          </v-col>
+        </v-row>
+      </v-container>
+    </div>
     <v-dialog v-model="showTimelineEditorPopup" max-width="800px">
       <TimelineEditor v-model="timelineToEdit" @saveTimeline="saveTimeline"
         @closeDialog="showTimelineEditorPopup = false">
@@ -167,10 +168,11 @@
 
     <v-dialog v-model="showAddTagToSitesDialog" max-width="800px">
       Choose Tag(s) to add to all selected sites
-      <SitesBulkEditor v-model:sites="selectedSites" :storyTags="storyTags"  @closeSitesDialog="showAddTagToSitesDialog = false"></SitesBulkEditor>
+      <SitesBulkEditor v-model:sites="selectedSites" :storyTags="storyTags"
+        @closeSitesDialog="showAddTagToSitesDialog = false"></SitesBulkEditor>
 
     </v-dialog>
-    
+
 
     <!-- contents for the popup on markers; note: this content is moved to the leaflet popup by referencing the $el under the popupContentRef -->
     <div style="display: none;">
@@ -244,8 +246,7 @@ const showAddTagToSitesDialog = ref(false)
 const timelineToEdit = ref(null)
 const showTimelineEditorPopup = ref(false)
 const saveTimeline = () => {
-  showTimelineEditorPopup.value = false
-  // TODO update timeline??
+  showTimelineEditorPopup.value = false  
   refreshTimelines(sitesData.value, currentStory.value.mapConfiguration.timelines, map.value)
 }
 
@@ -332,15 +333,18 @@ const handleSiteAction = ({ siteId, siteIds, action, payload }) => {
       const targetSite = storiesStore.getSite(payload.targetSiteId)
       consolidateSitesToTargetSite(targetSite, getSitesFromSiteIds(siteIds))
     } else if (action == 'addTagsToSites') {
-      selectedSites.value =   getSitesFromSiteIds(siteIds)
+      selectedSites.value = getSitesFromSiteIds(siteIds)
       showAddTagToSitesDialog.value = true
-    }else if (action == 'hideSelectedSites') { // TODO implement hide selected and unselected sites
-      selectedSites.value =   getSitesFromSiteIds(siteIds)
-      console.log(`hide selectedSites`, selectedSites.value)
-    }else if (action == 'hideUnselectedSites') {
-      selectedSites.value =   getSitesFromSiteIds(siteIds)
-      console.log(`hide UNselectedSites`, selectedSites.value)
-    }
+    } else if (action == 'hideSelectedSites') { 
+      selectedSites.value = getSitesFromSiteIds(siteIds)
+      selectedSites.value.forEach(site => hideSite(site))
+    } else if (action == 'hideUnselectedSites') {
+      selectedSites.value = getSitesFromSiteIds(siteIds)
+      sitesData.value.filter((site) => !siteIds.includes(site.id)).forEach(site => hideSite(site))
+    } else if (action == 'showOnlySelectedSites') { // TODO implement showOnlySelectedSites
+      selectedSites.value = getSitesFromSiteIds(siteIds)
+      // hide all, then create markers for selectedSites.value
+    } 
     //TODO handle action == unselectChildren 
 
     else {
@@ -417,7 +421,7 @@ const focusOnSites = (siteIds) => {
   }
   const bounds = L.latLngBounds(coordinatePairs);
   try {
-  map.value.fitBounds(bounds, { padding: [80, 80] }); // Adds padding around the bounds
+    map.value.fitBounds(bounds, { padding: [80, 80] }); // Adds padding around the bounds
   } catch (error) {
     console.log(`map.value.fitBounds(bounds, { padding: [80, 80] }) failed`, error)
   }
@@ -909,8 +913,7 @@ const drawMarkerForSite = (site) => {
             currentStory.value.mapConfiguration.timelines = []
           }
           startTimelineAtSite(marker.site, sitesData.value, currentStory.value.mapConfiguration.timelines, map.value)
-          console.log(`Start timeline at this marker ${JSON.stringify(marker.site)}`)
-          // TODO create new timeline that starts at his marker's site and ends at the first following site that is the start of a timeline or the last site (if not timeline follows) 
+          console.log(`Start timeline at this marker ${JSON.stringify(marker.site)}`)          
         }
       }
     })
@@ -995,11 +998,7 @@ const findMarkerForSite = (site) => {
       break;
     }
   }
-  // getAllMarkers().forEach(marker => {
-  //   if (marker.site === site) {
-  //     theMarker = marker
-  //   }
-  // })
+
 
   return theMarker;
 }
@@ -1509,8 +1508,7 @@ function createSiteFromGeoJSON(newGeoJsonData, imageId, dateTimeOriginal, rezoom
 
   enqueueCallToReverseGeocode(newGeoJsonData.features[0], site);
   drawMarkerForSite(site)
-  // geoJsonLayer.addData(newGeoJsonData);
-  // TODO if rezoom - then zoom to make sure that newly added marker is visible
+
   if (!mapEditMode.value && rezoom) {
     try {
       const bounds = markersLayer.getBounds();

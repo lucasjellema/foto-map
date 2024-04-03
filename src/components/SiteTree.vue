@@ -239,8 +239,14 @@ const handleContextMenuClickOnTree = (event) => {
     }
     if (selectedSiteIds.length > 1) {
       contextMenuItems.value.push({
-        label: ` Only Show Selected Sites`, icon: 'mdi mdi-curtains'
+        label: ` Hide All Unselected Sites`, icon: 'mdi mdi-eye-off'
         , command: () => { emit('siteAction', { action: 'hideUnselectedSites', siteIds: selectedSiteIds }) }
+      })
+    }
+    if (selectedSiteIds.length > 1) {
+      contextMenuItems.value.push({
+        label: ` (Only) Show All Selected Sites`, icon: 'mdi mdi-curtains'
+        , command: () => { emit('siteAction', { action: 'showOnlySelectedSites', siteIds: selectedSiteIds }) }
       })
     }
 
