@@ -42,6 +42,9 @@ onMounted(() => {
 
 const saveSites = () => {
   modelSite.value.forEach((site) => {
+    if (!site.tags) {
+      site.tags = []
+    }
     const tags = new Set([...site.tags, ...tagSelection.value])
     site.tags = [...tags]
     storiesStore.updateSite(site)
