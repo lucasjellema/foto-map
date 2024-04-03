@@ -165,6 +165,13 @@
       </TimelineEditor>
     </v-dialog>
 
+    <v-dialog v-model="showAddTagToSitesDialog" max-width="800px">
+      Choose Tag(s) to add to all selected sites
+      <SitesBulkEditor v-model:sites="selectedSites" :storyTags="storyTags"  @closeSitesDialog="showAddTagToSitesDialog = false"></SitesBulkEditor>
+
+    </v-dialog>
+    
+
     <!-- contents for the popup on markers; note: this content is moved to the leaflet popup by referencing the $el under the popupContentRef -->
     <div style="display: none;">
       <v-card class="mx-auto hover-zoom" max-width="600" :title="poppedupSite?.label"
@@ -212,7 +219,6 @@ const { enqueueCall: enqueueCallToReverseGeocode } = useFunctionCallThrottler(15
 import { useImagesStore } from "@/store/imagesStore";
 const imagesStore = useImagesStore()
 import { useStorieStore } from "@/store/storiesStore";
-import { computed } from 'vue';
 const storiesStore = useStorieStore()
 const currentStory = computed(() => storiesStore.currentStory)
 const sitesData = computed(() => currentStory.value.sites);
@@ -228,11 +234,12 @@ const { formatDate } = useDateTimeLibrary();
 import { useTimelinesLibrary } from '@/composables/useTimelinesLibrary';
 const { splitTimelineAtSiteX, drawTimelinesX, hideTimelines, startTimelineAtSite, highlightTimeline, unhighlightTimeline, endTimelineAtSite, refreshTimelines, registerEventCallback, fuseTimelinesAtSite } = useTimelinesLibrary();
 const tab = ref('tab-1')
-const showSiteDetailsPopup = ref(false)
+
 const timelineProfileToShow = ref(null)
 
 const timelinesLegendRef = ref(null)
-
+const selectedSites = ref(null)
+const showAddTagToSitesDialog = ref(false)
 
 const timelineToEdit = ref(null)
 const showTimelineEditorPopup = ref(false)
@@ -304,6 +311,16 @@ const handleImport = async (event) => {
 
 }
 
+const getSitesFromSiteIds = (siteIds) => {
+  const sites = []
+  for (const siteId of siteIds) {
+    const site = storiesStore.getSite(siteId)
+    if (site) {
+      sites.push(site)
+    }
+  }
+  return sites
+}
 const handleSiteAction = ({ siteId, siteIds, action, payload }) => {
   // for all siteIds call siteAction
   if (siteIds) {
@@ -313,17 +330,16 @@ const handleSiteAction = ({ siteId, siteIds, action, payload }) => {
       handleSiteSelected(siteIds)
     } else if (action == 'consolidateSitesToTargetSite') {
       const targetSite = storiesStore.getSite(payload.targetSiteId)
-      // create collection of sites from the siteIds  
-
-      const sites = []
-      for (const siteId of siteIds) {
-        const site = storiesStore.getSite(siteId)
-        if (site) {
-          sites.push(site)
-        }
-      }
-
-      consolidateSitesToTargetSite(targetSite, sites)
+      consolidateSitesToTargetSite(targetSite, getSitesFromSiteIds(siteIds))
+    } else if (action == 'addTagsToSites') {
+      selectedSites.value =   getSitesFromSiteIds(siteIds)
+      showAddTagToSitesDialog.value = true
+    }else if (action == 'hideSelectedSites') { // TODO implement hide selected and unselected sites
+      selectedSites.value =   getSitesFromSiteIds(siteIds)
+      console.log(`hide selectedSites`, selectedSites.value)
+    }else if (action == 'hideUnselectedSites') {
+      selectedSites.value =   getSitesFromSiteIds(siteIds)
+      console.log(`hide UNselectedSites`, selectedSites.value)
     }
     //TODO handle action == unselectChildren 
 
