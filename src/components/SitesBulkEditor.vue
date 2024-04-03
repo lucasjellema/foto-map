@@ -1,13 +1,13 @@
 <template>
   <v-card>
     <v-card-title>
-      <span class="headline">Edit All Selected Sites</span>
+      <span class="headline">Add Tags to Selected Sites</span>
     </v-card-title>
     <v-card-text>
       <v-container>
         <v-form ref="form">
           <v-combobox v-model="tagSelection" :items="storyTags" chips clearable deletable-chips multiple
-            label="Enter tags to add all sites" append-icon="mdi-tag-plus" @change="handleTagChange"
+            label="Enter tags to add to all sites" append-icon="mdi-tag-plus" @change="handleTagChange"
             :menu-props="{ maxHeight: 'auto' }"></v-combobox>
         </v-form>
       </v-container>
@@ -42,8 +42,8 @@ onMounted(() => {
 
 const saveSites = () => {
   modelSite.value.forEach((site) => {
-    site.tags = tagSelection.value
-    site.tags = [...site.tags, ...tagSelection.value]
+    const tags = new Set([...site.tags, ...tagSelection.value])
+    site.tags = [...tags]
     storiesStore.updateSite(site)
   })
   emit('closeSitesDialog', {})
