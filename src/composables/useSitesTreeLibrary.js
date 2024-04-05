@@ -1,5 +1,8 @@
 import { useDateTimeLibrary } from '@/composables/useDateTimeLibrary';
 const { formatDate } = useDateTimeLibrary();
+import { useTimelinesLibrary } from '@/composables/useTimelinesLibrary';
+const { getSortedSitesInTimeline } = useTimelinesLibrary();
+
 
 export function useSitesTreeLibrary() {
 
@@ -32,7 +35,7 @@ export function useSitesTreeLibrary() {
         .map(site => new Date(site.timestamp).toLocaleString('default', { month: 'long' }))
       )];
       for (const month of uniqueMonths) {
-//      uniqueMonths.forEach(month => {
+        //      uniqueMonths.forEach(month => {
         const monthNode = {
           key: `${year}_${month}`,
           label: month,
@@ -50,7 +53,7 @@ export function useSitesTreeLibrary() {
           .map(site => new Date(site.timestamp).getDate()))];
         //iterate over all unique days sorted by date and create a node for each day
         for (const day of uniqueDays) {
-//        uniqueDays.forEach(day => {
+          //        uniqueDays.forEach(day => {
           const date = new Date(`${year}-${month}-${day}`)
           const dayNode = {
             key: `${year}_${month}_${day}`,
@@ -64,9 +67,9 @@ export function useSitesTreeLibrary() {
           // iterate over all sites with a timestamp that matches the year, month, and day, sorted by timestamp
           const sitesWithYearMonthAndDay = sitesWithYearAndMonth.filter(site => new Date(site.timestamp).getDate() === day).sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
           for (const site of sitesWithYearMonthAndDay) {
-//          sitesWithYearMonthAndDay.forEach(site => {
+            //          sitesWithYearMonthAndDay.forEach(site => {
             const siteNode = {
-              key: site.id, 
+              key: site.id,
               label: site.label + ' (' + formatDate(site.timestamp, 'short') + ')',
               data: site,
               icon: 'mdi mdi-clock-outline',
@@ -111,8 +114,8 @@ export function useSitesTreeLibrary() {
 
   const suitableInClassName = (someString) => {
     // replace characters such as space that are not allowed in style class names
-    return someString?
-     someString.replace(/[^a-zA-Z0-9]/g, '_'):''
+    return someString ?
+      someString.replace(/[^a-zA-Z0-9]/g, '_') : ''
   }
 
 
@@ -132,7 +135,7 @@ export function useSitesTreeLibrary() {
     const uniqueCountries = [...new Set(sites.map(site => site.country))];
     for (const country of uniqueCountries) {
       //    uniqueCountries.forEach(country => {
-         const countryKey = suitableInClassName(country)
+      const countryKey = suitableInClassName(country)
       const countryNode = {
         key: countryKey,
         label: country,
@@ -158,16 +161,16 @@ export function useSitesTreeLibrary() {
         // loop over sites, ordered by timestamp, filtered by city and add to children
         for (const site of sites.filter(site => site.country === country && site.city === city).sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))) {
 
-//        sites.filter(site => site.country === country && site.city === city).sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp)).forEach(site => {
+          //        sites.filter(site => site.country === country && site.city === city).sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp)).forEach(site => {
           const siteNode = {
             key: site.id, // to allow the site to be found from the feature - as in the map only the feature will be available
             label: site.label + ' - ' + formatDate(site.timestamp, 'medium'),
             data: site,
             leaf: true,
-            icon: 'mdi mdi-city',
+            icon: 'mdi mdi-map-clock-outline',
             styleClass: `treekey|site|${site.id}`,
             children: [],
-            parent: uniqueCities.length > 1?cityNode:countryNode
+            parent: uniqueCities.length > 1 ? cityNode : countryNode
           }
           cityNode.children.push(siteNode)
         }
@@ -199,23 +202,23 @@ export function useSitesTreeLibrary() {
       children: []
     }
 
-    const tagsSitesMap ={}
-// loop over sites and then over the tags for each site
-// add each tag to the map with an array of sites that have that tag 
+    const tagsSitesMap = {}
+    // loop over sites and then over the tags for each site
+    // add each tag to the map with an array of sites that have that tag 
     sites.forEach(site => {
       site.tags?.forEach(tag => {
         if (!tagsSitesMap[tag]) {
-          tagsSitesMap[tag] = []  
+          tagsSitesMap[tag] = []
         }
         tagsSitesMap[tag].push(site)
       })
     })
 
-// loop over all properties in tagsSitesMap and create a node for each tag
-// TODO sort tags
+    // loop over all properties in tagsSitesMap and create a node for each tag
+    // TODO sort tags
     Object.keys(tagsSitesMap).forEach(tag => {
       const tagNode = {
-        key: tag, 
+        key: tag,
         label: tag,
         data: tag,
         selectable: false,
@@ -229,30 +232,79 @@ export function useSitesTreeLibrary() {
           key: site.id, // to allow the site to be found from the feature - as in the map only the feature will be available  
           label: `${site.label} (${site.city}, ${site.country}) - ${formatDate(site.timestamp, 'medium')}`,
           data: site,
-          icon: 'mdi mdi-city',
+          icon: 'mdi mdi-map-clock-outline',
           leaf: true,
           styleClass: `treekey|site|${site.id}`,
           children: [],
           parent: tagNode
         }
         tagNode.children.push(siteNode)
-      })      
+      })
       tagsTreeData.children.push(tagNode)
     })
     return tagsTreeData
   }
 
-  const getSitesTreeData = (sites) => {
+  const getTimelinesTreeData = (timelines, sites) => {
+    const timelinesTreeData =
+    {
+      key: '0-timelines',
+      label: 'Timelines',
+      data: 'Documents Folder',
+      icon: 'mdi mdi-timeline-clock-outline',
+      styleClass: `treekey|timelines`,
+
+      selectable: false,
+      children: []
+    }
+    // iterate timelines sorted by startTimestamp
+    const sortedTimelines = timelines.slice().sort((a, b) => new Date(a.startTimestamp).getTime() - new Date(b.startTimestamp).getTime())
+    for (const timeline of sortedTimelines) {
+      const timelineNode = {
+        key: `${timeline.id}`,
+        label: timeline.label,
+        data: timeline,
+        icon: 'mdi mdi-timeline-clock-outline',
+        styleClass: `treekey|timeline|${timeline.id}`,
+        selectable: false,
+        children: []
+      }
+      const sitesInTimeline = getSortedSitesInTimeline(timeline, sites)
+      for (const site of sitesInTimeline) {
+        const siteNode = {
+          key: `${site.id}`,
+          label: `${site.label} (${site.city}, ${site.country}) - ${formatDate(site.timestamp, 'medium')}`,
+          data: site,
+          icon: 'mdi mdi-map-clock-outline',
+          leaf: true,
+          styleClass: `treekey|site|${site.id}`,
+          children: [],
+          parent: timelineNode
+        }
+
+
+        timelineNode.children.push(siteNode)
+      }
+
+      timelinesTreeData.children.push(timelineNode)
+    }
+
+    return timelinesTreeData
+  }
+
+
+  const getSitesTreeData = (sites, timelines) => {
     const sitesTreeData = [];
     sitesTreeData.push(getLocationsTreeData(sites));
     sitesTreeData.push(getTimesTreeData(sites));
     sitesTreeData.push(getTagsTreeData(sites));
+    sitesTreeData.push(getTimelinesTreeData(timelines, sites));
     return sitesTreeData;
   }
 
   function findLeafNodes(nodes, targetKey) {
     let leafNodes = [];
-  
+
     // Helper function to recursively find leaf nodes
     function findLeaves(node) {
       if (node.children && node.children.length > 0) {
@@ -263,7 +315,7 @@ export function useSitesTreeLibrary() {
         leafNodes.push(node);
       }
     }
-  
+
     // Function to find the target node by key
     function findNode(nodes, targetKey) {
       for (const node of nodes) {
@@ -275,13 +327,13 @@ export function useSitesTreeLibrary() {
         }
       }
     }
-  
+
     // Start the search for the target node
     findNode(nodes, targetKey);
-  
+
     return leafNodes;
   }
-  
+
 
 
   return { getSitesTreeData, findLeafNodes };
