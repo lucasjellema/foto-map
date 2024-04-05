@@ -1,11 +1,19 @@
 import GeometryUtil from "leaflet-geometryutil";
 import 'leaflet-polylinedecorator';
+import { v4 as uuidv4 } from 'uuid';
 
 // TODO startSite and endSite should be startSiteId and endSiteId - do not rely on objects but on the hard, fixed ids
 export function useTimelinesLibrary() {
 
   const getSortedSites = (allSites) => {
     return allSites.sort((a, b) => (new Date(a.timestamp).getTime() > new Date(b.timestamp).getTime()) ? 1 : -1)
+  }
+
+  const getSortedSitesInTimeline = (timeline, allSites) => {
+    const timelineStartTime = new Date(timeline.startTimestamp).getTime()
+    const timelineEndTime = new Date(timeline.endTimestamp).getTime()
+    return getSortedSites(allSites).filter(site => new Date(site.timestamp).getTime() >= timelineStartTime 
+                                                && new Date(site.timestamp).getTime() <= timelineEndTime)
   }
 
   const getSortedTimelines = (theTimelines) => {
@@ -68,6 +76,7 @@ export function useTimelinesLibrary() {
     }
 
     timelines.push({
+      id : uuidv4(),
       startSiteId: siteToStartAt.id,
       endSiteId: nextSiteInTimeline.id,
       startTimestamp: siteToStartAt.timestamp,
@@ -127,8 +136,9 @@ export function useTimelinesLibrary() {
     if (timelines.length === 0) {
       // create two timelines, from the first site to siteToSplitAt and the second from the siteToSplitAt to the last site
       timelines.push({
-        startSite: sites[0],
-        endSite: siteToSplitAt,
+        id : uuidv4(),
+        //startSite: sites[0],
+        //endSite: siteToSplitAt,
         startSiteId: sites[0].id,
         endSiteId: siteToSplitAt.id,
         startTimestamp: sites[0].timestamp,
@@ -140,9 +150,10 @@ export function useTimelinesLibrary() {
 
       })
       timelines.push({
-        startSite: siteToSplitAt,
+        id : uuidv4(),
+       // startSite: siteToSplitAt,
         startSiteId: siteToSplitAt.id,
-        endSite: sites[sites.length - 1],
+        //endSite: sites[sites.length - 1],
         endSiteId: sites[sites.length - 1].id,
         startTimestamp: siteToSplitAt.timestamp,
         endTimestamp: sites[sites.length - 1].timestamp,
@@ -173,8 +184,9 @@ export function useTimelinesLibrary() {
       theTimeline.endTimestamp = siteToSplitAt.timestamp
       theTimeline.label + '*' // to indicate that this timeline has been influenced by the split
       timelines.push({
-        startSite: siteToSplitAt,
-        endSite: originalEndsite,
+        id : uuidv4(),
+      //  startSite: siteToSplitAt,
+       // endSite: originalEndsite,
         startSiteId: siteToSplitAt.id,
         endSiteId: originalEndsite.id,
         startTimestamp: siteToSplitAt.timestamp,
@@ -298,8 +310,8 @@ export function useTimelinesLibrary() {
       }
     } else {
       const dummyEndToEndTimeline = {
-        startSite: sites[0],
-        endSite: sites[sites.length - 1],
+       // startSite: sites[0],
+       // endSite: sites[sites.length - 1],
         label: `from ${sites[0].label} to ${sites[sites.length - 1].label}`,
         color: 'blue',
         startTimestamp: sites[0].timestamp,
@@ -405,6 +417,7 @@ export function useTimelinesLibrary() {
 
       console.log('snip timeline startSite', startSite, 'endSite', endSite)
       const cloneTimeline = Object.assign({}, timeline);
+      cloneTimeline.id = uuidv4()
       cloneTimeline.startSiteId = endSite.id;
       cloneTimeline.startTimestamp = endSite.timestamp;
       cloneTimeline.label = `from  ${endSite.label}`
@@ -423,7 +436,7 @@ export function useTimelinesLibrary() {
     eventCallback = callback
   }
 
-  return { endTimelineAtSite, startTimelineAtSite, splitTimelineAtSiteX, drawTimelinesX, hideTimelines, refreshTimelines, highlightTimeline, unhighlightTimeline, deleteTimeline, registerEventCallback, fuseTimelinesAtSite };
+  return { endTimelineAtSite, startTimelineAtSite, splitTimelineAtSiteX, drawTimelinesX, hideTimelines, refreshTimelines, highlightTimeline, unhighlightTimeline, deleteTimeline, registerEventCallback, fuseTimelinesAtSite ,getSortedSitesInTimeline};
 }
 
 
