@@ -14,9 +14,10 @@ const storiesStore = useStorieStore()
 const currentStory = computed(() => storiesStore.currentStory)
 const contextMenu = ref(null);
 
+
 import { useSitesTreeLibrary } from '@/composables/useSitesTreeLibrary';
 const { getSitesTreeData, findLeafNodes } = useSitesTreeLibrary();
-const sitesTreeData = computed(() => getSitesTreeData(currentStory.value.sites));
+const sitesTreeData = computed(() => getSitesTreeData(currentStory.value.sites, currentStory.value.mapConfiguration.timelines));
 const contextMenuItems = ref([])
 
 
@@ -76,7 +77,7 @@ const findTreeKeyForElement = (currentElement) => {
 const handleDoubleClickOnTree = (event) => {
   const treeKey = findTreeKeyForElement(event.target)
   let siteIds = []
-  if ((treeKey.keyType === 'year' || treeKey.keyType === 'month' || treeKey.keyType === 'day' || treeKey.keyType === 'tag' || treeKey.keyType === 'country' || treeKey.keyType === 'city')
+  if ((treeKey.keyType === 'year' || treeKey.keyType === 'month' || treeKey.keyType === 'day' || treeKey.keyType === 'tag' || treeKey.keyType === 'country' || treeKey.keyType === 'city'|| treeKey.keyType === 'timeline')
     && treeKey.key) {
     const treeData = treeRef.value.value
     // find all sites under this key 
