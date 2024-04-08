@@ -355,6 +355,15 @@ const handleSiteAction = ({ siteId, siteIds, action, payload }) => {
     return
   }
   if (!siteId) {
+    if (action == 'selectTimeline') {
+      console.log(`select timeline ${payload.timelineId}`)
+      // find timeline with timelineid in current story
+      const timeline = currentStory.value.mapConfiguration.timelines.find(timeline => timeline.id == payload.timelineId)
+      
+      showTimelineProfile(timeline)
+      mapShowTimelines.value = true
+      
+    }
 
   } else {
 
@@ -418,6 +427,11 @@ const focusOnSites = (siteIds) => {
     const site = storiesStore.getSite(siteId)
     const coordinates = site.geoJSON.features[0].geometry.coordinates
     coordinatePairs.push([coordinates[1], coordinates[0]])
+  }
+  if (coordinatePairs.length ==0 ) return
+  if (coordinatePairs.length == 1) {
+    centerAndZoomMap({latlng: coordinatePairs[0]})
+    return
   }
   const bounds = L.latLngBounds(coordinatePairs);
   try {

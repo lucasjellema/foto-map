@@ -155,7 +155,12 @@ const handleClickOnTree = (event) => {
         selectedKey.value = updatedSelection;
       }
     }
+
   }
+  if (treeKey.keyType === 'timeline' && treeKey.key) {    
+    emit('siteAction', { action: 'selectTimeline', payload: {timelineId : treeKey.key}} );
+  }
+
 }
 
 const handleContextMenuClickOnTree = (event) => {
