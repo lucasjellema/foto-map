@@ -1,89 +1,153 @@
 <template>
-  TimelineProfile for {{ thetimeline?.label }}
-  <svg id="svg-timeline-root" width="900" height="150" style="padding-right: 0%;">
-    <g transform="scale(0.95)">
-      <g id="svg-timeline" transform="translate(40,1)">
+  <div>
+    <h5>TimelineProfile for {{ thetimeline?.label }}</h5>
+    <div id="timeline"> </div>
+    <svg id="svg-timeline-root" width="900" height="140" style="padding-right: 0%;">
+      <g transform="scale(0.95)">
+        <g id="svg-timeline" transform="translate(40,1)">
+        </g>
       </g>
-    </g>
-  </svg>
+    </svg>
+  </div>
+  <div id="svg2"></div>
 </template>
 <script setup>
 
 import { useDateTimeLibrary } from '@/composables/useDateTimeLibrary';
+import * as d3 from "d3";
 const { formatDate } = useDateTimeLibrary();
 
 const props = defineProps(['thetimeline', 'sites']);
 const emit = defineEmits(['clickSite', 'dblclickSite']);
 
 onMounted(() => {
-  drawTimelineProfile()
+  // Create the SVG container
+  svg = d3.select("#timeline").append("svg")
+    .attr("width", width + margin.left + margin.right)
+    .attr("height", height + margin.top + margin.bottom)
+    .append("g")
+    .attr("transform", `translate(${margin.left},${margin.top})`);
+  drawTimelineProfile(svg)
+
 });
 
 watch(() => props.thetimeline, (newValue, oldValue) => {
-  drawTimelineProfile()
+  drawTimelineProfile(svg)
+
 });
 
 
-const svgNamespace = 'http://www.w3.org/2000/svg';
+function toggleVisibility(group) {
+  // const currentDisplay = element.style("display");
+  // element.style("display", currentDisplay === "none" ? null : "none");
 
-const addMarker = (site, position, svg, timelineColor) => {
-  // Calculate vertical line position
+  const isHidden = group.style("display") === "none";
+    group.style("display", isHidden ? null : "none"); 
+}
+
+const addMarker = (site, position, svg, timelineColor,relativePosition) => {
+
   const yPos = 50; // Base Y position for the line
   const lineLength = 15; // Length of the vertical line
 
-  // Create the vertical line
-  const markerLine = document.createElementNS(svgNamespace, 'line');
-  markerLine.setAttribute('x1', position);
-  markerLine.setAttribute('y1', yPos - lineLength);
-  markerLine.setAttribute('x2', position);
-  markerLine.setAttribute('y2', yPos);
-  markerLine.setAttribute('stroke', timelineColor);
-  svg.appendChild(markerLine);
+  svg.append("line")
+    .attr("x1", position)
+    .attr("x2", position)
+    .attr("y1", yPos - lineLength)
+    .attr("y2", yPos)
+    .attr("stroke", timelineColor);
 
-  // Create the circle on top of the line
-  const circle = document.createElementNS(svgNamespace, 'circle');
-  circle.setAttribute('cx', position);
-  circle.setAttribute('cy', yPos - lineLength);
-  circle.setAttribute('r', '5 '); // Radius of the circle
-  circle.setAttribute('fill', timelineColor);
-  svg.appendChild(circle);
-  return circle
+  const circle = svg.append("circle")
+    .attr("cx", position)
+    .attr("cy", yPos - lineLength)
+    .attr("r", "5 ") // Radius of the circle
+    .attr("fill", timelineColor);
+
+
+  const tooltipGroup = svg.append("g")
+  .attr("id", `tooltip-group-${site.id}`)
+  .style("display", "none")
+
+  tooltipGroup.append("text")
+    .attr("x", position)
+    .attr("y", 25)
+    .attr("text-anchor", relativePosition<0.6 ? "start":"end")
+    .attr("fill", "black")
+    .attr("class", "tooltip")
+    .text(site.label );
+
+    tooltipGroup.append("line")
+    .attr("x1", position)
+    .attr("x2", position)
+    .attr("y1", yPos)
+    .attr("y2", yPos  + 3* lineLength)
+    .attr("stroke", timelineColor);
+
+    tooltipGroup.append("line")
+    .attr("x1", position)
+    .attr("x2", position+ 8 * (relativePosition<0.6 ? 1:-1))
+    .attr("y1", yPos  + 3* lineLength)
+    .attr("y2", yPos  + 3* lineLength)
+    .attr("stroke", timelineColor);
+  
+    tooltipGroup.append("text")
+    .attr("x", position+ 10 * (relativePosition<0.6 ? 1:-1))
+    .attr("y", yPos + 3*lineLength+8)
+    .attr("text-anchor", relativePosition<0.6 ? "start":"end")
+    .attr("fill", "black")
+    .attr("class", "tooltip")
+    .text(formatDate(site.timestamp,'medium'));
+  
+
+
+  // Hover events for tooltip
+  circle.on('mouseenter', () => toggleVisibility(tooltipGroup));
+  circle.on('mouseleave', () => toggleVisibility(tooltipGroup));
+  circle.on('click', () => {
+    console.log(`click for ${site.label} and id ${site.id}`)
+    emit('clickSite', { site: site })
+  });
+  circle.on('dblclick', () => {
+    console.log(`dblclick for ${site.label} and id ${site.id}`)
+    emit('dblclickSite', { site: site })
+  });
 };
 
 const getSortedSites = (allSites) => {
   return allSites.sort((a, b) => (new Date(a.timestamp).getTime() > new Date(b.timestamp).getTime()) ? 1 : -1)
 }
-const drawTimelineProfile = () => {
+
+const margin = { top: 20, right: 20, bottom: 20, left: 20 },
+  width = 960 - margin.left - margin.right,
+  height = 160 - margin.top - margin.bottom;
+
+let svg
+
+const drawTimelineProfile = (svg) => {
+
+  svg.selectAll("*").remove();
   // sort sites by timestamp
   const sortedSites = getSortedSites(props.sites);
   // then find the starting and ending timestamps of the timeline
   const timelineStart = props.thetimeline.startTimestamp
   const timelineEnd = props.thetimeline.endTimestamp
-
-  const svg = document.getElementById('svg-timeline');
-  // clean all children under svg
-  while (svg.firstChild) {
-    svg.removeChild(svg.firstChild);
-  }
-
-
-
   const startTime = new Date(timelineStart).getTime();
   const endTime = new Date(timelineEnd).getTime();
-  const timelineWidth = 0.9 * 900 //parseInt(svg.getAttribute('width'));
+  const timelineWidth = width
 
-  // Draw the timeline
-  const line = document.createElementNS(svgNamespace, 'line');
-  line.setAttribute('x1', '0');
-  line.setAttribute('y1', '50');
-  line.setAttribute('x2', timelineWidth);
-  line.setAttribute('y2', '50');
-  line.setAttribute('stroke', props.thetimeline.color);
-  svg.appendChild(line);
 
-  // Create ticks and labels
-  // TODO depending on how far start and end are from each other (years, months, etc.), use different numbers of ticks and different labels
-  // use hours when the start and end are close to each other, use months when the start and end are far apart
+  const xScale = d3.scaleTime()
+    .domain([startTime, endTime])
+    .range([0, width]);
+
+  // Draw the horizontal timeline
+  svg.append("line")
+    .attr("x1", 0)
+    .attr("x2", timelineWidth)
+    .attr("y1", 50)
+    .attr("y2", 50)
+    .attr("stroke", props.thetimeline.color);
+
   const numTicks = 5;
   for (let i = 0; i <= numTicks; i++) {
     const relativePosition = i / numTicks;
@@ -98,59 +162,122 @@ const drawTimelineProfile = () => {
     const label = date.toLocaleDateString('en-US', options);
 
     // Create tick
-    const tick = document.createElementNS(svgNamespace, 'line');
-    tick.setAttribute('x1', xPos);
-    tick.setAttribute('y1', '47');
-    tick.setAttribute('x2', xPos);
-    tick.setAttribute('y2', '60');
-    tick.setAttribute('stroke', 'black');
-    svg.appendChild(tick);
+    const tick =
+      svg.append("line")
+        .attr("x1", xPos)
+        .attr("x2", xPos)
+        .attr("y1", 47)
+        .attr("y2", 60)
+        .attr("stroke", props.thetimeline.color);
 
-    // Create tick label
-    const tickLabel = document.createElementNS(svgNamespace, 'text');
-    tickLabel.setAttribute('x', xPos);
-    tickLabel.setAttribute('y', '75');
-    tickLabel.setAttribute('fill', 'black');
-    tickLabel.setAttribute('text-anchor', 'middle');
-    tickLabel.textContent = label;
-    svg.appendChild(tickLabel);
+    // Add label
+    svg.append("text")
+      .attr("x", xPos)
+      .attr("y", 75)
+      .attr("text-anchor", "middle")
+      .attr("fill", "black")
+      .text(label);
   }
 
   sortedSites.forEach((site, index) => {
-
     const siteTime = new Date(site.timestamp).getTime();
     if (siteTime < startTime || siteTime > endTime) { return }
     const relativePosition = (new Date(site.timestamp).getTime() - startTime) / (endTime - startTime);
-    const xPos = relativePosition * timelineWidth;
-    const marker = addMarker(site, xPos, svg, props.thetimeline.color);
-
-    // Create tooltip
-    const tooltip = document.createElementNS(svgNamespace, 'text');
-    tooltip.setAttribute('x', xPos);
-    tooltip.setAttribute('y', '25');
-    tooltip.setAttribute('fill', 'black');
-    tooltip.setAttribute('text-anchor', 'middle');
-    tooltip.setAttribute('class', 'tooltip');
-    tooltip.textContent = site.label + ' (' + formatDate(site.timestamp) + ')'; // use appropriate date format style for range covered by timeline (and current scaling)
-    tooltip.style.visibility = 'hidden';
-    svg.appendChild(tooltip);
-
-    // Hover events for tooltip
-    marker.addEventListener('mouseenter', () => tooltip.style.visibility = 'visible');
-    marker.addEventListener('mouseleave', () => tooltip.style.visibility = 'hidden');
-    marker.addEventListener('click', () => {
-      console.log(`click for ${site.label} and id ${site.id}`)
-      emit('clickSite', { site: site })
-    });
-    marker.addEventListener('dblclick', () => {
-      console.log(`dblclick for ${site.label} and id ${site.id}`)
-      emit('dblclickSite', { site: site })
-    });
-
-  });
-
+    const xPos = xScale(new Date(site.timestamp));
+    addMarker(site, xPos, svg, props.thetimeline.color, relativePosition);
+  })
+  drawZoombox(svg)
 }
 
+
+const drawZoombox = (svg) => {
+  const maxX = width
+  const minX = 0
+  const minWidth = 15;
+
+
+  // Initial rectangle properties
+  let rectWidth = 100, rectHeight = 30;
+  let rectX = 200, rectY = 20; // Centering the rectangle
+  //const svg = d3.select("#svg-timeline-root")
+  // Create the rectangle
+  let rectangle = svg.append("rect")
+
+  rectangle
+    .attr("x", rectX)
+    .attr("y", rectY)
+    .attr("width", rectWidth)
+    .attr("height", rectHeight)
+    .style("fill", "pink")
+    .style("fill-opacity", 0.3)
+    .style("stroke", "black")
+    .style("cursor", "ew-resize");
+
+  let dragMove = d3.drag()
+    .on("drag", function (event) {
+      let dx = event.dx;
+      let newX = rectX + dx;
+
+      // Constrain the movement within the bounds
+      if (newX < minX) {
+        newX = minX;
+      } else if (newX + rectWidth > maxX) {
+        newX = maxX - rectWidth;
+      }
+
+      rectX = newX;
+      updateRectangle();
+    });
+  function updateRectangle() {
+    rectangle.attr("x", rectX);
+    leftHandle.attr("cx", rectX);
+    rightHandle.attr("cx", rectX + rectWidth);
+    handleMoveOrResize(); // Function triggered on move or resize
+  }
+
+  rectangle.call(dragMove);
+
+  function resizeRect(dragHandle) {
+    return d3.drag()
+      .on("drag", function (event) {
+        if (dragHandle === 'right') {
+          let newWidth = Math.max(minWidth, Math.min(maxX - rectX, event.x - rectX));
+          rectWidth = newWidth;
+        } else if (dragHandle === 'left') {
+          let newWidth = rectWidth + (rectX - event.x);
+          if (newWidth >= minWidth && event.x >= minX) {
+            rectX = event.x;
+            rectWidth = newWidth;
+          }
+        }
+        rectangle.attr("width", rectWidth);
+        updateRectangle(); // Update positions
+      });
+  }
+
+  // Right resize handle
+  let rightHandle = svg.append("circle")
+    .attr("cx", rectX + rectWidth)
+    .attr("cy", rectY + (rectHeight / 4))
+    .attr("r", 5)
+    .style("fill", "black")
+    .style("cursor", "ew-resize")
+    .call(resizeRect('right'));
+
+  // Left resize handle
+  let leftHandle = svg.append("circle")
+    .attr("cx", rectX)
+    .attr("cy", rectY + (rectHeight / 4))
+    .attr("r", 5)
+    .style("fill", "black")
+    .style("cursor", "ew-resize")
+    .call(resizeRect('left'));
+
+  // Placeholder for handling move or resize events
+  function handleMoveOrResize() {
+    console.log("Rectangle moved or resized. New position and size:", rectX, rectY, rectWidth, rectHeight);
+  }
+}
 </script>
 
 <style scoped>
