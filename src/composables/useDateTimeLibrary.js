@@ -8,17 +8,17 @@ export function useDateTimeLibrary() {
         ;
       return dayOfWeek
     }
-    else if (dateFormatStyle === "short") {
+    else if (dateFormatStyle === "short") { // HH:MI
       const hour = date.getHours();
       const min = date.getMinutes();
       return `${hour}:${min < 10 ? '0' : ''}${min}`
-    } else if (dateFormatStyle === "medium") {
+    } else if (dateFormatStyle === "medium") {  // DD month HH:MI
       const day = date.getDate();
       const month = date.toLocaleString('default', { month: 'long' })
       const hour = date.getHours();
       const min = date.getMinutes();
       return `${day} ${month} ${hour}:${min < 10 ? '0' : ''}${min}`
-    } else {
+    } else { // DD month YYYY
       const day = date.getDate();
       const month = date.toLocaleString('default', { month: 'long' })
       const year = date.getFullYear();

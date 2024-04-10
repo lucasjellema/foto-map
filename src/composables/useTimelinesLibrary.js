@@ -1,6 +1,8 @@
 import GeometryUtil from "leaflet-geometryutil";
 import 'leaflet-polylinedecorator';
 import { v4 as uuidv4 } from 'uuid';
+import { useDateTimeLibrary } from '@/composables/useDateTimeLibrary';
+const { formatDate } = useDateTimeLibrary();
 
 // TODO startSite and endSite should be startSiteId and endSiteId - do not rely on objects but on the hard, fixed ids
 export function useTimelinesLibrary() {
@@ -12,8 +14,8 @@ export function useTimelinesLibrary() {
   const getSortedSitesInTimeline = (timeline, allSites) => {
     const timelineStartTime = new Date(timeline.startTimestamp).getTime()
     const timelineEndTime = new Date(timeline.endTimestamp).getTime()
-    return getSortedSites(allSites).filter(site => new Date(site.timestamp).getTime() >= timelineStartTime 
-                                                && new Date(site.timestamp).getTime() <= timelineEndTime)
+    return getSortedSites(allSites).filter(site => new Date(site.timestamp).getTime() >= timelineStartTime
+      && new Date(site.timestamp).getTime() <= timelineEndTime)
   }
 
   const getSortedTimelines = (theTimelines) => {
@@ -54,6 +56,105 @@ export function useTimelinesLibrary() {
     return timelinesForSite
   }
 
+
+
+
+  const getSitesPerTimes = (sites) => {
+    const years = []
+    const uniqueYears = [...new Set(sites.map(site => new Date(site.timestamp).getFullYear()))];
+    for (const year of uniqueYears) {
+      const yearNode = {
+        label: year,
+        data: year,
+        children: []
+      }
+      const uniqueMonths = [...new Set(sites.filter(site => new Date(site.timestamp).getFullYear() === year).sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
+        .map(site => new Date(site.timestamp).toLocaleString('default', { month: 'long' }))
+      )];
+      for (const month of uniqueMonths) {
+        const monthNode = {
+          label: month,
+          data: month,
+          children: []
+        }
+        // iterate over all sites with a timestamp that matches the year and month
+        const sitesWithYearAndMonth = sites.filter(site => new Date(site.timestamp).getFullYear() === year
+          && new Date(site.timestamp).toLocaleString('default', { month: 'long' }) === month)
+        // for all sites with the same year and month, add them to the month node
+        const uniqueDays = [...new Set(sitesWithYearAndMonth.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
+          .map(site => new Date(site.timestamp).getDate()))];
+        //iterate over all unique days sorted by date and create a node for each day
+        for (const day of uniqueDays) {
+          const date = new Date(`${year}-${month}-${day}`)
+          const dayNode = {
+            label: formatDate(date, 'dow') + ' ' + day,
+            data: day,
+            children: []
+          }
+          // iterate over all sites with a timestamp that matches the year, month, and day, sorted by timestamp
+          const sitesWithYearMonthAndDay = sitesWithYearAndMonth.filter(site => new Date(site.timestamp).getDate() === day).sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
+          for (const site of sitesWithYearMonthAndDay) {
+            dayNode.children.push(site)
+          }
+          monthNode.children.push(dayNode)
+        }
+        yearNode.children.push(monthNode)
+      }
+      years.push(yearNode)
+    }
+    return years
+  }
+
+  const createTimeline = (siteToStartAt, siteToEndAt, label, color) => {
+    return {
+      id: uuidv4(),
+      startSiteId: siteToStartAt.id,
+      endSiteId: siteToEndAt.id,
+      startTimestamp: siteToStartAt.timestamp,
+      endTimestamp: siteToEndAt.timestamp,
+      label: label,
+      color: color,
+      width: 3,
+      lineStyle: 'dashed'
+    }
+  }
+
+  const createTimelinePer = (level, sites, timelines, map) => { // level = year, month, week, day
+    const sitesPerTimes = getSitesPerTimes(sites)
+    const colors = ['red', 'green', 'blue', 'yellow', 'purple', 'orange', 'brown', 'pink', 'gray', 'black', 'gold', 'silver', 'aqua', 'fuchsia', 'lime', 'maroon', 'navy', 'olive', 'purple', 'teal']
+    let colorIndex = 0
+    for (const year of sitesPerTimes) {
+      if (level === 'year') {
+        const siteToStartAt = year.children[0].children[0].children[0] // first month, first day, first site
+        const lastMonthIndex = year.children.length - 1
+        const lastDayIndex = year.children[lastMonthIndex].children.length - 1
+        const lastSiteIndex = year.children[lastMonthIndex].children[lastDayIndex].children.length - 1
+        const siteToEndAt = year.children[lastMonthIndex].children[lastDayIndex].children[lastSiteIndex] // last month, last day, last site
+        timelines.push(createTimeline(siteToStartAt, siteToEndAt, `the year ${year.label}`, colors[colorIndex++]))
+        if (colorIndex >= colors.length) { colorIndex = 0 }
+      } else for (const month of year.children) {
+        if (level === 'month') {
+          const siteToStartAt = month.children[0].children[0] // first day, first site
+          const lastDayIndex = month.children.length - 1
+          const lastSiteIndex = month.children[lastDayIndex].children.length - 1
+          const siteToEndAt = month.children[lastDayIndex].children[lastSiteIndex] // last day, last site
+          timelines.push(createTimeline(siteToStartAt, siteToEndAt, `${month.label} ${year.label}`, colors[colorIndex++]))
+          if (colorIndex >= colors.length) { colorIndex = 0 }
+        } else for (const day of month.children) {
+          if (level === 'day') {
+            const siteToStartAt = day.children[0] // first site
+            const lastSiteIndex = day.children.length - 1
+            const siteToEndAt = day.children[lastSiteIndex] // last site
+            timelines.push(createTimeline(siteToStartAt, siteToEndAt, `${day.label} ${month.label} ${year.label}`, colors[colorIndex++]))
+            if (colorIndex >= colors.length) { colorIndex = 0 }
+          }
+        }
+      }
+    }
+    // refresh timelines 
+    refreshTimelines(sites, timelines, map)
+  }
+
   const startTimelineAtSite = (siteToStartAt, allSites, timelines, map) => {
     const sites = getSortedSites(allSites)
     //   allSites.sort((a, b) => (a.timestamp > b.timestamp) ? 1 : -1)
@@ -74,9 +175,8 @@ export function useTimelinesLibrary() {
     if (!nextSiteInTimeline) {
       nextSiteInTimeline = sites[sites.length - 1]
     }
-
-    timelines.push({
-      id : uuidv4(),
+    const newTimeline = {
+      id: uuidv4(),
       startSiteId: siteToStartAt.id,
       endSiteId: nextSiteInTimeline.id,
       startTimestamp: siteToStartAt.timestamp,
@@ -85,11 +185,12 @@ export function useTimelinesLibrary() {
       color: 'green', // TODO some other color than the color of theTimeline if theTimeline exists
       width: 3,
       lineStyle: 'dashed'
-
-    })
+    }
+    timelines.push(newTimeline)
 
     // refresh timelines 
     refreshTimelines(allSites, timelines, map)
+    return newTimeline
   }
 
 
@@ -136,7 +237,7 @@ export function useTimelinesLibrary() {
     if (timelines.length === 0) {
       // create two timelines, from the first site to siteToSplitAt and the second from the siteToSplitAt to the last site
       timelines.push({
-        id : uuidv4(),
+        id: uuidv4(),
         //startSite: sites[0],
         //endSite: siteToSplitAt,
         startSiteId: sites[0].id,
@@ -150,8 +251,8 @@ export function useTimelinesLibrary() {
 
       })
       timelines.push({
-        id : uuidv4(),
-       // startSite: siteToSplitAt,
+        id: uuidv4(),
+        // startSite: siteToSplitAt,
         startSiteId: siteToSplitAt.id,
         //endSite: sites[sites.length - 1],
         endSiteId: sites[sites.length - 1].id,
@@ -184,9 +285,9 @@ export function useTimelinesLibrary() {
       theTimeline.endTimestamp = siteToSplitAt.timestamp
       theTimeline.label + '*' // to indicate that this timeline has been influenced by the split
       timelines.push({
-        id : uuidv4(),
-      //  startSite: siteToSplitAt,
-       // endSite: originalEndsite,
+        id: uuidv4(),
+        //  startSite: siteToSplitAt,
+        // endSite: originalEndsite,
         startSiteId: siteToSplitAt.id,
         endSiteId: originalEndsite.id,
         startTimestamp: siteToSplitAt.timestamp,
@@ -310,8 +411,8 @@ export function useTimelinesLibrary() {
       }
     } else {
       const dummyEndToEndTimeline = {
-       // startSite: sites[0],
-       // endSite: sites[sites.length - 1],
+        // startSite: sites[0],
+        // endSite: sites[sites.length - 1],
         label: `from ${sites[0].label} to ${sites[sites.length - 1].label}`,
         color: 'blue',
         startTimestamp: sites[0].timestamp,
@@ -436,7 +537,7 @@ export function useTimelinesLibrary() {
     eventCallback = callback
   }
 
-  return { endTimelineAtSite, startTimelineAtSite, splitTimelineAtSiteX, drawTimelinesX, hideTimelines, refreshTimelines, highlightTimeline, unhighlightTimeline, deleteTimeline, registerEventCallback, fuseTimelinesAtSite ,getSortedSitesInTimeline};
+  return { endTimelineAtSite, startTimelineAtSite, splitTimelineAtSiteX, drawTimelinesX, hideTimelines, refreshTimelines, highlightTimeline, unhighlightTimeline, deleteTimeline, registerEventCallback, fuseTimelinesAtSite, getSortedSitesInTimeline, createTimelinePer };
 }
 
 

@@ -234,7 +234,7 @@ import { useSitesTreeLibrary } from '@/composables/useSitesTreeLibrary';
 import { useDateTimeLibrary } from '@/composables/useDateTimeLibrary';
 const { formatDate } = useDateTimeLibrary();
 import { useTimelinesLibrary } from '@/composables/useTimelinesLibrary';
-const { splitTimelineAtSiteX, drawTimelinesX, hideTimelines, startTimelineAtSite, highlightTimeline, unhighlightTimeline, endTimelineAtSite, refreshTimelines, registerEventCallback, fuseTimelinesAtSite } = useTimelinesLibrary();
+const { splitTimelineAtSiteX, drawTimelinesX, hideTimelines, startTimelineAtSite, highlightTimeline, unhighlightTimeline, endTimelineAtSite, refreshTimelines, registerEventCallback, fuseTimelinesAtSite, createTimelinePer } = useTimelinesLibrary();
 const tab = ref('tab-1')
 
 const timelineProfileToShow = ref(null)
@@ -322,8 +322,18 @@ const getSitesFromSiteIds = (siteIds) => {
   }
   return sites
 }
+
 const handleSiteAction = ({ siteId, siteIds, action, payload }) => {
   // for all siteIds call siteAction
+  if (action.startsWith('createTimelinesPer')) {
+    console.log(`createTimelinesPer`,  action)
+    if (action==='createTimelinesPerYear') createTimelinePer('year', sitesData.value, currentStory.value.mapConfiguration.timelines, map.value)
+    if (action==='createTimelinesPerMonth') createTimelinePer('month', sitesData.value, currentStory.value.mapConfiguration.timelines, map.value)
+    if (action==='createTimelinesPerDay') createTimelinePer('day', sitesData.value, currentStory.value.mapConfiguration.timelines, map.value)
+   //TODO if (action==='createTimelinesPerWeek') createTimelinesPerWeek()
+    return
+  }
+
   if (siteIds) {
     if (action == 'siteFocus') {
       focusOnSites(siteIds)

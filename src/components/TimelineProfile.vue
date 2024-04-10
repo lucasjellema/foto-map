@@ -2,12 +2,7 @@
   <div>
     <h5>TimelineProfile for {{ thetimeline?.label }}</h5>
     <div id="timeline"> </div>
-    <svg id="svg-timeline-root" width="900" height="140" style="padding-right: 0%;">
-      <g transform="scale(0.95)">
-        <g id="svg-timeline" transform="translate(40,1)">
-        </g>
-      </g>
-    </svg>
+
   </div>
   <div id="svg2"></div>
 </template>
@@ -20,6 +15,8 @@ const { formatDate } = useDateTimeLibrary();
 const props = defineProps(['thetimeline', 'sites']);
 const emit = defineEmits(['clickSite', 'dblclickSite']);
 
+let timegrain 
+
 onMounted(() => {
   // Create the SVG container
   svg = d3.select("#timeline").append("svg")
@@ -27,13 +24,16 @@ onMounted(() => {
     .attr("height", height + margin.top + margin.bottom)
     .append("g")
     .attr("transform", `translate(${margin.left},${margin.top})`);
+    timegrain = timeResolution()
+  console.log("timegrain", timegrain)
   drawTimelineProfile(svg)
 
 });
 
 watch(() => props.thetimeline, (newValue, oldValue) => {
+  timegrain = timeResolution()
+  console.log("timegrain", timegrain)
   drawTimelineProfile(svg)
-
 });
 
 
@@ -45,10 +45,31 @@ function toggleVisibility(group) {
     group.style("display", isHidden ? null : "none"); 
 }
 
+const yearInMilliseconds = 365 * 24 * 60 * 60 * 1000
+const monthInMilliseconds = 30 * 24 * 60 * 60 * 1000
+const weekInMilliseconds = 7 * 24 * 60 * 60 * 1000
+const dayInMilliseconds = 24 * 60 * 60 * 1000
+const hourInMilliseconds = 60 * 60 * 1000
+
+const timeResolution = () => {
+  const timelineStart = props.thetimeline.startTimestamp
+  const timelineEnd = props.thetimeline.endTimestamp
+  const startTime = new Date(timelineStart).getTime();
+  const endTime = new Date(timelineEnd).getTime();
+  const timeDiff = endTime - startTime;
+  console.log('timediff ',timeDiff)
+  if (timeDiff > 3* yearInMilliseconds) return "year"
+  if (timeDiff > 3* monthInMilliseconds) return "month"
+  if (timeDiff > 3* weekInMilliseconds) return "week"
+  if (timeDiff > 3* dayInMilliseconds) return "day"
+  if (timeDiff > 3* hourInMilliseconds) return "hour"
+  return "minute"
+}
+
 const addMarker = (site, position, svg, timelineColor,relativePosition) => {
 
   const yPos = 50; // Base Y position for the line
-  const lineLength = 15; // Length of the vertical line
+  const lineLength = 25; // Length of the vertical line
 
   svg.append("line")
     .attr("x1", position)
@@ -70,7 +91,7 @@ const addMarker = (site, position, svg, timelineColor,relativePosition) => {
 
   tooltipGroup.append("text")
     .attr("x", position)
-    .attr("y", 25)
+    .attr("y", lineLength -8 )
     .attr("text-anchor", relativePosition<0.6 ? "start":"end")
     .attr("fill", "black")
     .attr("class", "tooltip")
@@ -80,19 +101,19 @@ const addMarker = (site, position, svg, timelineColor,relativePosition) => {
     .attr("x1", position)
     .attr("x2", position)
     .attr("y1", yPos)
-    .attr("y2", yPos  + 3* lineLength)
+    .attr("y2", yPos  + 2* lineLength)
     .attr("stroke", timelineColor);
 
     tooltipGroup.append("line")
     .attr("x1", position)
     .attr("x2", position+ 8 * (relativePosition<0.6 ? 1:-1))
-    .attr("y1", yPos  + 3* lineLength)
-    .attr("y2", yPos  + 3* lineLength)
+    .attr("y1", yPos  + 2* lineLength)
+    .attr("y2", yPos  + 2* lineLength)
     .attr("stroke", timelineColor);
   
     tooltipGroup.append("text")
     .attr("x", position+ 10 * (relativePosition<0.6 ? 1:-1))
-    .attr("y", yPos + 3*lineLength+8)
+    .attr("y", yPos + 2*lineLength+8)
     .attr("text-anchor", relativePosition<0.6 ? "start":"end")
     .attr("fill", "black")
     .attr("class", "tooltip")
@@ -136,6 +157,10 @@ const drawTimelineProfile = (svg) => {
   const timelineWidth = width
 
 
+
+  // TODO determine proper start and end time for the timescale - rounded up to start of an hour, a day, a month or a year - instead of picking the first and last sites' timestamps
+
+
   const xScale = d3.scaleTime()
     .domain([startTime, endTime])
     .range([0, width]);
@@ -149,6 +174,22 @@ const drawTimelineProfile = (svg) => {
     .attr("stroke", props.thetimeline.color);
 
   const numTicks = 5;
+  // if timegrain is day or hour then dateTimeFormat = short, if timegrain is month then dateTimeFormat = long
+  // if timegrain is year then dateTimeFormat = medium
+  let dateTimeFormat
+  if (timegrain == 'year') {
+    dateTimeFormat = 'medium'
+  } else if (timegrain == 'month') {
+    dateTimeFormat = 'long'
+  } else if (timegrain == 'day' || timegrain == 'hour') {
+    dateTimeFormat = 'short'
+  } else {
+    dateTimeFormat = 'short'
+  }
+  
+
+
+  //const dateTimeFormat = timegrain =='month' ? 'long' :(timegrain =='day'? 'short' :  'medium');
   for (let i = 0; i <= numTicks; i++) {
     const relativePosition = i / numTicks;
     const xPos = relativePosition * timelineWidth;
@@ -158,8 +199,7 @@ const drawTimelineProfile = (svg) => {
     const date = new Date(tickTime);
 
     // Format date for label
-    const options = { month: 'short', day: 'numeric' };
-    const label = date.toLocaleDateString('en-US', options);
+    const label = formatDate(date, dateTimeFormat)
 
     // Create tick
     const tick =
@@ -174,7 +214,7 @@ const drawTimelineProfile = (svg) => {
     svg.append("text")
       .attr("x", xPos)
       .attr("y", 75)
-      .attr("text-anchor", "middle")
+      .attr("text-anchor",  (i==0?"start":(i==numTicks?"end":"middle"))) 
       .attr("fill", "black")
       .text(label);
   }
@@ -197,8 +237,8 @@ const drawZoombox = (svg) => {
 
 
   // Initial rectangle properties
-  let rectWidth = 100, rectHeight = 30;
-  let rectX = 200, rectY = 20; // Centering the rectangle
+  let rectWidth = 100, rectHeight = 28;
+  let rectX = 200, rectY = 33; // Centering the rectangle
   //const svg = d3.select("#svg-timeline-root")
   // Create the rectangle
   let rectangle = svg.append("rect")
@@ -260,7 +300,8 @@ const drawZoombox = (svg) => {
     .attr("cx", rectX + rectWidth)
     .attr("cy", rectY + (rectHeight / 4))
     .attr("r", 5)
-    .style("fill", "black")
+    .style("stroke", "black")
+    .style("fill", "white")
     .style("cursor", "ew-resize")
     .call(resizeRect('right'));
 
@@ -269,7 +310,8 @@ const drawZoombox = (svg) => {
     .attr("cx", rectX)
     .attr("cy", rectY + (rectHeight / 4))
     .attr("r", 5)
-    .style("fill", "black")
+    .style("stroke", "black")
+    .style("fill", "white")
     .style("cursor", "ew-resize")
     .call(resizeRect('left'));
 
