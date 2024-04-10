@@ -174,7 +174,7 @@ const handleContextMenuClickOnTree = (event) => {
       , command: () => { resetSelection() }
     })
   }
-  if (treeKey.keyType ==='times') {
+  if (treeKey.keyType ==='times' || treeKey.keyType ==='timelines') {
     const createTimelineMenuItem = {
       label: ` Create Timeline`, icon: 'mdi mdi-sort-clock-ascending-outline'
       , items:[] }
