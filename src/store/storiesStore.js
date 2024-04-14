@@ -25,14 +25,14 @@ export const useStorieStore = defineStore('storyData', () => {
         // invoked for a story that was imported from a zip file
         story.sites.forEach(site => {
             if (site.imageId) {
-                site.imageId = imageFile2NewImageIdMap[site.imageId]
+                site.imageId = imageFile2NewImageIdMap[`images\/${site.imageId}`]
             }
         })
-        if (stories.value.length == 0) {
-            stories.value.push(story)
-        } else {
-            stories.value[0] = story
-        }
+        stories.value.push(story)
+        if (stories.value.length == 2) {
+          // remove the first story
+            stories.value.shift()  
+        } 
         setCurrentStory(story)
     }
 
