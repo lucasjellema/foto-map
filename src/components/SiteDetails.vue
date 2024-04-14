@@ -18,9 +18,9 @@
           {{ tag }}
         </v-chip>
       </div>
-      <div class="mt-3">
+      <!-- <div class="mt-3">
         <ShowTimeAnalog v-if="site?.timestamp" :timestamp="site.timestamp"></ShowTimeAnalog>
-      </div>
+      </div> -->
       <div v-if="site?.attachments?.length > 0">
         <v-btn @click="showSiteDetailAttachmentsPopup = true" prepend-icon="mdi-attachment">Show</v-btn>
       </div>
