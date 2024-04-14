@@ -77,7 +77,7 @@ const findTreeKeyForElement = (currentElement) => {
 const handleDoubleClickOnTree = (event) => {
   const treeKey = findTreeKeyForElement(event.target)
   let siteIds = []
-  if ((treeKey.keyType === 'year' || treeKey.keyType === 'month' || treeKey.keyType === 'day' || treeKey.keyType === 'tag' || treeKey.keyType === 'country' || treeKey.keyType === 'city'|| treeKey.keyType === 'timeline')
+  if ((treeKey.keyType === 'year' || treeKey.keyType === 'month' || treeKey.keyType === 'day' || treeKey.keyType === 'tag' || treeKey.keyType === 'country' || treeKey.keyType === 'city' || treeKey.keyType === 'timeline')
     && treeKey.key) {
     const treeData = treeRef.value.value
     // find all sites under this key 
@@ -157,8 +157,8 @@ const handleClickOnTree = (event) => {
     }
 
   }
-  if (treeKey.keyType === 'timeline' && treeKey.key) {    
-    emit('siteAction', { action: 'selectTimeline', payload: {timelineId : treeKey.key}} );
+  if (treeKey.keyType === 'timeline' && treeKey.key) {
+    emit('siteAction', { action: 'selectTimeline', payload: { timelineId: treeKey.key } });
   }
 
 }
@@ -174,16 +174,27 @@ const handleContextMenuClickOnTree = (event) => {
       , command: () => { resetSelection() }
     })
   }
-  if (treeKey.keyType ==='times' || treeKey.keyType ==='timelines') {
+  if (treeKey.keyType === 'times' || treeKey.keyType === 'timelines'
+    || treeKey.keyType === 'year' || treeKey.keyType === 'month' || treeKey.keyType === 'day'
+
+  ) {
     const createTimelineMenuItem = {
       label: ` Create Timeline`, icon: 'mdi mdi-sort-clock-ascending-outline'
-      , items:[] }
-    
-    createTimelineMenuItem.items.push({label: `Per Day`,  command: () => { emit('siteAction', { action: 'createTimelinesPerDay'})}})
-    createTimelineMenuItem.items.push({label: `Per Week`,  command: () => { emit('siteAction', { action: 'createTimelinesPerWeek'})}})
-    createTimelineMenuItem.items.push({label: `Per Month`,  command: () => { emit('siteAction', { action: 'createTimelinesPerMonth'})}})
-    createTimelineMenuItem.items.push({label: `Per Year`,  command: () => { emit('siteAction', { action: 'createTimelinesPerYear'})}})
+      , items: []
+    }
+    const payload = {}
+    if (treeKey.keyType === 'year') payload.year = treeKey.key
+    if (treeKey.keyType === 'month') { payload.year = treeKey.key.split('_')[0]; payload.month = treeKey.key.split('_')[1] }
+    if (treeKey.keyType === 'day') { payload.year = treeKey.key.split('_')[0]; payload.month = treeKey.key.split('_')[1]; payload.day = treeKey.key.split('_')[2] }
 
+    createTimelineMenuItem.items.push({ label: `Per Day`, command: () => { emit('siteAction', { action: 'createTimelinesPerDay', payload: payload }) } })
+    if (treeKey.keyType !== 'day') {
+      createTimelineMenuItem.items.push({ label: `Per Week`, command: () => { emit('siteAction', { action: 'createTimelinesPerWeek', payload: payload }) } })
+      createTimelineMenuItem.items.push({ label: `Per Month`, command: () => { emit('siteAction', { action: 'createTimelinesPerMonth', payload: payload }) } })
+      if (treeKey.keyType !== 'month') {
+        createTimelineMenuItem.items.push({ label: `Per Year`, command: () => { emit('siteAction', { action: 'createTimelinesPerYear', payload: payload }) } })
+      }
+    }
     contextMenuItems.value.push(createTimelineMenuItem)
   }
 

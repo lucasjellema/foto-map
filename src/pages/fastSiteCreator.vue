@@ -327,9 +327,9 @@ const handleSiteAction = ({ siteId, siteIds, action, payload }) => {
   // for all siteIds call siteAction
   if (action.startsWith('createTimelinesPer')) {
     console.log(`createTimelinesPer`,  action)
-    if (action==='createTimelinesPerYear') createTimelinePer('year', sitesData.value, currentStory.value.mapConfiguration.timelines, map.value)
-    if (action==='createTimelinesPerMonth') createTimelinePer('month', sitesData.value, currentStory.value.mapConfiguration.timelines, map.value)
-    if (action==='createTimelinesPerDay') createTimelinePer('day', sitesData.value, currentStory.value.mapConfiguration.timelines, map.value)
+    if (action==='createTimelinesPerYear') createTimelinePer('year', sitesData.value, currentStory.value.mapConfiguration.timelines, map.value,payload)
+    if (action==='createTimelinesPerMonth') createTimelinePer('month', sitesData.value, currentStory.value.mapConfiguration.timelines, map.value,payload)
+    if (action==='createTimelinesPerDay') createTimelinePer('day', sitesData.value, currentStory.value.mapConfiguration.timelines, map.value,payload)
    //TODO if (action==='createTimelinesPerWeek') createTimelinesPerWeek()
     return
   }
@@ -840,8 +840,13 @@ const drawMarkerForSite = (site) => {
       // TODO now that we have the tooltip itself, is all of this elaborate way to set the content of the tooltip still needed?
       setTimeout(() => {
         const tooltipElement = document.querySelector(`.${tooltipClassName}`);
-        refreshTooltip(site, tooltipElement)
-      }, 50); // Small timeout to ensure the tooltip is rendered
+        try {
+          refreshTooltip(site, tooltipElement)
+          
+        } catch (error) {
+          console.error('Issue with tooltip', error)
+        }
+            }, 50); // Small timeout to ensure the tooltip is rendered
     }
   }
 
