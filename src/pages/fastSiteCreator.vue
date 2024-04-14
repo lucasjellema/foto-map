@@ -576,6 +576,7 @@ const saveItem = () => {
 }
 
 const refreshTooltip = (site, tooltipElement) => {
+  if (!tooltipElement) return
   tooltipElement.style.display = currentStory.value.mapConfiguration?.showTooltips ? 'block' : 'none'
 
   if (!site.tooltipSize) site.tooltipSize = site.tooltipSize
@@ -770,6 +771,11 @@ watch(mapShowTimelines, (newValue) => {
   } else {
     console.log("Hide timelines")
   }
+})
+
+watch (currentStory, (newValue) => {
+  // probably only fires when auto-importing a story
+  refreshMap()
 })
 
 
