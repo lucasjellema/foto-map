@@ -10,7 +10,7 @@
                 Sites Tree
               </v-tab>
 
-              <v-tab value="tab-2">
+              <v-tab value="tab-2" v-if="!storyReadOnly">
                 <v-icon>mdi-table-arrow-up</v-icon>
                 Upload Photographs
               </v-tab>
@@ -21,7 +21,7 @@
       </v-tab> -->
             </v-tabs>
             <div v-if="tab == 'tab-1'">
-              <SiteTree @site-selected="handleSiteSelected" @site-action="handleSiteAction"></SiteTree>
+              <SiteTree @site-selected="handleSiteSelected" @site-action="handleSiteAction" :storyReadOnly="storyReadOnly"></SiteTree>
             </div>
             <div v-if="tab == 'tab-2'">
               <v-text-field v-model="search" label="Search" clearable></v-text-field>
@@ -122,7 +122,8 @@
 
               <v-row>
                 <v-col cols="3">
-                  <v-btn @click="exportMap()">Export Map</v-btn>
+                  <v-checkbox v-model="exportAsReadonly" label="Export as Read Only"></v-checkbox>
+                  <v-btn @click="exportMap(exportAsReadonly)">Export Map</v-btn>
                 </v-col>
                 <v-col cols="8" offset="1">
                   <v-file-input label="Upload FotoMapp Archive" @change="handleImport" accept=".zip"></v-file-input>
@@ -225,8 +226,8 @@ const storiesStore = useStorieStore()
 const currentStory = computed(() => storiesStore.currentStory)
 const sitesData = computed(() => currentStory.value.sites);
 const storyTags = computed(() => currentStory.value.tags);
-
-
+const storyReadOnly = computed(() => currentStory.value.mapConfiguration.readOnly);
+const exportAsReadonly = ref(false);
 import { useImportExportLibrary } from '@/composables/useImportExportLibrary';
 const { exportStoryToZip, importStoryFromZip } = useImportExportLibrary();
 import { useSitesTreeLibrary } from '@/composables/useSitesTreeLibrary';
@@ -246,7 +247,7 @@ const showAddTagToSitesDialog = ref(false)
 const timelineToEdit = ref(null)
 const showTimelineEditorPopup = ref(false)
 const saveTimeline = () => {
-  showTimelineEditorPopup.value = false  
+  showTimelineEditorPopup.value = false
   refreshTimelines(sitesData.value, currentStory.value.mapConfiguration.timelines, map.value)
 }
 
@@ -256,7 +257,6 @@ const editTimeline = (timeline) => {
 }
 
 const showTimelineProfile = (timeline) => {
-  console.log(`sjhow timeline profile`, timeline)
   timelineProfileToShow.value = timeline
 }
 
@@ -270,14 +270,15 @@ const handleDblClickSite = ({ site }) => {
   console.log(`handleDblClickSite`, site)
 }
 
-const exportMap = () => {
-  exportStoryToZip(currentStory.value)
+const exportMap = (asReadOnly) => {
+  exportStoryToZip(currentStory.value, asReadOnly)
 }
 
 // callback - will be invoked from importStoryFromZip  
 const handleImportedStory = (story, imageFile2NewImageIdMap) => {
   console.log(`resolvd`)
   //loop over all sites in story and create sites in current story using addSite
+
   for (const site of story.sites) {
     // find story in storiesStore with id site.id
     let existingSite = storiesStore.getSite(site.id)
@@ -309,7 +310,6 @@ const handleImport = async (event) => {
   const files = event.target.files
   if (!files || files.length == 0) return;
   importStoryFromZip(files[0], handleImportedStory)
-
 }
 
 const getSitesFromSiteIds = (siteIds) => {
@@ -326,11 +326,11 @@ const getSitesFromSiteIds = (siteIds) => {
 const handleSiteAction = ({ siteId, siteIds, action, payload }) => {
   // for all siteIds call siteAction
   if (action.startsWith('createTimelinesPer')) {
-    console.log(`createTimelinesPer`,  action)
-    if (action==='createTimelinesPerYear') createTimelinePer('year', sitesData.value, currentStory.value.mapConfiguration.timelines, map.value,payload)
-    if (action==='createTimelinesPerMonth') createTimelinePer('month', sitesData.value, currentStory.value.mapConfiguration.timelines, map.value,payload)
-    if (action==='createTimelinesPerDay') createTimelinePer('day', sitesData.value, currentStory.value.mapConfiguration.timelines, map.value,payload)
-   //TODO if (action==='createTimelinesPerWeek') createTimelinesPerWeek()
+    console.log(`createTimelinesPer`, action)
+    if (action === 'createTimelinesPerYear') createTimelinePer('year', sitesData.value, currentStory.value.mapConfiguration.timelines, map.value, payload)
+    if (action === 'createTimelinesPerMonth') createTimelinePer('month', sitesData.value, currentStory.value.mapConfiguration.timelines, map.value, payload)
+    if (action === 'createTimelinesPerDay') createTimelinePer('day', sitesData.value, currentStory.value.mapConfiguration.timelines, map.value, payload)
+    //TODO if (action==='createTimelinesPerWeek') createTimelinesPerWeek()
     return
   }
 
@@ -345,7 +345,7 @@ const handleSiteAction = ({ siteId, siteIds, action, payload }) => {
     } else if (action == 'addTagsToSites') {
       selectedSites.value = getSitesFromSiteIds(siteIds)
       showAddTagToSitesDialog.value = true
-    } else if (action == 'hideSelectedSites') { 
+    } else if (action == 'hideSelectedSites') {
       selectedSites.value = getSitesFromSiteIds(siteIds)
       selectedSites.value.forEach(site => hideSite(site))
     } else if (action == 'hideUnselectedSites') {
@@ -354,7 +354,7 @@ const handleSiteAction = ({ siteId, siteIds, action, payload }) => {
     } else if (action == 'showOnlySelectedSites') { // TODO implement showOnlySelectedSites
       selectedSites.value = getSitesFromSiteIds(siteIds)
       // hide all, then create markers for selectedSites.value
-    } 
+    }
     //TODO handle action == unselectChildren 
 
     else {
@@ -369,10 +369,10 @@ const handleSiteAction = ({ siteId, siteIds, action, payload }) => {
       console.log(`select timeline ${payload.timelineId}`)
       // find timeline with timelineid in current story
       const timeline = currentStory.value.mapConfiguration.timelines.find(timeline => timeline.id == payload.timelineId)
-      
+
       showTimelineProfile(timeline)
       mapShowTimelines.value = true
-      
+
     }
 
   } else {
@@ -438,9 +438,9 @@ const focusOnSites = (siteIds) => {
     const coordinates = site.geoJSON.features[0].geometry.coordinates
     coordinatePairs.push([coordinates[1], coordinates[0]])
   }
-  if (coordinatePairs.length ==0 ) return
+  if (coordinatePairs.length == 0) return
   if (coordinatePairs.length == 1) {
-    centerAndZoomMap({latlng: coordinatePairs[0]})
+    centerAndZoomMap({ latlng: coordinatePairs[0] })
     return
   }
   const bounds = L.latLngBounds(coordinatePairs);
@@ -773,7 +773,7 @@ watch(mapShowTimelines, (newValue) => {
   }
 })
 
-watch (currentStory, (newValue) => {
+watch(currentStory, (newValue) => {
   // probably only fires when auto-importing a story
   refreshMap()
 })
@@ -848,11 +848,11 @@ const drawMarkerForSite = (site) => {
         const tooltipElement = document.querySelector(`.${tooltipClassName}`);
         try {
           refreshTooltip(site, tooltipElement)
-          
+
         } catch (error) {
           console.error('Issue with tooltip', error)
         }
-            }, 50); // Small timeout to ensure the tooltip is rendered
+      }, 50); // Small timeout to ensure the tooltip is rendered
     }
   }
 
@@ -948,7 +948,7 @@ const drawMarkerForSite = (site) => {
             currentStory.value.mapConfiguration.timelines = []
           }
           startTimelineAtSite(marker.site, sitesData.value, currentStory.value.mapConfiguration.timelines, map.value)
-          console.log(`Start timeline at this marker ${JSON.stringify(marker.site)}`)          
+          console.log(`Start timeline at this marker ${JSON.stringify(marker.site)}`)
         }
       }
     })
@@ -1209,39 +1209,47 @@ watch(mapEditMode, async (newMapEditMode) => {
 let layerControl
 const drawMap = () => {
   // Initialize the map
+  const contextmenuItems = [{
+    text: 'Center map here',
+    callback: centerMap
+  }, {
+    text: 'Zoom in here',
+    callback: centerAndZoomMap
+  }, {
+    separator: true
+  }, {
+    text: 'GeoJSON to Clipboard',
+    callback: geoJSONToClipboard
+  }, {
+    text: 'Image to Clipboard',
+    callback: mapImageToClipboard
+  }, {
+    text: 'Consolidate All Sites',
+    callback: consolidateAllSites
+  }, {
+    text: 'Show Filters',
+    callback: () => {
+      // show filter dialog
+      showMapFiltersPopup.value = true
+    }
+  }]
+  if (!storyReadOnly.value) {
+    contextmenuItems.push(
+      {
+        text: 'Configure Map',
+        callback: () => {
+          // show filter dialog
+          showMapConfigurationPopup.value = true
+        }
+      }
+    )
+  }
+
   map.value = L.map('mapid', {
     contextmenu: true,
     contextmenuWidth: 160,
-    contextmenuItems: [{
-      text: 'Center map here',
-      callback: centerMap
-    }, {
-      text: 'Zoom in here',
-      callback: centerAndZoomMap
-    }, {
-      separator: true
-    }, {
-      text: 'GeoJSON to Clipboard',
-      callback: geoJSONToClipboard
-    }, {
-      text: 'Image to Clipboard',
-      callback: mapImageToClipboard
-    }, {
-      text: 'Consolidate All Sites',
-      callback: consolidateAllSites
-    }, {
-      text: 'Show Filters',
-      callback: () => {
-        // show filter dialog
-        showMapFiltersPopup.value = true
-      }
-    }, {
-      text: 'Configure Map',
-      callback: () => {
-        // show filter dialog
-        showMapConfigurationPopup.value = true
-      }
-    }]
+    contextmenuItems: contextmenuItems
+
   }).setView([51.505, -0.09], 7); // Temporary view, will adjust based on GeoJSON
 
   // Add OpenStreetMap tiles
@@ -1271,7 +1279,9 @@ const drawMap = () => {
 
   attachMapListeners()
   addClusterControl()
-  addEditModeControl()
+  if (!storyReadOnly.value) {
+    addEditModeControl()
+  }
   addTimelinesControl()
   addFilterControl()
   addTimelinesLegendControl()

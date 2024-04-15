@@ -23,8 +23,7 @@ const contextMenuItems = ref([])
 
 
 const emit = defineEmits(['siteSelected', 'siteAction']);
-const props = defineProps({
-});
+const props = defineProps(['storyReadOnly']);
 
 const treeRef = ref(null);
 const selectedKey = ref(null);
@@ -164,6 +163,7 @@ const handleClickOnTree = (event) => {
 }
 
 const handleContextMenuClickOnTree = (event) => {
+  const readOnly = props.storyReadOnly
 
   contextMenuItems.value = []
   const treeKey = findTreeKeyForElement(event.target)
@@ -174,9 +174,10 @@ const handleContextMenuClickOnTree = (event) => {
       , command: () => { resetSelection() }
     })
   }
-  if (treeKey.keyType === 'times' || treeKey.keyType === 'timelines'
-    || treeKey.keyType === 'year' || treeKey.keyType === 'month' || treeKey.keyType === 'day'
-
+  if (!readOnly &&
+    (treeKey.keyType === 'times' || treeKey.keyType === 'timelines'
+      || treeKey.keyType === 'year' || treeKey.keyType === 'month' || treeKey.keyType === 'day'
+    )
   ) {
     const createTimelineMenuItem = {
       label: ` Create Timeline`, icon: 'mdi mdi-sort-clock-ascending-outline'
@@ -213,36 +214,38 @@ const handleContextMenuClickOnTree = (event) => {
     // https://primevue.org/contextmenu/
     const siteId = treeKey.key
     siteIds = [siteId]
-    contextMenuItems.value.push({
-      label: ` Edit Site`, icon: 'pi pi-fw pi-pencil'
-      , command: () => { emit('siteAction', { action: 'edit', siteIds: siteIds }) }
-    })
-    contextMenuItems.value.push({
-      label: ` Delete Site`, icon: 'mdi mdi-trash-can-outline'
-      , command: () => { emit('siteAction', { action: 'delete', siteIds: siteIds }) }
-    })
-    contextMenuItems.value.push({
-      label: ` Split Timeline at Site`, icon: 'mdi mdi-timeline-clock-outline'
-      , command: () => { emit('siteAction', { action: 'splitTimeline', siteIds: siteIds }) }
-    })
+    if (!readOnly) {
+      contextMenuItems.value.push({
+        label: ` Edit Site`, icon: 'pi pi-fw pi-pencil'
+        , command: () => { emit('siteAction', { action: 'edit', siteIds: siteIds }) }
+      })
+      contextMenuItems.value.push({
+        label: ` Delete Site`, icon: 'mdi mdi-trash-can-outline'
+        , command: () => { emit('siteAction', { action: 'delete', siteIds: siteIds }) }
+      })
+      contextMenuItems.value.push({
+        label: ` Split Timeline at Site`, icon: 'mdi mdi-timeline-clock-outline'
+        , command: () => { emit('siteAction', { action: 'splitTimeline', siteIds: siteIds }) }
+      })
+    }
     // if multiple sites are selected, they can all be consolidated into the site for which the menu is shown
     const selectedSiteIds =
       // get all keys from selectedKey.value for which the value is boolean True
       Object.keys(selectedKey.value).filter(key => selectedKey.value[key])
 
-    if (selectedSiteIds.length == 2) {
+    if (!readOnly && selectedSiteIds.length == 2) {
       contextMenuItems.value.push({
         label: ` Create timeline between selected sites`, icon: 'mdi mdi-sort-clock-ascending-outline'
         , command: () => { emit('siteAction', { action: 'createTimelineBetweenTwoSites', siteIds: selectedSiteIds }); }
       })
     }
-    if (selectedSiteIds.length > 1) {
+    if (!readOnly && selectedSiteIds.length > 1) {
       contextMenuItems.value.push({
         label: ` Consolidate Selected Sites to this Site`, icon: 'mdi mdi-consolidate'
         , command: () => { emit('siteAction', { action: 'consolidateSitesToTargetSite', siteIds: selectedSiteIds, payload: { targetSiteId: treeKey.key } }); resetSelection() }
       })
     }
-    if (selectedSiteIds.length > 1) {
+    if (!readOnly && selectedSiteIds.length > 1) {
       contextMenuItems.value.push({
         label: ` Add Tag(s) to all Selected Sites`, icon: 'mdi mdi-tag-plus-outline'
         , command: () => { emit('siteAction', { action: 'addTagsToSites', siteIds: selectedSiteIds }) }
