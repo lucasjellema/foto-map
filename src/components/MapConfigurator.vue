@@ -8,6 +8,11 @@
 
           </v-expansion-panel-text>
         </v-expansion-panel>
+        <v-expansion-panel title="Settings" collapse-icon="mdi-cog" expand-icon="mdi-cog">
+          <v-expansion-panel-text>
+            setting!
+          </v-expansion-panel-text>
+        </v-expansion-panel>
         <v-expansion-panel title="Timelines" collapse-icon="mdi-sort-clock-descending-outline"
           expand-icon="mdi-sort-clock-descending-outline">
           <v-expansion-panel-text>
