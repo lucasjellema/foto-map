@@ -21,7 +21,8 @@
       </v-tab> -->
             </v-tabs>
             <div v-if="tab == 'tab-1'">
-              <SiteTree @site-selected="handleSiteSelected" @site-action="handleSiteAction" :storyReadOnly="storyReadOnly"></SiteTree>
+              <SiteTree @site-selected="handleSiteSelected" @site-action="handleSiteAction"
+                :storyReadOnly="storyReadOnly"></SiteTree>
             </div>
             <div v-if="tab == 'tab-2'">
               <v-text-field v-model="search" label="Search" clearable></v-text-field>
@@ -873,11 +874,35 @@ const drawMarkerForSite = (site) => {
     return popupContentRef.value.$el;
   });
 
-  const markerContextMenu = {
-    contextmenu: true,
-    contextmenuItems: [{
-      separator: true
-    }, {
+  const contextMenuItems = [{
+    separator: true
+  }, {
+    text: 'Select Site',
+    callback: (e) => {
+      const marker = e.relatedTarget;
+      if (marker) {
+        selectMarker(marker);
+      }
+    }
+  }, {
+    text: 'Hide Site',
+    callback: (e) => {
+      const marker = e.relatedTarget;
+      if (marker) {
+        hideMarker(marker);
+      }
+    }
+  }, {
+    text: 'Consolidate Site',
+    callback: (e) => {
+      const marker = e.relatedTarget;
+      if (marker) {
+        consolidateSite(marker.site);
+      }
+    }
+  }]
+  if (!storyReadOnly.value) {
+    contextMenuItems.push({
       text: 'Delete Site',
       callback: (e) => {
         const marker = e.relatedTarget;
@@ -885,31 +910,8 @@ const drawMarkerForSite = (site) => {
           deleteMarker(marker);
         }
       }
-    }, {
-      text: 'Select Site',
-      callback: (e) => {
-        const marker = e.relatedTarget;
-        if (marker) {
-          selectMarker(marker);
-        }
-      }
-    }, {
-      text: 'Hide Site',
-      callback: (e) => {
-        const marker = e.relatedTarget;
-        if (marker) {
-          hideMarker(marker);
-        }
-      }
-    }, {
-      text: 'Consolidate Site',
-      callback: (e) => {
-        const marker = e.relatedTarget;
-        if (marker) {
-          consolidateSite(marker.site);
-        }
-      }
-    }, {
+    })
+    contextMenuItems.push({
       text: 'Dump Site Details',
       callback: (e) => {
         const marker = e.relatedTarget;
@@ -917,66 +919,74 @@ const drawMarkerForSite = (site) => {
           console.log(JSON.stringify(marker.site))
         }
       }
-    }, {
-      separator: true
-    }]
-  }
-  // TODO ideally this option to split timeline is only shown when timelines are shown
 
-  // TODO also: only show this option if the site is the part of a timeline (and not the beginning or end)
-  // however - redrawing all markers when timelines are enabled/disables seems a bit expensive. or is it?
-  //   if (mapShowTimelines.value ...
-  markerContextMenu.contextmenuItems.push(
-    {
-      text: 'Split Timeline',
-      callback: (e) => {
-        const marker = e.relatedTarget;
-        if (marker) {
-          console.log(`Split timeline at this marker ${JSON.stringify(marker.site)}`)
-          splitTimelineAtSite(marker.site)
-        }
-      }
+
     })
-  // ideally ony show when timelines are showing and when this site is not part of a timeline (except for being its endsite)
-  markerContextMenu.contextmenuItems.push(
-    {
-      text: 'Start New Timeline Here',
-      callback: (e) => {
-        const marker = e.relatedTarget;
-        if (marker) {
-          if (!currentStory.value.mapConfiguration.timelines) {
-            currentStory.value.mapConfiguration.timelines = []
+
+    contextMenuItems.push({ separator: true })
+
+    // TODO ideally this option to split timeline is only shown when timelines are shown
+
+    // TODO also: only show this option if the site is the part of a timeline (and not the beginning or end)
+    // however - redrawing all markers when timelines are enabled/disables seems a bit expensive. or is it?
+    //   if (mapShowTimelines.value ...
+    contextMenuItems.push(
+      {
+        text: 'Split Timeline',
+        callback: (e) => {
+          const marker = e.relatedTarget;
+          if (marker) {
+            console.log(`Split timeline at this marker ${JSON.stringify(marker.site)}`)
+            splitTimelineAtSite(marker.site)
           }
-          startTimelineAtSite(marker.site, sitesData.value, currentStory.value.mapConfiguration.timelines, map.value)
-          console.log(`Start timeline at this marker ${JSON.stringify(marker.site)}`)
         }
-      }
-    })
-  // ideally ony show when timelines are showing and when this site is part of a timeline (though not its first nor its last site)
-  markerContextMenu.contextmenuItems.push(
-    {
-      text: 'End Timeline Here',
-      callback: (e) => {
-        const marker = e.relatedTarget;
-        if (marker) {
-          endTimelineAtSite(marker.site, sitesData.value, currentStory.value.mapConfiguration.timelines, map.value)
-          console.log(`End existing timeline at this marker ${JSON.stringify(marker.site)}`)
+      })
+    // ideally ony show when timelines are showing and when this site is not part of a timeline (except for being its endsite)
+    contextMenuItems.push(
+      {
+        text: 'Start New Timeline Here',
+        callback: (e) => {
+          const marker = e.relatedTarget;
+          if (marker) {
+            if (!currentStory.value.mapConfiguration.timelines) {
+              currentStory.value.mapConfiguration.timelines = []
+            }
+            startTimelineAtSite(marker.site, sitesData.value, currentStory.value.mapConfiguration.timelines, map.value)
+            console.log(`Start timeline at this marker ${JSON.stringify(marker.site)}`)
+          }
         }
-      }
-    })
-  // ideally ony show when site is both end and start of a timeline 
+      })
+    // ideally ony show when timelines are showing and when this site is part of a timeline (though not its first nor its last site)
+    contextMenuItems.push(
+      {
+        text: 'End Timeline Here',
+        callback: (e) => {
+          const marker = e.relatedTarget;
+          if (marker) {
+            endTimelineAtSite(marker.site, sitesData.value, currentStory.value.mapConfiguration.timelines, map.value)
+            console.log(`End existing timeline at this marker ${JSON.stringify(marker.site)}`)
+          }
+        }
+      })
+    // ideally ony show when site is both end and start of a timeline 
 
-  markerContextMenu.contextmenuItems.push(
-    {
-      text: 'Fuse Timelines',
-      callback: (e) => {
-        const marker = e.relatedTarget;
-        if (marker) {
-          fuseTimelinesAtSite(marker.site, sitesData.value, currentStory.value.mapConfiguration.timelines, map.value)
+    contextMenuItems.push(
+      {
+        text: 'Fuse Timelines',
+        callback: (e) => {
+          const marker = e.relatedTarget;
+          if (marker) {
+            fuseTimelinesAtSite(marker.site, sitesData.value, currentStory.value.mapConfiguration.timelines, map.value)
+          }
         }
-      }
-    })
+      })
+  }
 
+
+  const markerContextMenu = {
+    contextmenu: true,
+    contextmenuItems: contextMenuItems
+  }
   marker.bindContextMenu(markerContextMenu)
 
   // do not open popup for ctrl + click (instead, select/deselect the marker)
@@ -1463,6 +1473,24 @@ const attachMapListeners = () => {
       }
     });
     mapContainer.setAttribute('data-paste-listener-attached', 'true');
+  }
+
+  if (!mapContainer.getAttribute('keydown-listener-attached')) {
+
+    mapContainer.addEventListener('keydown', function checkKeyCombo(event) {
+      if (event.ctrlKey && event.shiftKey && event.key === 'U') {
+        console.log('UNLOCK MAP CTRL + SHIFT + U was pressed');
+        currentStory.value.mapConfiguration.readOnly = false;
+        refreshMap();
+      }
+      if (event.ctrlKey && event.shiftKey && event.key === 'L') {
+        console.log('LOCK MAP CTRL + SHIFT + L was pressed');
+        currentStory.value.mapConfiguration.readOnly = true;
+        refreshMap();
+      }
+    })
+    mapContainer.setAttribute('keydown-listener-attached', 'true');
+
   }
 
 
