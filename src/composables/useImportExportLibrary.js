@@ -18,28 +18,38 @@ export function useImportExportLibrary() {
 
 
   const imagesStore = useImagesStore()
+
+
+  const addImageToZip = (promises, imageId, zip) => {
+    promises.push(new Promise((resolve, reject) => {
+      imagesStore.getUrlForIndexedDBImage(imageId).then(async (url) => {
+        try {
+          const imageData = await fetchImageData(url);
+          zip.file(`images/${imageId}`, imageData);
+          resolve();
+        }
+        catch (error) { reject(error); }
+      });
+    }));
+  }
   const exportStoryToZip = (story) => {
     const zip = new JSZip();
     zip.file("story.json", JSON.stringify(story));
 
     const promises = [];
     // for each site - check the imageId; get the associated image as a file and add it to the zip file in the subdirectory for images using the imageId as the filename
-    // TODO also process images in attachments
+    // for each attachment in each site, do the same
     story.sites.forEach(site => {
       if (site.imageId) {
-        promises.push(new Promise((resolve, reject) => {
-          imagesStore.getUrlForIndexedDBImage(site.imageId).then(async url => {
-            try {
-              const imageData = await fetchImageData(url);
-              zip.file(`images/${site.imageId}`, imageData);
-              resolve();
-            }
-            catch (error) { reject(error) }
-          })
-        }))
+        addImageToZip(promises, site.imageId, zip);
       }
+      site.attachments?.forEach(attachment => {
+        if (attachment.imageId) {
+          addImageToZip(promises, attachment.imageId, zip);
+        }
+      })
     })
-    // only when all images have been added can we generate the zip
+    // only when all images have been added can we generate the zip; that is when all promises are resolved
 
     Promise.all(promises)
       .then(results => {
@@ -72,11 +82,13 @@ export function useImportExportLibrary() {
     const story = JSON.parse(data);
     // invoke callback function to handle the imported content 
     handleImportedStory(story, imageFile2NewImageId)
-    }
-
-
-
-
-
-    return { exportStoryToZip, importStoryFromZip };
   }
+
+
+
+
+
+  return { exportStoryToZip, importStoryFromZip };
+
+
+}

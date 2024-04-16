@@ -27,12 +27,17 @@ export const useStorieStore = defineStore('storyData', () => {
             if (site.imageId) {
                 site.imageId = imageFile2NewImageIdMap[`images\/${site.imageId}`]
             }
+            site.attachments?.forEach(attachment => {
+                if (attachment.imageId) {
+                    attachment.imageId = imageFile2NewImageIdMap[`images\/${attachment.imageId}`]
+                }
+            })            
         })
         stories.value.push(story)
         if (stories.value.length == 2) {
-          // remove the first story
-            stories.value.shift()  
-        } 
+            // remove the first story
+            stories.value.shift()
+        }
         setCurrentStory(story)
     }
 
@@ -55,6 +60,7 @@ export const useStorieStore = defineStore('storyData', () => {
         }
         const data = await contents.file("story.json").async("string");
         const story = JSON.parse(data);
+        
         // invoke callback function to handle the imported content 
         handleImportedStory(story, imageFile2NewImageId)
     }
@@ -85,11 +91,19 @@ export const useStorieStore = defineStore('storyData', () => {
         const storyUrlToFetch = urlParams.get('storyArchiveURL');
         if (storyUrlToFetch) {
             try {
+                // to download a zip file from GitHub https://docs.github.com/en/rest/repos/contents?apiVersion=2022-11-28
                 console.log(`storyToFetch: ${storyUrlToFetch}`)
                 const storyURL = storyUrlToFetch
-                fetch(storyURL)
+                fetch(storyURL 
+                //     ,{
+                //     headers: {
+                //         'Accept': 'application/vnd.github.v3+json'
+                //     }
+                // }
+            )
                     .then(response => response.blob())
                     .then(blob => {
+                        console.log('Fetch Zip File has Blob size:', blob.size);
                         const file = new File([blob], storyUrlToFetch, { type: blob.type });
                         importStoryFromZip(file, handleImportedStory)
                     });

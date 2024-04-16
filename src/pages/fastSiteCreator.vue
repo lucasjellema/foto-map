@@ -293,6 +293,11 @@ const handleImportedStory = (story, imageFile2NewImageIdMap) => {
       }
 
       existingSite.imageId = imageFile2NewImageIdMap[`images\/${site.imageId}`]
+      existingSite.attachments?.forEach(attachment => {
+        if (attachment.imageId) {
+          attachment.imageId = imageFile2NewImageIdMap[`images\/${attachment.imageId}`]          
+        }
+      })
       storiesStore.updateSite(existingSite)
 
     }
@@ -300,6 +305,12 @@ const handleImportedStory = (story, imageFile2NewImageIdMap) => {
 
       const newSite = { ...site }
       newSite.imageId = imageFile2NewImageIdMap[`images\/${site.imageId}`]
+      newSite.attachments?.forEach(attachment => {
+        if (attachment.imageId) {
+          attachment.imageId = imageFile2NewImageIdMap[`images\/${attachment.imageId}`]          
+        }
+      })
+
       storiesStore.addSite(newSite)
     }
     // TODO handle image id in attachments - both for existing (overwritten) site and for newly created site
