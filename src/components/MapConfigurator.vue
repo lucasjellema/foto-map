@@ -10,7 +10,8 @@
         </v-expansion-panel>
         <v-expansion-panel title="Settings" collapse-icon="mdi-cog" expand-icon="mdi-cog">
           <v-expansion-panel-text>
-            setting!
+            Reset Story (remove all sites)
+            <v-btn @click="emit('resetStory')" icon="mdi-close-circle"></v-btn>
           </v-expansion-panel-text>
         </v-expansion-panel>
         <v-expansion-panel title="Timelines" collapse-icon="mdi-sort-clock-descending-outline"
@@ -131,7 +132,7 @@ const saveTimeline = () => {
 }
 
 const modelMap = defineModel('map');
-const emit = defineEmits([]);
+const emit = defineEmits(['resetStory']);
 
 onMounted(() => {
 });

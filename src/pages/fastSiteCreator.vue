@@ -117,7 +117,7 @@
             <span class="headline">Map Configuration</span>
           </v-card-title>
           <v-card-text>
-            <MapConfigurator v-model:map="currentStory.mapConfiguration">
+            <MapConfigurator v-model:map="currentStory.mapConfiguration" @resetStory="handleResetStory()">
             </MapConfigurator>
             <v-container>
 
@@ -275,6 +275,11 @@ const handleDblClickSite = ({ site }) => {
 
 const exportMap = (asReadOnly) => {
   exportStoryToZip(currentStory.value, asReadOnly)
+}
+
+const handleResetStory= ()  => {
+  storiesStore.resetStory()
+  refreshMap()
 }
 
 // callback - will be invoked from importStoryFromZip  
@@ -1648,7 +1653,7 @@ const splitTimelineAtSite = (siteToSplitAt) => {
 }
 
 const drawTimelines = () => {
-  if (currentStory.value.mapConfiguration?.timelines) {
+  if (currentStory.value.mapConfiguration?.timelines && currentStory.value.mapConfiguration?.timelines.length > 0) {
     drawTimelinesX(sitesData.value, currentStory.value.mapConfiguration?.timelines, map.value)
   }
 }
