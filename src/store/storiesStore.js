@@ -13,8 +13,6 @@ import JSZip from 'jszip';
 
 export const useStorieStore = defineStore('storyData', () => {
 
-
-
     const imagesStore = useImagesStore()
     const stories = ref(useLocalStorage('fotomap-stories', []))
 
@@ -213,17 +211,39 @@ export const useStorieStore = defineStore('storyData', () => {
         return currentStory.value.sites.find(l => l.id === siteId)
     }
 
+    const stripSite = (site) => {
+        if (site.imageId) { imagesStore.removeImage(site.imageId); }
+        // for all attachements in site remove the image
+        if (site.attachments) {
+            site.attachments.forEach(attachment => {
+                if (attachment.imageId) { imagesStore.removeImage(attachment.imageId); }
+            });
+        }
+    }
     const removeSite = (site) => {
+        stripSite(site);
+            
         const theIndex = currentStory.value.sites.findIndex(l => l.id === site.id);
         if (theIndex !== -1) {
-            if (currentStory.value.sites[theIndex].imageId) { imagesStore.removeImage(currentStory.value.sites[theIndex].imageId) }
+            
             currentStory.value.sites.splice(theIndex, 1);
         }
     }
 
+    const resetStory = () => {
+        // remove all sites in story
+        currentStory.value.sites.forEach(site => {
+            stripSite(site)
+        })
+        currentStory.value.sites = [];
+        currentStory.value = { id: uuidv4(), name: 'New Story', sites: [], tags: [], mapConfiguration: { customTileLayers: [], showTooltips: true, showTooltipsMode: 'hover', timelines: [] } }
+    }
+
     return {
-        stories, currentStory, addStory, updateStory, removeStory, setCurrentStory, addSite, removeSite, updateSite, getSite, getStoryTags
+        stories, currentStory, addStory, updateStory, removeStory, resetStory, setCurrentStory, addSite, removeSite, updateSite, getSite, getStoryTags
     };
 });
+
+
 
 

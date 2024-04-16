@@ -128,6 +128,7 @@
                 </v-col>
                 <v-col cols="8" offset="1">
                   <v-file-input label="Upload FotoMapp Archive" @change="handleImport" accept=".zip"></v-file-input>
+                  <v-checkbox v-model="importReplace" label="Replace"></v-checkbox>
                 </v-col>
               </v-row>
             </v-container>
@@ -229,6 +230,7 @@ const sitesData = computed(() => currentStory.value.sites);
 const storyTags = computed(() => currentStory.value.tags);
 const storyReadOnly = computed(() => currentStory.value.mapConfiguration.readOnly);
 const exportAsReadonly = ref(false);
+const importReplace = ref(false);
 import { useImportExportLibrary } from '@/composables/useImportExportLibrary';
 const { exportStoryToZip, importStoryFromZip } = useImportExportLibrary();
 import { useSitesTreeLibrary } from '@/composables/useSitesTreeLibrary';
@@ -276,10 +278,11 @@ const exportMap = (asReadOnly) => {
 }
 
 // callback - will be invoked from importStoryFromZip  
-const handleImportedStory = (story, imageFile2NewImageIdMap) => {
-  console.log(`resolvd`)
+const handleImportedStory = (story, imageFile2NewImageIdMap, replaceCurrentStory) => {  
+  if (replaceCurrentStory) {
+    storiesStore.resetStory()
+  }
   //loop over all sites in story and create sites in current story using addSite
-
   for (const site of story.sites) {
     // find story in storiesStore with id site.id
     let existingSite = storiesStore.getSite(site.id)
@@ -295,7 +298,7 @@ const handleImportedStory = (story, imageFile2NewImageIdMap) => {
       existingSite.imageId = imageFile2NewImageIdMap[`images\/${site.imageId}`]
       existingSite.attachments?.forEach(attachment => {
         if (attachment.imageId) {
-          attachment.imageId = imageFile2NewImageIdMap[`images\/${attachment.imageId}`]          
+          attachment.imageId = imageFile2NewImageIdMap[`images\/${attachment.imageId}`]
         }
       })
       storiesStore.updateSite(existingSite)
@@ -307,7 +310,7 @@ const handleImportedStory = (story, imageFile2NewImageIdMap) => {
       newSite.imageId = imageFile2NewImageIdMap[`images\/${site.imageId}`]
       newSite.attachments?.forEach(attachment => {
         if (attachment.imageId) {
-          attachment.imageId = imageFile2NewImageIdMap[`images\/${attachment.imageId}`]          
+          attachment.imageId = imageFile2NewImageIdMap[`images\/${attachment.imageId}`]
         }
       })
 
@@ -321,7 +324,7 @@ const handleImportedStory = (story, imageFile2NewImageIdMap) => {
 const handleImport = async (event) => {
   const files = event.target.files
   if (!files || files.length == 0) return;
-  importStoryFromZip(files[0], handleImportedStory)
+  importStoryFromZip(files[0], handleImportedStory, importReplace.value)
 }
 
 const getSitesFromSiteIds = (siteIds) => {

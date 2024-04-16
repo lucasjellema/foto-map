@@ -64,7 +64,7 @@ export function useImportExportLibrary() {
 
   const imgFileRegex = /^images\/\d+$/i;
 
-  const importStoryFromZip = async (file, handleImportedStory) => {
+  const importStoryFromZip = async (file, handleImportedStory, replaceCurrentStory) => {
     const zip = new JSZip();
     const contents = await zip.loadAsync(file)
     const files = Object.values(contents.files);
@@ -81,7 +81,7 @@ export function useImportExportLibrary() {
     const data = await contents.file("story.json").async("string");
     const story = JSON.parse(data);
     // invoke callback function to handle the imported content 
-    handleImportedStory(story, imageFile2NewImageId)
+    handleImportedStory(story, imageFile2NewImageId, replaceCurrentStory)
   }
 
 
