@@ -201,7 +201,7 @@
 import domtoimage from 'dom-to-image-more';
 import ImageEditor from "@/components/imageEditor.vue"
 import SiteEditor from "@/components/SiteEditor.vue"
-import SiteMap from "@/components/SiteMap.vue"
+
 import MapConfigurator from "@/components/MapConfigurator.vue"
 import ShowTimeAnalog from "@/components/ShowTimeAnalog.vue"
 

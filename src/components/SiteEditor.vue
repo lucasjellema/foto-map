@@ -19,12 +19,26 @@
               </v-expansion-panel-text>
             </v-expansion-panel>
             <v-expansion-panel title="Time" collapse-icon="mdi-clock" expand-icon="mdi-clock">
-              <v-expansion-panel-text>                
-                <v-text-field label="Date" type="date" v-model="modelSite.datePart"></v-text-field>
-                <v-text-field label="Time" type="time" v-model="modelSite.timePart"></v-text-field>                
+              <v-expansion-panel-text>  
+                <!-- 'Exact Timestamp (high accuracy, down to minute)', value: 0 },
+  { title: 'Hour ', value: 2 },
+  { title: 'Part of Day (morning, afternoon, evening)  ', value: 4 },
+  { title: 'Day', value: 6 },
+  { title: 'Month', value: 8 },
+  { title: 'Season (Summer, Fall, Winter, Spring)', value: 10 },
+  { title: 'Year', value: 12 },
+  { title: 'Decade', value: 14 },
+  { title: 'Century', value: 16 },-->              
+
+                <v-text-field label="Date" type="date" v-model="modelSite.datePart" v-if="modelSite.timeGrain<8"></v-text-field>
+                <v-text-field label="Time" type="time" v-model="modelSite.timePart" 
+                v-if="modelSite.timeGrain<2"></v-text-field>                
+            
                 <v-select :items="utcTimezones" item-title="label" item-value="value" label="Select Timezone" outlined
-                  v-model="modelSite.timezoneOffset"></v-select>
-                
+                  v-model="modelSite.timezoneOffset" v-if="modelSite.timeGrain<8"></v-select>
+                  <div class="text-caption">Set Hour</div>
+                <v-slider v-model="hours" v-if="modelSite.timeGrain==2" min="0" max="23" step="1" thumb-label="always" thumb-size="15"
+                 :ticks="hourTickLabels" show-ticks="always"></v-slider>
                 <v-select v-model="modelSite.timeGrain" label="Time grain"
                   hint="How exact or roundabout is the timestamp to be interpreted?"
                   :items="timeGrainOptions"></v-select>
@@ -137,7 +151,7 @@ import { useDateTimeLibrary } from '@/composables/useDateTimeLibrary';
 const { utcTimezones } = useDateTimeLibrary();
 
 const selectedTimezone = ref(null); // offset in minute from UTC time
-
+const hours = ref(0);
 
 import { useImagesStore } from "../store/imagesStore";
 const imagesStore = useImagesStore()
@@ -151,11 +165,22 @@ const { mapZoomToResolution, isValidCoordinateFormat, isValidGeoJSON, reverseGeo
 import { useFunctionCallThrottler } from '@/composables/useFunctionCallThrottler';
 const { enqueueCall: enqueueCallToReverseGeocode } = useFunctionCallThrottler(1500, reverseGeocode);
 
-import { ref, onMounted } from 'vue';
+//import { ref, onMounted } from 'vue';
 
 const imageEditorRef = ref(null)
 const attachmentToEdit = ref(null)
 const showAttachmentEditorPopup = ref(false)
+
+const hourTickLabels =  {
+          0: '0',
+          3: '3',
+          6: '6',
+          9: '9',
+          12: '12',
+          15: '15',
+          18: '18',
+          21: '21'
+        }
 
 const addAndEditAttachment = () => {
   attachmentToEdit.value = { label: 'new attachment', description: 'new attachment description', imageUrl: null, imageId: null }
@@ -204,6 +229,7 @@ const timeGrainOptions = [
   { title: 'Season (Summer, Fall, Winter, Spring)', value: 10 },
   { title: 'Year', value: 12 },
   { title: 'Decade', value: 14 },
+  { title: 'Century', value: 16 },
 ]
 const showtooltipColorPicker = ref(false)
 const showtooltipBackgroundColorPicker = ref(false)
