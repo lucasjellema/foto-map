@@ -19,7 +19,7 @@
               </v-expansion-panel-text>
             </v-expansion-panel>
             <v-expansion-panel title="Time" collapse-icon="mdi-clock" expand-icon="mdi-clock">
-              <v-expansion-panel-text>  
+              <v-expansion-panel-text>
                 <!-- 'Exact Timestamp (high accuracy, down to minute)', value: 0 },
   { title: 'Hour ', value: 2 },
   { title: 'Part of Day (morning, afternoon, evening)  ', value: 4 },
@@ -28,17 +28,33 @@
   { title: 'Season (Summer, Fall, Winter, Spring)', value: 10 },
   { title: 'Year', value: 12 },
   { title: 'Decade', value: 14 },
-  { title: 'Century', value: 16 },-->              
+  { title: 'Century', value: 16 },-->
 
-                <v-text-field label="Date" type="date" v-model="modelSite.datePart" v-if="modelSite.timeGrain<8"></v-text-field>
-                <v-text-field label="Time" type="time" v-model="modelSite.timePart" 
-                v-if="modelSite.timeGrain<2"></v-text-field>                
-            
+                <v-text-field label="Date" type="date" v-model="modelSite.datePart"
+                  v-if="modelSite.timeGrain < 8"></v-text-field>
+                <v-text-field label="Time" type="time" v-model="modelSite.timePart"
+                  v-if="modelSite.timeGrain < 2"></v-text-field>
+                <v-text-field label="Year" type="number" v-model="year"
+                  v-if="(modelSite.timeGrain > 6 && modelSite.timeGrain < 13)" />
                 <v-select :items="utcTimezones" item-title="label" item-value="value" label="Select Timezone" outlined
-                  v-model="modelSite.timezoneOffset" v-if="modelSite.timeGrain<8"></v-select>
-                  <div class="text-caption">Set Hour</div>
-                <v-slider v-model="hours" v-if="modelSite.timeGrain==2" min="0" max="23" step="1" thumb-label="always" thumb-size="15"
-                 :ticks="hourTickLabels" show-ticks="always"></v-slider>
+                  v-model="modelSite.timezoneOffset" v-if="modelSite.timeGrain < 8"></v-select>
+                <div class="text-caption" v-if="modelSite.timeGrain == 2">Set Hour
+                  <v-slider v-model="hours" v-if="modelSite.timeGrain == 2" min="0" max="23" step="1"
+                    thumb-label="always" thumb-size="15" :ticks="hourTickLabels" show-ticks="always"></v-slider>
+                </div>
+                <v-radio-group v-model="dayPart" v-if="modelSite.timeGrain == 4" label="Day Part" inline>
+                  <v-radio label="Night" :value="3"></v-radio>
+                  <v-radio label="Morning" :value="9"></v-radio>
+                  <v-radio label="Afternoon" :value="15"></v-radio>
+                  <v-radio label="Evening" :value="21"></v-radio>
+                </v-radio-group>
+                <v-radio-group v-model="season" v-if="modelSite.timeGrain == 10" label="Season" inline>
+                  <v-radio label="Winter" :value="0"></v-radio>
+                  <v-radio label="Spring" :value="1"></v-radio>
+                  <v-radio label="Summer" :value="2"></v-radio>
+                  <v-radio label="Fall" :value="3"></v-radio>
+                </v-radio-group>
+
                 <v-select v-model="modelSite.timeGrain" label="Time grain"
                   hint="How exact or roundabout is the timestamp to be interpreted?"
                   :items="timeGrainOptions"></v-select>
@@ -151,7 +167,11 @@ import { useDateTimeLibrary } from '@/composables/useDateTimeLibrary';
 const { utcTimezones } = useDateTimeLibrary();
 
 const selectedTimezone = ref(null); // offset in minute from UTC time
-const hours = ref(0);
+const hours = ref(new Date().getHours());
+const year = ref(new Date().getFullYear());
+
+const dayPart = ref(null);
+const season = ref(null);
 
 import { useImagesStore } from "../store/imagesStore";
 const imagesStore = useImagesStore()
@@ -171,16 +191,17 @@ const imageEditorRef = ref(null)
 const attachmentToEdit = ref(null)
 const showAttachmentEditorPopup = ref(false)
 
-const hourTickLabels =  {
-          0: '0',
-          3: '3',
-          6: '6',
-          9: '9',
-          12: '12',
-          15: '15',
-          18: '18',
-          21: '21'
-        }
+const hourTickLabels = {
+  0: '0',
+  3: '3',
+  6: '6',
+  9: '9',
+  12: '12',
+  15: '15',
+  18: '18',
+  21: '21'
+}
+
 
 const addAndEditAttachment = () => {
   attachmentToEdit.value = { label: 'new attachment', description: 'new attachment description', imageUrl: null, imageId: null }
@@ -201,9 +222,60 @@ const handleTagChange = (newValue) => {
 }
 
 onMounted(() => {
+  hours.value = modelSite.value.timePart.substring(0, 2)
+  year.value = modelSite.value.datePart.substring(0, 4)
+
+  let month = parseInt(modelSite.value.datePart.substring(5, 7))
+  month = findClosestValue(month, [2, 5, 8, 11]) 
+
+  season.value = (month == 2 ? 0 : (month == 5 ? 1 : (month == 8 ? 2 : 3)))
+  dayPart.value = modelSite.value.timePart.substring(0, 2)
+  dayPart.value = findClosestValue(dayPart.value, [3, 9, 15, 21]) // closest value from 3, 9, 15, 21
+  console.log(`month`, month.value)
 });
 
+function findClosestValue(t, values = [3, 9, 15, 21]) {
+  // Define the set of possible closest values
+  //const values = [3, 9, 15, 21];
+
+  // Initialize variables to keep track of the closest value and smallest difference found
+  let closest = values[0];
+  let smallestDiff = Math.abs(t - values[0]);
+
+  // Iterate over the possible values
+  values.forEach(value => {
+    const diff = Math.abs(t - value);
+    if (diff < smallestDiff) {
+      smallestDiff = diff;
+      closest = value;
+    }
+  });
+
+  // Return the closest value found
+  return closest;
+}
+
+const seasonMonthMap = {0:  '02',1:  '05',2:  '08',3:  '11'}
+
 const saveSite = () => {
+  if (modelSite.value.timeGrain == 10) { // season
+    // set date from year and day - month for season based on northern hemisphere
+    modelSite.value.datePart = `${year.value}-${seasonMonthMap[season.value]}-10`
+    console.log(`season value`, seasonMonthMap[season.value])
+  }
+  console.log(`date part`, modelSite.value.datePart)
+
+  if (modelSite.value.timeGrain == 4) { // day part
+    // set time from time for day part
+    modelSite.value.timePart = `${dayPart.value}:00`
+
+  }
+  if (modelSite.value.timeGrain == 2) { // hour
+    modelSite.value.timePart = `${hours.value}:00`
+
+  }
+
+  modelSite.value.tags = []
   emit('saveSite', {})
 }
 

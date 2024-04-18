@@ -174,11 +174,11 @@
       <SitesBulkEditor v-model:sites="selectedSites" :storyTags="storyTags"
         @closeSitesDialog="showAddTagToSitesDialog = false"></SitesBulkEditor>
 
-    </v-dialog>    
+    </v-dialog>
     <v-dialog v-model="showSetTimezoneForSitesDialog" max-width="800px">
       Select timezone to use for time selected sites
-      <SitesBulkEditor v-model:sites="selectedSites" 
-        @closeSitesDialog="showSetTimezoneForSitesDialog = false"></SitesBulkEditor>
+      <SitesBulkEditor v-model:sites="selectedSites" @closeSitesDialog="showSetTimezoneForSitesDialog = false">
+      </SitesBulkEditor>
 
     </v-dialog>
 
@@ -284,13 +284,13 @@ const exportMap = (asReadOnly) => {
   exportStoryToZip(currentStory.value, asReadOnly)
 }
 
-const handleResetStory= ()  => {
+const handleResetStory = () => {
   storiesStore.resetStory()
   refreshMap()
 }
 
 // callback - will be invoked from importStoryFromZip  
-const handleImportedStory = (story, imageFile2NewImageIdMap, replaceCurrentStory) => {  
+const handleImportedStory = (story, imageFile2NewImageIdMap, replaceCurrentStory) => {
   if (replaceCurrentStory) {
     storiesStore.resetStory()
   }
@@ -592,7 +592,7 @@ const saveItem = () => {
   const [year, month, day] = editedSite.value.datePart.split('-');
   const [hours, minutes] = editedSite.value.timePart.split(':');
   //2024-04-16T05:12:00.000Z
-//  editedSite.value.timestamp = new Date(year, month - 1, day, hours, minutes); // TODO do something about the TIMEZONE!! 
+  //  editedSite.value.timestamp = new Date(year, month - 1, day, hours, minutes); // TODO do something about the TIMEZONE!! 
   editedSite.value.timestamp = editedSite.value.datePart + 'T' + editedSite.value.timePart + ':00.000Z'
   storiesStore.updateSite(editedSite.value)
   closeDialog();
@@ -678,10 +678,11 @@ let editedSite = ref({
   imageUrl: '',
   imageId: '',
   relevance: 1, // 0 is low, 1 is normal, 2 is high, 3 is low
-  timestamp: new Date(),
+  timestamp: "2024-04-16T05:12:00.000Z",
   timezoneOffset: 0,
   showTooltip: true,
-  tooltipDirection: 'auto'
+  tooltipDirection: 'auto',
+  timeGrain: 0
 
 })
 
@@ -709,12 +710,14 @@ const editItem = (site) => {
   // editedSite.value.geoJSONText = JSON.stringify(editedSite.value.geoJSON)
   const dateForTimestamp = new Date(editedSite.value.timestamp)
   editedSite.value.datePart = dateForTimestamp.toISOString().slice(0, 10)
-//  editedSite.value.timePart = dateForTimestamp.toISOString().slice(11, 16) // HH:MI
+  //  editedSite.value.timePart = dateForTimestamp.toISOString().slice(11, 16) // HH:MI
   // 2024-04-16T05:12:00.000Z
   // substring from 11 to 16
 
   editedSite.value.timePart = editedSite.value.timestamp.substring(11, 16)
-
+  if (!editedSite.value.timeGrain) {
+    editedSite.value.timeGrain = 0
+  }
   //    imageMetadata.value = null
   showEditSitePopup.value = true;
 }
