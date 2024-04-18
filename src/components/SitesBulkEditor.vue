@@ -9,6 +9,8 @@
           <v-combobox v-model="tagSelection" :items="storyTags" chips clearable deletable-chips multiple
             label="Enter tags to add to all sites" append-icon="mdi-tag-plus" @change="handleTagChange"
             :menu-props="{ maxHeight: 'auto' }"></v-combobox>
+            <v-select :items="utcTimezones" item-title="label" item-value="value" label="Select Timezone" outlined
+                  v-model="selectedTimezone"></v-select>
         </v-form>
       </v-container>
     </v-card-text>
@@ -25,9 +27,12 @@ const modelSite = defineModel('sites');
 const emit = defineEmits([ 'closeSitesDialog']);
 const props = defineProps({ storyTags: Array });
 const tagSelection = ref([]); // 
+const selectedTimezone = ref(0);
 
 import { useStorieStore } from "@/store/storiesStore";
 const storiesStore = useStorieStore()
+import { useDateTimeLibrary } from '@/composables/useDateTimeLibrary';
+const { utcTimezones } = useDateTimeLibrary();
 
 const handleTagChange = (newValue) => {
   // Handle the change event
@@ -47,8 +52,12 @@ const saveSites = () => {
     }
     const tags = new Set([...site.tags, ...tagSelection.value])
     site.tags = [...tags]
+
+    site.timezoneOffset = selectedTimezone.value
     storiesStore.updateSite(site)
   })
+
+  console.log(`selected timezone   `,selectedTimezone.value)
   emit('closeSitesDialog', {})
 
 }

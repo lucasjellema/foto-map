@@ -1,3 +1,4 @@
+import utcTimezones from './utc-timezones.json'
 export function useDateTimeLibrary() {
 
   const formatDate = (timestamp, dateFormatStyle) => {
@@ -29,7 +30,7 @@ export function useDateTimeLibrary() {
 
 
 
-  return { formatDate };
+  return { formatDate, utcTimezones };
 }
 
 

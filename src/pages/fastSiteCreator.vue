@@ -174,6 +174,12 @@
       <SitesBulkEditor v-model:sites="selectedSites" :storyTags="storyTags"
         @closeSitesDialog="showAddTagToSitesDialog = false"></SitesBulkEditor>
 
+    </v-dialog>    
+    <v-dialog v-model="showSetTimezoneForSitesDialog" max-width="800px">
+      Select timezone to use for time selected sites
+      <SitesBulkEditor v-model:sites="selectedSites" 
+        @closeSitesDialog="showSetTimezoneForSitesDialog = false"></SitesBulkEditor>
+
     </v-dialog>
 
 
@@ -246,6 +252,7 @@ const timelineProfileToShow = ref(null)
 const timelinesLegendRef = ref(null)
 const selectedSites = ref(null)
 const showAddTagToSitesDialog = ref(false)
+const showSetTimezoneForSitesDialog = ref(false)
 
 const timelineToEdit = ref(null)
 const showTimelineEditorPopup = ref(false)
@@ -365,6 +372,9 @@ const handleSiteAction = ({ siteId, siteIds, action, payload }) => {
     } else if (action == 'addTagsToSites') {
       selectedSites.value = getSitesFromSiteIds(siteIds)
       showAddTagToSitesDialog.value = true
+    } else if (action == 'setTimezoneForSites') {
+      selectedSites.value = getSitesFromSiteIds(siteIds)
+      showSetTimezoneForSitesDialog.value = true
     } else if (action == 'hideSelectedSites') {
       selectedSites.value = getSitesFromSiteIds(siteIds)
       selectedSites.value.forEach(site => hideSite(site))
@@ -571,17 +581,19 @@ const closeMapConfigurationDialog = () => {
 
 const saveItem = () => {
   // no JSONTEXT in this page editedSite.value.geoJSON =JSON.parse(editedSite.value.geoJSONText)
-  editedSite.value.geoJSON.features[0].properties.name = editedSite.value.label
-  editedSite.value.geoJSON.features[0].properties.description = editedSite.value.description
-  editedSite.value.geoJSON.features[0].properties.city = editedSite.value.city
-  editedSite.value.geoJSON.features[0].properties.country = editedSite.value.country
-  editedSite.value.geoJSON.features[0].properties.timestamp = editedSite.value.timestamp
-  editedSite.value.geoJSON.features[0].properties.imageId = editedSite.value.imageId
+  // editedSite.value.geoJSON.features[0].properties.name = editedSite.value.label
+  // editedSite.value.geoJSON.features[0].properties.description = editedSite.value.description
+  // editedSite.value.geoJSON.features[0].properties.city = editedSite.value.city
+  // editedSite.value.geoJSON.features[0].properties.country = editedSite.value.country
+  // editedSite.value.geoJSON.features[0].properties.timestamp = editedSite.value.timestamp
+  // editedSite.value.geoJSON.features[0].properties.imageId = editedSite.value.imageId
 
 
   const [year, month, day] = editedSite.value.datePart.split('-');
   const [hours, minutes] = editedSite.value.timePart.split(':');
-  editedSite.value.timestamp = new Date(year, month - 1, day, hours, minutes); // TODO do something about the TIMEZONE!! 
+  //2024-04-16T05:12:00.000Z
+//  editedSite.value.timestamp = new Date(year, month - 1, day, hours, minutes); // TODO do something about the TIMEZONE!! 
+  editedSite.value.timestamp = editedSite.value.datePart + 'T' + editedSite.value.timePart + ':00.000Z'
   storiesStore.updateSite(editedSite.value)
   closeDialog();
   refreshSite(editedSite.value)
@@ -667,6 +679,7 @@ let editedSite = ref({
   imageId: '',
   relevance: 1, // 0 is low, 1 is normal, 2 is high, 3 is low
   timestamp: new Date(),
+  timezoneOffset: 0,
   showTooltip: true,
   tooltipDirection: 'auto'
 
@@ -696,7 +709,11 @@ const editItem = (site) => {
   // editedSite.value.geoJSONText = JSON.stringify(editedSite.value.geoJSON)
   const dateForTimestamp = new Date(editedSite.value.timestamp)
   editedSite.value.datePart = dateForTimestamp.toISOString().slice(0, 10)
-  editedSite.value.timePart = dateForTimestamp.toISOString().slice(11, 16) // HH:MI
+//  editedSite.value.timePart = dateForTimestamp.toISOString().slice(11, 16) // HH:MI
+  // 2024-04-16T05:12:00.000Z
+  // substring from 11 to 16
+
+  editedSite.value.timePart = editedSite.value.timestamp.substring(11, 16)
 
   //    imageMetadata.value = null
   showEditSitePopup.value = true;

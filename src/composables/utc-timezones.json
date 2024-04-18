@@ -1,0 +1,134 @@
+[
+    {
+      "label": "UTC+00:00 - Accra (Ghana), Abidjan (Ivory Coast), Casablanca (Morocco), London (UK, Winter)",
+      "value": "+0000"
+    },
+    {
+      "label": "UTC+01:00 - Berlin (Germany, Winter), Paris (France, Winter), Rome (Italy, Winter), London (UK, Summer), Lisbon (UK, Summer)",
+      "value": "+0100"
+    },
+    {
+      "label": "UTC+02:00 - Cairo (Egypt), Johannesburg (South Africa), Athens (Greece, Winter), Amsterdam (Summer), Paris (Summer)",
+      "value": "+0200"
+    },
+    {
+      "label": "UTC+03:00 - Moscow (Russia), Riyadh (Saudi Arabia), Kuwait City (Kuwait)",
+      "value": "+0300"
+    },
+    {
+      "label": "UTC+04:00 - Dubai (UAE), Baku (Azerbaijan), Yerevan (Armenia)",
+      "value": "+0400"
+    },
+    {
+      "label": "UTC+05:00 - Karachi (Pakistan), Tashkent (Uzbekistan), Yekaterinburg (Russia)",
+      "value": "+0500"
+    },
+    {
+      "label": "UTC+05:30 - New Delhi (India), Colombo (Sri Lanka), Mumbai (India)",
+      "value": "+0530"
+    },
+    {
+      "label": "UTC+05:45 - Kathmandu (Nepal)",
+      "value": "+0545"
+    },
+    {
+      "label": "UTC+06:00 - Dhaka (Bangladesh), Almaty (Kazakhstan), Thimphu (Bhutan)",
+      "value": "+0600"
+    },
+    {
+      "label": "UTC+06:30 - Yangon (Myanmar)",
+      "value": "+0630"
+    },
+    {
+      "label": "UTC+07:00 - Jakarta (Indonesia), Bangkok (Thailand), Hanoi (Vietnam)",
+      "value": "+0700"
+    },
+    {
+      "label": "UTC+08:00 - Beijing (China), Singapore, Perth (Australia)",
+      "value": "+0800"
+    },
+    {
+      "label": "UTC+09:00 - Tokyo (Japan), Seoul (South Korea), Pyongyang (North Korea)",
+      "value": "+0900"
+    },
+    {
+      "label": "UTC+09:30 - Adelaide (Australia, Winter), Darwin (Australia)",
+      "value": "+0930"
+    },
+    {
+      "label": "UTC+10:00 - Sydney (Australia, Winter), Melbourne (Australia, Winter), Canberra (Australia, Winter)",
+      "value": "+1000"
+    },
+    {
+      "label": "UTC+11:00 - Honiara (Solomon Islands), Noumea (New Caledonia)",
+      "value": "+1100"
+    },
+    {
+      "label": "UTC+12:00 - Wellington (New Zealand), Suva (Fiji), Auckland (New Zealand)",
+      "value": "+1200"
+    },
+    {
+      "label": "UTC+13:00 - Apia (Samoa), Nukualofa (Tonga)",
+      "value": "+1300"
+    },
+    {
+      "label": "UTC+14:00 - Kiritimati (Kiribati)",
+      "value": "+1400"
+    },
+    {
+      "label": "UTC-01:00 - Praia (Cape Verde), Azores (Portugal, Winter)",
+      "value": "-0100"
+    },
+    {
+      "label": "UTC-02:00 - South Georgia (South Georgia and the South Sandwich Islands)",
+      "value": "-0200"
+    },
+    {
+      "label": "UTC-03:00 - Buenos Aires (Argentina), São Paulo (Brazil), Montevideo (Uruguay), Paramaribo (Suriname)",
+      "value": "-0300"
+    },
+    {
+      "label": "UTC-03:30 - St. John's (Canada, Winter)",
+      "value": "-0330"
+    },
+    {
+      "label": "UTC-04:00 - New York (USA, Winter), Toronto (Canada, Winter), Caracas (Venezuela)",
+      "value": "-0400"
+    },
+    {
+      "label": "UTC-05:00 - Chicago (USA, Winter), Mexico City (Mexico), Panama City (Panama)",
+      "value": "-0500"
+    },
+    {
+      "label": "UTC-06:00 - Denver (USA, Winter), Guatemala City (Guatemala), Calgary (Canada, Winter)",
+      "value": "-0600"
+    },
+    {
+      "label": "UTC-07:00 - Los Angeles (USA, Winter), Vancouver (Canada, Winter), Tijuana (Mexico, Winter)",
+      "value": "-0700"
+    },
+    {
+      "label": "UTC-08:00 - Anchorage (USA, Winter)",
+      "value": "-0800"
+    },
+    {
+      "label": "UTC-09:00 - Adak (USA, Winter)",
+      "value": "-0900"
+    },
+    {
+      "label": "UTC-09:30 - Marquesas Islands (French Polynesia)",
+      "value": "-0930"
+    },
+    {
+      "label": "UTC-10:00 - Honolulu (USA), Papeete (French Polynesia)",
+      "value": "-1000"
+    },
+    {
+      "label": "UTC-11:00 - Niue",
+      "value": "-1100"
+    },
+    {
+      "label": "UTC-12:00 - Baker Island (USA)",
+      "value": "-1200"
+    }
+  ]

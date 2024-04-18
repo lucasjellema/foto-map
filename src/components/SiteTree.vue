@@ -251,6 +251,12 @@ const handleContextMenuClickOnTree = (event) => {
         , command: () => { emit('siteAction', { action: 'addTagsToSites', siteIds: selectedSiteIds }) }
       })
     }
+    if (!readOnly && selectedSiteIds.length > 1) {
+      contextMenuItems.value.push({
+        label: ` Set Timezone for Selected Sites`, icon: 'mdi mdi-map-clock-outline'
+        , command: () => { emit('siteAction', { action: 'setTimezoneForSites', siteIds: selectedSiteIds }) }
+      })
+    }
     if (selectedSiteIds.length > 1) {
       contextMenuItems.value.push({
         label: ` Hide All Selected Sites`, icon: 'mdi mdi-eye-off'

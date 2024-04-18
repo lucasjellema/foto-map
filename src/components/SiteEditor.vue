@@ -19,10 +19,15 @@
               </v-expansion-panel-text>
             </v-expansion-panel>
             <v-expansion-panel title="Time" collapse-icon="mdi-clock" expand-icon="mdi-clock">
-              <v-expansion-panel-text>
-                <v-text-field v-model="modelSite.timestamp" label="Timestamp"></v-text-field>
+              <v-expansion-panel-text>                
                 <v-text-field label="Date" type="date" v-model="modelSite.datePart"></v-text-field>
-                <v-text-field label="Time" type="time" v-model="modelSite.timePart"></v-text-field>
+                <v-text-field label="Time" type="time" v-model="modelSite.timePart"></v-text-field>                
+                <v-select :items="utcTimezones" item-title="label" item-value="value" label="Select Timezone" outlined
+                  v-model="modelSite.timezoneOffset"></v-select>
+                
+                <v-select v-model="modelSite.timeGrain" label="Time grain"
+                  hint="How exact or roundabout is the timestamp to be interpreted?"
+                  :items="timeGrainOptions"></v-select>
               </v-expansion-panel-text>
             </v-expansion-panel>
             <v-expansion-panel title="Description & Tags" collapse-icon="mdi-pencil-box-outline"
@@ -36,11 +41,8 @@
             </v-expansion-panel>
             <v-expansion-panel title="Image" collapse-icon="mdi-image" expand-icon="mdi-image">
               <v-expansion-panel-text>
-
-
                 <image-editor :image-url="modelSite.imageUrl" :image-id="modelSite.imageId" ref="imageEditorRef"
                   image-height=600 image-width=800 @image-change="handleImageChange"></image-editor>
-
               </v-expansion-panel-text>
             </v-expansion-panel>
             <v-expansion-panel title="Attachments" collapse-icon="mdi-attachment" expand-icon="mdi-attachment">
@@ -122,7 +124,8 @@
     </v-card-actions>
   </v-card>
   <v-dialog v-model="showAttachmentEditorPopup" max-width="800px">
-    <AttachmentEditor v-model="attachmentToEdit"   @saveAttachment="saveAttachment()" @closeDialog="showAttachmentEditorPopup=false"></AttachmentEditor>
+    <AttachmentEditor v-model="attachmentToEdit" @saveAttachment="saveAttachment()"
+      @closeDialog="showAttachmentEditorPopup = false"></AttachmentEditor>
   </v-dialog>
 </template>
 <script setup>
@@ -130,6 +133,10 @@ const modelSite = defineModel('site');
 const emit = defineEmits(['saveSite', 'closeDialog']);
 const props = defineProps({ storyTags: Array });
 
+import { useDateTimeLibrary } from '@/composables/useDateTimeLibrary';
+const { utcTimezones } = useDateTimeLibrary();
+
+const selectedTimezone = ref(null); // offset in minute from UTC time
 
 
 import { useImagesStore } from "../store/imagesStore";
@@ -186,6 +193,17 @@ const resolutionOptions = [
   { title: 'Area/State/Province ', value: 2 },
   { title: 'Country', value: 3 },
   { title: 'Continent', value: 4 },
+]
+
+const timeGrainOptions = [
+  { title: 'Exact Timestamp (high accuracy, down to minute)', value: 0 },
+  { title: 'Hour ', value: 2 },
+  { title: 'Part of Day (morning, afternoon, evening)  ', value: 4 },
+  { title: 'Day', value: 6 },
+  { title: 'Month', value: 8 },
+  { title: 'Season (Summer, Fall, Winter, Spring)', value: 10 },
+  { title: 'Year', value: 12 },
+  { title: 'Decade', value: 14 },
 ]
 const showtooltipColorPicker = ref(false)
 const showtooltipBackgroundColorPicker = ref(false)
