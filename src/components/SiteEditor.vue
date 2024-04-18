@@ -267,11 +267,11 @@ const saveSite = () => {
 
   if (modelSite.value.timeGrain == 4) { // day part
     // set time from time for day part
-    modelSite.value.timePart = `${dayPart.value}:00`
+    modelSite.value.timePart = `${dayPart.value<10 ? '0' : ''}${dayPart.value}:00`
 
   }
   if (modelSite.value.timeGrain == 2) { // hour
-    modelSite.value.timePart = `${hours.value}:00`
+    modelSite.value.timePart = `${hours.value<10 ? '0' : ''}${hours.value}:00`
 
   }
 
