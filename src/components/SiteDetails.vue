@@ -1,6 +1,7 @@
 <template>
-    <v-card-text>{{ formatDate(site?.timestamp) }}
+    <v-card-text>{{ formatDateByGrain(site?.timestamp,site?.timezoneOffset, site.timeGrain) }}
       {{ site?.city }},{{ site?.country }}
+      
 
       {{ site?.geoJSON?.features[0]?.geometry?.coordinates[2] ? ` (∆
       ${site?.geoJSON.features[0].geometry.coordinates[2].toFixed(0)}m)` : '' }}
@@ -40,7 +41,7 @@ const showSiteDetailAttachmentsPopup = ref(false);
 
 import Carousel from 'primevue/carousel';
 import { useDateTimeLibrary } from '@/composables/useDateTimeLibrary';
-const { formatDate } = useDateTimeLibrary();
+const { formatDateByGrain } = useDateTimeLibrary();
 
 
 

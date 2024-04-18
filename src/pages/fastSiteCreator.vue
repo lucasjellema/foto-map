@@ -592,7 +592,7 @@ const saveItem = () => {
   const [year, month, day] = editedSite.value.datePart.split('-');
   const [hours, minutes] = editedSite.value.timePart.split(':');
   //2024-04-16T05:12:00.000Z
-  //  editedSite.value.timestamp = new Date(year, month - 1, day, hours, minutes); // TODO do something about the TIMEZONE!! 
+  //  editedSite.value.timestamp = new Date(year, month - 1, day, hours, minutes); 
   editedSite.value.timestamp = editedSite.value.datePart + 'T' + editedSite.value.timePart + ':00.000Z'
   storiesStore.updateSite(editedSite.value)
   closeDialog();

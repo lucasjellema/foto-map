@@ -20,20 +20,13 @@
             </v-expansion-panel>
             <v-expansion-panel title="Time" collapse-icon="mdi-clock" expand-icon="mdi-clock">
               <v-expansion-panel-text>
-                <!-- 'Exact Timestamp (high accuracy, down to minute)', value: 0 },
-  { title: 'Hour ', value: 2 },
-  { title: 'Part of Day (morning, afternoon, evening)  ', value: 4 },
-  { title: 'Day', value: 6 },
-  { title: 'Month', value: 8 },
-  { title: 'Season (Summer, Fall, Winter, Spring)', value: 10 },
-  { title: 'Year', value: 12 },
-  { title: 'Decade', value: 14 },
-  { title: 'Century', value: 16 },-->
-
                 <v-text-field label="Date" type="date" v-model="modelSite.datePart"
                   v-if="modelSite.timeGrain < 8"></v-text-field>
                 <v-text-field label="Time" type="time" v-model="modelSite.timePart"
                   v-if="modelSite.timeGrain < 2"></v-text-field>
+                  <v-select :items="months" item-title="name" item-value="id" label="Select Month" outlined
+                  v-model="month" v-if="modelSite.timeGrain == 8"></v-select>
+
                 <v-text-field label="Year" type="number" v-model="year"
                   v-if="(modelSite.timeGrain > 6 && modelSite.timeGrain < 13)" />
                 <v-select :items="utcTimezones" item-title="label" item-value="value" label="Select Timezone" outlined
@@ -54,7 +47,6 @@
                   <v-radio label="Summer" :value="2"></v-radio>
                   <v-radio label="Fall" :value="3"></v-radio>
                 </v-radio-group>
-
                 <v-select v-model="modelSite.timeGrain" label="Time grain"
                   hint="How exact or roundabout is the timestamp to be interpreted?"
                   :items="timeGrainOptions"></v-select>
@@ -163,12 +155,30 @@ const modelSite = defineModel('site');
 const emit = defineEmits(['saveSite', 'closeDialog']);
 const props = defineProps({ storyTags: Array });
 
+// array of objects with name of month and id of month
+const months = [
+  { name: 'January', id: 1 },
+  { name: 'February', id: 2 },
+  { name: 'March', id: 3 },
+  { name: 'April', id: 4 },
+  { name: 'May', id: 5 },
+  { name: 'June', id: 6 },
+  { name: 'July', id: 7 },
+  { name: 'August', id: 8 },
+  { name: 'September', id: 9 },
+  { name: 'October', id: 10 },
+  { name: 'November', id: 11 },
+  { name: 'December', id: 12 }  
+
+]
+
 import { useDateTimeLibrary } from '@/composables/useDateTimeLibrary';
 const { utcTimezones } = useDateTimeLibrary();
 
 const selectedTimezone = ref(null); // offset in minute from UTC time
 const hours = ref(new Date().getHours());
 const year = ref(new Date().getFullYear());
+const month = ref(new Date().getMonth());
 
 const dayPart = ref(null);
 const season = ref(null);
@@ -225,13 +235,13 @@ onMounted(() => {
   hours.value = modelSite.value.timePart.substring(0, 2)
   year.value = modelSite.value.datePart.substring(0, 4)
 
-  let month = parseInt(modelSite.value.datePart.substring(5, 7))
-  month = findClosestValue(month, [2, 5, 8, 11]) 
+  let _month = parseInt(modelSite.value.datePart.substring(5, 7))
+  _month = findClosestValue(month, [2, 5, 8, 11]) 
 
-  season.value = (month == 2 ? 0 : (month == 5 ? 1 : (month == 8 ? 2 : 3)))
+  season.value = (_month == 2 ? 0 : (_month == 5 ? 1 : (_month == 8 ? 2 : 3)))
   dayPart.value = modelSite.value.timePart.substring(0, 2)
   dayPart.value = findClosestValue(dayPart.value, [3, 9, 15, 21]) // closest value from 3, 9, 15, 21
-  console.log(`month`, month.value)
+  
 });
 
 function findClosestValue(t, values = [3, 9, 15, 21]) {
@@ -264,7 +274,10 @@ const saveSite = () => {
     console.log(`season value`, seasonMonthMap[season.value])
   }
   console.log(`date part`, modelSite.value.datePart)
-
+  if (modelSite.value.timeGrain == 8) { // month
+    // set date from year and day - month for season based on northern hemisphere
+    modelSite.value.datePart = `${year.value}-${month.value<10 ? '0' : ''}${month.value}-15`
+  }
   if (modelSite.value.timeGrain == 4) { // day part
     // set time from time for day part
     modelSite.value.timePart = `${dayPart.value<10 ? '0' : ''}${dayPart.value}:00`
