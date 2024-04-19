@@ -1,5 +1,5 @@
 import { useDateTimeLibrary } from '@/composables/useDateTimeLibrary';
-const { formatDate } = useDateTimeLibrary();
+const { formatDate, formatDateByGrain } = useDateTimeLibrary();
 import { useTimelinesLibrary } from '@/composables/useTimelinesLibrary';
 const { getSortedSitesInTimeline } = useTimelinesLibrary();
 
@@ -17,7 +17,7 @@ export function useSitesTreeLibrary() {
       children: []
     }
     // if multiple years/months/days, then add children for years/months/days
-
+    // TODO cater for timeGrain > 12 (decade, century, etc.)
 
     const uniqueYears = [...new Set(sites.map(site => new Date(site.timestamp).getFullYear()))];
     for (const year of uniqueYears) {
@@ -31,7 +31,51 @@ export function useSitesTreeLibrary() {
         selectable: false,
         children: []
       }
-      const uniqueMonths = [...new Set(sites.filter(site => new Date(site.timestamp).getFullYear() === year).sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
+      // TODO sites with timeGrain== 12 -- year
+
+      const sitesTimesGrainYear = sites.filter(site => new Date(site.timestamp).getFullYear() === year
+        && (site.timeGrain && site.timeGrain == 12))
+      for (const site of sitesTimesGrainYear) {
+        const siteNode = {
+          key: site.id,
+          label: site.label + ' (' + formatDateByGrain(site.timestamp, site.timezoneOffset, site.timeGrain ? site.timeGrain : 0) + ')',
+          data: site,
+          icon: 'mdi mdi-clock-outline',
+          selectable: true,
+          styleClass: `treekey|site|${site.id}`,
+          leaf: true,
+          children: [],
+          parent: yearNode
+        }
+        yearNode.children.push(siteNode)
+      }
+
+
+      // TODO if more than one site in a season, then add season as intermediate node??
+      const sitesTimesGrainSeason = sites.filter(site => new Date(site.timestamp).getFullYear() === year
+        && (site.timeGrain && site.timeGrain == 10)).sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
+      // first identify the seasons?>  
+
+      for (const site of sitesTimesGrainSeason) {
+        const siteNode = {
+          key: site.id,
+          label: site.label + ' (' + formatDateByGrain(site.timestamp, site.timezoneOffset, site.timeGrain ? site.timeGrain : 0) + ')',
+          data: site,
+          icon: 'mdi mdi-clock-outline',
+          selectable: true,
+          styleClass: `treekey|site|${site.id}`,
+          leaf: true,
+          children: [],
+          parent: yearNode
+        }
+        yearNode.children.push(siteNode)
+      }
+
+
+
+
+
+      const uniqueMonths = [...new Set(sites.filter(site => new Date(site.timestamp).getFullYear() === year && (!site.timeGrain || site.timeGrain < 12)).sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
         .map(site => new Date(site.timestamp).toLocaleString('default', { month: 'long' }))
       )];
       for (const month of uniqueMonths) {
@@ -45,9 +89,30 @@ export function useSitesTreeLibrary() {
           selectable: false,
           children: []
         }
+
+        const sitesTimesGrainMonth = sites.filter(site => new Date(site.timestamp).getFullYear() === year
+          && new Date(site.timestamp).toLocaleString('default', { month: 'long' }) === month
+          && (site.timeGrain && site.timeGrain == 8))
+        for (const site of sitesTimesGrainMonth) {
+          const siteNode = {
+            key: site.id,
+            label: site.label + ' (' + formatDateByGrain(site.timestamp, site.timezoneOffset, site.timeGrain ? site.timeGrain : 0) + ')',
+            data: site,
+            icon: 'mdi mdi-clock-outline',
+            selectable: true,
+            styleClass: `treekey|site|${site.id}`,
+            leaf: true,
+            children: [],
+            parent: monthNode
+          }
+          monthNode.children.push(siteNode)
+        }
+
+
         // iterate over all sites with a timestamp that matches the year and month
         const sitesWithYearAndMonth = sites.filter(site => new Date(site.timestamp).getFullYear() === year
-          && new Date(site.timestamp).toLocaleString('default', { month: 'long' }) === month)
+          && new Date(site.timestamp).toLocaleString('default', { month: 'long' }) === month
+          && (!site.timeGrain || site.timeGrain < 8))
         // for all sites with the same year and month, add them to the month node
         const uniqueDays = [...new Set(sitesWithYearAndMonth.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
           .map(site => new Date(site.timestamp).getDate()))];
@@ -70,7 +135,7 @@ export function useSitesTreeLibrary() {
             //          sitesWithYearMonthAndDay.forEach(site => {
             const siteNode = {
               key: site.id,
-              label: site.label + ' (' + formatDate(site.timestamp, 'short') + ')',
+              label: site.label + ' (' + formatDateByGrain(site.timestamp, site.timezoneOffset, site.timeGrain ? site.timeGrain : 0) + ')',
               data: site,
               icon: 'mdi mdi-clock-outline',
               selectable: true,
@@ -97,7 +162,7 @@ export function useSitesTreeLibrary() {
           monthNode.children.push(dayNode)
         }
         //)
-        if (uniqueMonths.length > 1) {
+        if (uniqueMonths.length > 1 || yearNode.children.length > 0) {
           console.log(`push monthNode ${monthNode.label}`)
           yearNode.children.push(monthNode)
         } else {
@@ -164,7 +229,7 @@ export function useSitesTreeLibrary() {
           //        sites.filter(site => site.country === country && site.city === city).sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp)).forEach(site => {
           const siteNode = {
             key: site.id, // to allow the site to be found from the feature - as in the map only the feature will be available
-            label: site.label + ' - ' + formatDate(site.timestamp, 'medium'),
+            label: site.label + ' (' + formatDateByGrain(site.timestamp, site.timezoneOffset, site.timeGrain ? site.timeGrain : 0) + ')',
             data: site,
             leaf: true,
             icon: 'mdi mdi-map-clock-outline',
@@ -230,7 +295,8 @@ export function useSitesTreeLibrary() {
       tagsSitesMap[tag].forEach(site => {
         const siteNode = {
           key: site.id, // to allow the site to be found from the feature - as in the map only the feature will be available  
-          label: `${site.label} (${site.city}, ${site.country}) - ${formatDate(site.timestamp, 'medium')}`,
+          label: `${site.label} (${site.city}, ${site.country}) - ${formatDateByGrain(site.timestamp, site.timezoneOffset, site.timeGrain ? site.timeGrain : 0)}`,
+
           data: site,
           icon: 'mdi mdi-map-clock-outline',
           leaf: true,
@@ -273,7 +339,7 @@ export function useSitesTreeLibrary() {
       for (const site of sitesInTimeline) {
         const siteNode = {
           key: `${site.id}`,
-          label: `${site.label} (${site.city}, ${site.country}) - ${formatDate(site.timestamp, 'medium')}`,
+          label: `${site.label} (${site.city}, ${site.country}) - ${formatDateByGrain(site.timestamp, site.timezoneOffset, site.timeGrain ? site.timeGrain : 0)}`,
           data: site,
           icon: 'mdi mdi-map-clock-outline',
           leaf: true,
