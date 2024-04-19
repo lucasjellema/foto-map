@@ -1,8 +1,9 @@
 import utcTimezones from './utc-timezones.json'
 export function useDateTimeLibrary() {
 
-  const formatDate = (timestamp, dateFormatStyle) => {
-    const date = new Date(timestamp)
+  const formatDate = (timestamp, dateFormatStyle, timezoneOffset) => {
+//    const date = timezoneOffset? new Date( new Date(timestamp)- timezoneOffset * 60 * 1000):new Date(timestamp)
+    const date = new Date(timestamp) // this is not correct: it uses the current local timezone.
 
     if (dateFormatStyle === "dow") {
       const dayOfWeek = date.toLocaleString('default', { weekday: 'long' })
@@ -10,19 +11,20 @@ export function useDateTimeLibrary() {
       return dayOfWeek
     }
     else if (dateFormatStyle === "short") { // HH:MI
-      const hour = date.getHours();
-      const min = date.getMinutes();
+      const hour = date.getUTCHours();
+      const min = date.getUTCMinutes();
       return `${hour}:${min < 10 ? '0' : ''}${min}`
     } else if (dateFormatStyle === "medium") {  // DD month HH:MI
-      const day = date.getDate();
+      const day = date.getUTCDate();
+      // TODO toLocaleString is expensive and not UTC correct
       const month = date.toLocaleString('default', { month: 'long' })
-      const hour = date.getHours();
-      const min = date.getMinutes();
+      const hour = date.getUTCHours();
+      const min = date.getUTCMinutes();
       return `${day} ${month} ${hour}:${min < 10 ? '0' : ''}${min}`
     } else { // DD month YYYY
-      const day = date.getDate();
+      const day = date.getUTCDate();
       const month = date.toLocaleString('default', { month: 'long' })
-      const year = date.getFullYear();
+      const year = date.getUTCFullYear();
       return `${day} ${month} ${year}`
     }
   }
@@ -40,6 +42,8 @@ export function useDateTimeLibrary() {
   const seasons = ["Winter", "Spring", "Summer", "Fall"]
   const dayParts = ["Night", "Morning", "Afternoon", "Evening"]
   const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
+
+
   const formatDateByGrain = (timestamp, timezoneOffset, timegrain) => {
 
     let dateTimeString = ""
@@ -54,7 +58,7 @@ export function useDateTimeLibrary() {
     // editedSite.value.timePart = editedSite.value.timestamp.substring(11, 16)
 
     if (timegrain === 0) {
-      dateTimeString = formatDate(timestamp, "medium")
+      dateTimeString = formatDate(timestamp, "medium", timezoneOffset) // TODO cater for timezoneOffset!!!
     }
     if (timegrain === 4) {
       const hour = parseInt(timestamp.substring(11, 13))
@@ -64,8 +68,8 @@ export function useDateTimeLibrary() {
     }
     if (timegrain === 2) {
       const hour = parseInt(timestamp.substring(11, 13))
-      dateTimeString = hour + ":00,"
-      // plus date
+      dateTimeString = `${hour} ${hour<12 ? " AM, " : " PM, "}` 
+      
     }
 
     if (timegrain === 8) {
