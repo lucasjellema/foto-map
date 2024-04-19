@@ -268,6 +268,12 @@ function findClosestValue(t, values = [3, 9, 15, 21]) {
 const seasonMonthMap = {0:  '02',1:  '05',2:  '08',3:  '11'}
 
 const saveSite = () => {
+  const site = modelSite.value
+  console.log(`site`, site, modelSite.value.timeGrain)
+  if (modelSite.value.timeGrain == 12) { // year
+    // set date from year and 1st July
+    modelSite.value.datePart = `${year.value}-07-01`
+  }
   if (modelSite.value.timeGrain == 10) { // season
     // set date from year and day - month for season based on northern hemisphere
     modelSite.value.datePart = `${year.value}-${seasonMonthMap[season.value]}-10`
