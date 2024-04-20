@@ -24,7 +24,7 @@
                   v-if="modelSite.timeGrain < 8"></v-text-field>
                 <v-text-field label="Time" type="time" v-model="modelSite.timePart"
                   v-if="modelSite.timeGrain < 2"></v-text-field>
-                  <v-select :items="months" item-title="name" item-value="id" label="Select Month" outlined
+                <v-select :items="months" item-title="name" item-value="id" label="Select Month" outlined
                   v-model="month" v-if="modelSite.timeGrain == 8"></v-select>
 
                 <v-text-field label="Year" type="number" v-model="year"
@@ -54,11 +54,13 @@
             </v-expansion-panel>
             <v-expansion-panel title="Description & Tags" collapse-icon="mdi-pencil-box-outline"
               expand-icon="mdi-pencil-box-outline">
-              <v-expansion-panel-text>
+              <v-expansion-panel-text >
+                <v-sheet class="flex-1-1-100  ma-0 pa-0">
+                  <QuillEditor theme="snow" toolbar="essential" v-model:content="description" contentType="delta" />
+                </v-sheet>
                 <v-combobox v-model="modelSite.tags" :items="storyTags" chips clearable deletable-chips multiple
                   label="Enter tags" append-icon="mdi-tag-plus" @change="handleTagChange"
-                  :menu-props="{ maxHeight: 'auto' }"></v-combobox>
-                <v-textarea v-model="modelSite.description" label="Description" auto-grow clearable></v-textarea>
+                  :menu-props="{ maxHeight: 'auto' }"  class="ma-0 mt-5"</v-combobox>
               </v-expansion-panel-text>
             </v-expansion-panel>
             <v-expansion-panel title="Image" collapse-icon="mdi-image" expand-icon="mdi-image">
@@ -151,6 +153,13 @@
   </v-dialog>
 </template>
 <script setup>
+
+import { QuillEditor } from '@vueup/vue-quill'
+import '@vueup/vue-quill/dist/vue-quill.snow.css';
+
+import { useQuillUtilsLibrary } from '@/composables/useQuillUtilsLibrary';
+const { ensureDeltaFormat } = useQuillUtilsLibrary();
+
 const modelSite = defineModel('site');
 const emit = defineEmits(['saveSite', 'closeDialog']);
 const props = defineProps({ storyTags: Array });
@@ -168,7 +177,7 @@ const months = [
   { name: 'September', id: 9 },
   { name: 'October', id: 10 },
   { name: 'November', id: 11 },
-  { name: 'December', id: 12 }  
+  { name: 'December', id: 12 }
 
 ]
 
@@ -182,7 +191,7 @@ const month = ref(new Date().getMonth());
 
 const dayPart = ref(null);
 const season = ref(null);
-
+const description = ref(null)
 import { useImagesStore } from "../store/imagesStore";
 const imagesStore = useImagesStore()
 
@@ -232,16 +241,18 @@ const handleTagChange = (newValue) => {
 }
 
 onMounted(() => {
+
+  description.value = modelSite.value.description
   hours.value = modelSite.value.timePart.substring(0, 2)
   year.value = modelSite.value.datePart.substring(0, 4)
 
   let _month = parseInt(modelSite.value.datePart.substring(5, 7))
-  _month = findClosestValue(month, [2, 5, 8, 11]) 
+  _month = findClosestValue(month, [2, 5, 8, 11])
 
   season.value = (_month == 2 ? 0 : (_month == 5 ? 1 : (_month == 8 ? 2 : 3)))
   dayPart.value = modelSite.value.timePart.substring(0, 2)
   dayPart.value = findClosestValue(dayPart.value, [3, 9, 15, 21]) // closest value from 3, 9, 15, 21
-  
+
 });
 
 function findClosestValue(t, values = [3, 9, 15, 21]) {
@@ -265,10 +276,12 @@ function findClosestValue(t, values = [3, 9, 15, 21]) {
   return closest;
 }
 
-const seasonMonthMap = {0:  '02',1:  '05',2:  '08',3:  '11'}
+const seasonMonthMap = { 0: '02', 1: '05', 2: '08', 3: '11' }
 
 const saveSite = () => {
   const site = modelSite.value
+  site.description = description.value
+  console.log(JSON.stringify(site.description, null, 2))
   console.log(`site`, site, modelSite.value.timeGrain)
   if (modelSite.value.timeGrain == 12) { // year
     // set date from year and 1st July
@@ -282,15 +295,15 @@ const saveSite = () => {
   console.log(`date part`, modelSite.value.datePart)
   if (modelSite.value.timeGrain == 8) { // month
     // set date from year and day - month for season based on northern hemisphere
-    modelSite.value.datePart = `${year.value}-${month.value<10 ? '0' : ''}${month.value}-15`
+    modelSite.value.datePart = `${year.value}-${month.value < 10 ? '0' : ''}${month.value}-15`
   }
   if (modelSite.value.timeGrain == 4) { // day part
     // set time from time for day part
-    modelSite.value.timePart = `${dayPart.value<10 ? '0' : ''}${dayPart.value}:00`
+    modelSite.value.timePart = `${dayPart.value < 10 ? '0' : ''}${dayPart.value}:00`
 
   }
   if (modelSite.value.timeGrain == 2) { // hour
-    modelSite.value.timePart = `${hours.value<10 ? '0' : ''}${hours.value}:00`
+    modelSite.value.timePart = `${hours.value < 10 ? '0' : ''}${hours.value}:00`
 
   }
 

@@ -37,7 +37,8 @@
                   <div>
                     <h2>{{ attachment.label }}</h2>
                     <v-spacer></v-spacer>
-                    {{ attachment.description }}
+                    <QuillEditor theme="bubble" :toolbar="[]" v-model:content="attachment.description" contentType="delta" readOnly="true" v-if="attachment?.description"/>
+
                   </div>
                 </v-col>
               </v-row>
@@ -55,6 +56,8 @@
   </v-card>
 </template>
 <script setup>
+import { QuillEditor } from '@vueup/vue-quill'
+import '@vueup/vue-quill/dist/vue-quill.snow.css';
 const modelSite = defineModel('site');
 const emit = defineEmits(['closeDialog']);
 
