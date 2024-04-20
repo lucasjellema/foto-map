@@ -57,7 +57,7 @@ export function useDateTimeLibrary() {
 
     // editedSite.value.timePart = editedSite.value.timestamp.substring(11, 16)
 
-    if (timegrain === 0) {
+    if (timegrain === 0 || timegrain==null) {
       dateTimeString = formatDate(timestamp, "medium", timezoneOffset) // TODO cater for timezoneOffset!!!
     }
     if (timegrain === 4) {
