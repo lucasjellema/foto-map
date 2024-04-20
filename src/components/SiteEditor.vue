@@ -71,7 +71,19 @@
             </v-expansion-panel>
             <v-expansion-panel title="Attachments" collapse-icon="mdi-attachment" expand-icon="mdi-attachment">
               <v-expansion-panel-text>
-                Attachments
+
+                '<v-data-table :headers="attachmentHeaders" :items="modelSite.attachments" item-key="label"
+                    class="elevation-1">
+                    <template v-slot:item.actions="{ item,index }">
+                      <v-icon small @click="editAttachment(item, index)">
+                        mdi-pencil
+                      </v-icon>
+                      <v-icon small @click="removeAttachment(item, index)">
+                        mdi-delete
+                      </v-icon>
+                    </template>
+                  </v-data-table>
+                
                 <v-btn prepend-icon="mdi-attachment-plus" @click="addAndEditAttachment()">Add Attachment</v-btn>
               </v-expansion-panel-text>
             </v-expansion-panel>
@@ -199,7 +211,10 @@ import { useLocationLibrary } from '@/composables/useLocationLibrary';
 import TooltipDirectionSelector from '@/components/TooltipDirectionSelector.vue'
 import IconSelector from '@/components/IconSelector.vue'
 import AttachmentEditor from '@/components/AttachmentEditor.vue'
-
+const attachmentHeaders = ref([
+  { title: 'Label', value: 'label' },
+  { title: 'Actions', value: 'actions' },
+])
 const { mapZoomToResolution, isValidCoordinateFormat, isValidGeoJSON, reverseGeocode, createSiteFromGeoJSON } = useLocationLibrary();
 import { useFunctionCallThrottler } from '@/composables/useFunctionCallThrottler';
 const { enqueueCall: enqueueCallToReverseGeocode } = useFunctionCallThrottler(1500, reverseGeocode);
@@ -223,12 +238,23 @@ const hourTickLabels = {
 
 
 const addAndEditAttachment = () => {
-  attachmentToEdit.value = { label: 'new attachment', description: 'new attachment description', imageUrl: null, imageId: null }
+  attachmentToEdit.value = { label: 'new attachment', description: null, imageUrl: null, imageId: null }
   showAttachmentEditorPopup.value = true
+}
+
+const editAttachment = (item, index) => {
+  attachmentToEdit.value = item
+  showAttachmentEditorPopup.value = true
+}
+
+const removeAttachment = (item, index) => {
+  console.log(`remove attachment ${index} ${item.label}`)
+  modelSite.value.attachments.splice(index, 1)
 }
 
 const saveAttachment = () => {
   if (!modelSite.value.attachments) modelSite.value.attachments = []
+  console.log(attachmentToEdit.value.description)
   modelSite.value.attachments.push(attachmentToEdit.value) // this will work for new attachments; existing ones should be updated or replaced
   showAttachmentEditorPopup.value = false
 }

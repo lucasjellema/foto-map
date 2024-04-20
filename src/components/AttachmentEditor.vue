@@ -5,9 +5,12 @@
 
             <v-card-text>
                 <v-text-field v-model="model.label" label="Label"></v-text-field>
-                <v-text-field v-model="model.description" label="Description"></v-text-field>
+                <!-- <v-text-field v-model="model.description" label="Description"></v-text-field> -->
+                <v-sheet class="flex-1-1-100  ma-0 pa-0 mb-3">
+                  <QuillEditor theme="snow" toolbar="essential" v-model:content="model.description" contentType="delta" />
+                </v-sheet>
                 <image-editor :image-url="model.imageUrl" :image-id="model.imageId" ref="imageEditorRef"
-                    image-height=400 image-width=800 @image-change="handleImageChange"></image-editor>
+                    image-height=400 image-width=800 @image-change="handleImageChange" ></image-editor>
             </v-card-text>
             <v-card-actions>
                 <v-spacer></v-spacer>
@@ -19,6 +22,8 @@
     </v-container>
 </template>
 <script setup>
+import { QuillEditor } from '@vueup/vue-quill'
+import '@vueup/vue-quill/dist/vue-quill.snow.css';
 const imageEditorRef = ref(null)
 const model = defineModel(); // contains the attachment object - with a label, description, a timestamp, and an image url or imageId , another url for an external resource
 const emit = defineEmits(['saveAttachment', 'closeDialog']);
