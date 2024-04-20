@@ -11,7 +11,7 @@
       </div>
       <div>
         <v-img width="500" cover :src="site?.imageURL" content-class="hover-zoom"></v-img>        
-        <QuillEditor theme="bubble" :toolbar="[]" v-model:content="site.description" contentType="delta" readOnly="true" v-if="site?.description"/>
+        <QuillEditor theme="bubble" :toolbar="[]" v-model:content="site.description" contentType="delta" :readOnly="true" v-if="site?.description"/>
       </div>
 
       <div v-if="site?.tags?.length > 0">
