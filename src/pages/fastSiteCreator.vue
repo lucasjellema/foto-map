@@ -211,6 +211,8 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet-contextmenu';
 import 'leaflet-contextmenu/dist/leaflet.contextmenu.min.css';
+import { QuillEditor, Delta } from '@vueup/vue-quill'
+
 import { ref, onMounted } from 'vue';
 import { useLocationLibrary } from '@/composables/useLocationLibrary';
 import TooltipDirectionSelector from '@/components/TooltipDirectionSelector.vue'
@@ -242,7 +244,7 @@ const { exportStoryToZip, importStoryFromZip } = useImportExportLibrary();
 import { useSitesTreeLibrary } from '@/composables/useSitesTreeLibrary';
 
 import { useDateTimeLibrary } from '@/composables/useDateTimeLibrary';
-const { formatDate,formatDateByGrain } = useDateTimeLibrary();
+const { formatDate, formatDateByGrain } = useDateTimeLibrary();
 import { useTimelinesLibrary } from '@/composables/useTimelinesLibrary';
 const { splitTimelineAtSiteX, drawTimelinesX, hideTimelines, startTimelineAtSite, highlightTimeline, unhighlightTimeline, endTimelineAtSite, refreshTimelines, registerEventCallback, fuseTimelinesAtSite, createTimelinePer } = useTimelinesLibrary();
 const tab = ref('tab-1')
@@ -1091,7 +1093,7 @@ const hideSite = (site) => {
 
 function findSitesWithinConsolidationRadius(targetSite) {
   // Array to store features within consolidation radius
-const consolidationRadius = currentStory.value.mapConfiguration.consolidationRadius? currentStory.value.mapConfiguration.consolidationRadius:2
+  const consolidationRadius = currentStory.value.mapConfiguration.consolidationRadius ? currentStory.value.mapConfiguration.consolidationRadius : 2
 
   console.log(`finding sites within ${consolidationRadius} km from ${targetSite.id} 
   at ${targetSite.geoJSON.features[0].geometry.coordinates[0]}, ${targetSite.geoJSON.features[0].geometry.coordinates[1]}`)
@@ -1131,8 +1133,15 @@ const consolidateSitesToTargetSite = (targetSite, sitesToConsolidate) => {
       //      const siteToRemove = storiesStore.getSite(feature.feature.properties.id)
       // add to targetSite.attachments an object with description (consisting of label, timestamp, description) and imageID
       if (siteToRemove.imageId || siteToRemove.description) {
-         targetSite.attachments.push({
-          description: siteToRemove.description, label: siteToRemove.label
+
+        const delta = new Delta([
+          { insert: `${siteToRemove.city}, ${siteToRemove.country}\n`, attributes: { bold: true } },
+          { insert: `${formatDateByGrain(siteToRemove.timestamp, siteToRemove.timezoneOffset, siteToRemove.timeGrain)}`, attributes: { color: '#ccc' } }
+        ]);
+
+        targetSite.attachments.push({
+            description: siteToRemove.description ? siteToRemove.description : delta
+          , label: siteToRemove.label
           , imageId: siteToRemove.imageId
         })
         siteToRemove.imageId = null // to prevent the removal of the site to alsoresult in removal of the referenced image 
@@ -1169,26 +1178,26 @@ const consolidateAllSites = () => {
   // loop over all markers/sites and consolidate each  
   // note: after a consolidation, sites may have been removed from the layer
   const recentlyRemovedSites = []
-for (const site of currentStory.value.sites) {
-  if (!recentlyRemovedSites.includes(site)) {
-    const consolidatedSites = consolidateSite(site)
-    recentlyRemovedSites.push(...consolidatedSites)
-  }  
-}
-// currentStory.value.sites.forEach(site => {
-//   consolidateSite(site)
-// })
+  for (const site of currentStory.value.sites) {
+    if (!recentlyRemovedSites.includes(site)) {
+      const consolidatedSites = consolidateSite(site)
+      recentlyRemovedSites.push(...consolidatedSites)
+    }
+  }
+  // currentStory.value.sites.forEach(site => {
+  //   consolidateSite(site)
+  // })
 
-// // NOTE: removed markers and removed sites are not the same thing! - 
+  // // NOTE: removed markers and removed sites are not the same thing! - 
 
-//   const recentlyRemovedMarkers = []
-//   markersLayer.eachLayer(function (marker) {
-//     if (!recentlyRemovedMarkers.includes(marker)) {
-//       // TODO marker is not yhe same as site - why call consolidate site here?
-//       const removedFeatures = consolidateSite(marker.site);  
-//       recentlyRemovedMarkers.push(...removedFeatures)
-//     }
-//   });
+  //   const recentlyRemovedMarkers = []
+  //   markersLayer.eachLayer(function (marker) {
+  //     if (!recentlyRemovedMarkers.includes(marker)) {
+  //       // TODO marker is not yhe same as site - why call consolidate site here?
+  //       const removedFeatures = consolidateSite(marker.site);  
+  //       recentlyRemovedMarkers.push(...removedFeatures)
+  //     }
+  //   });
 
 }
 
