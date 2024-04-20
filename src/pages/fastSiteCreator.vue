@@ -65,8 +65,8 @@
 
                 <v-col cols="auto">
                   <!-- an input element to set the consolidation radius in km -->
-                  <v-text-field v-model="consolidationRadius" label="Consolidation Radius (km)"
-                    type="number"></v-text-field>
+                  <!-- <v-text-field v-model="consolidationRadius" label="Consolidation Radius (km)"
+                    type="number"></v-text-field> -->
                 </v-col>
               </v-row>
 
@@ -242,7 +242,7 @@ const { exportStoryToZip, importStoryFromZip } = useImportExportLibrary();
 import { useSitesTreeLibrary } from '@/composables/useSitesTreeLibrary';
 
 import { useDateTimeLibrary } from '@/composables/useDateTimeLibrary';
-const { formatDate } = useDateTimeLibrary();
+const { formatDate,formatDateByGrain } = useDateTimeLibrary();
 import { useTimelinesLibrary } from '@/composables/useTimelinesLibrary';
 const { splitTimelineAtSiteX, drawTimelinesX, hideTimelines, startTimelineAtSite, highlightTimeline, unhighlightTimeline, endTimelineAtSite, refreshTimelines, registerEventCallback, fuseTimelinesAtSite, createTimelinePer } = useTimelinesLibrary();
 const tab = ref('tab-1')
@@ -517,7 +517,7 @@ const mapEditMode = ref(false)
 const mapClusterMode = ref(false)
 const mapFilterMode = ref(false)
 const mapShowTimelines = ref(false)
-const consolidationRadius = ref(2)
+//const consolidationRadius = ref(2)
 const dateRangeTicks = computed(() => {
   const start = minTimestamp.value
   const end = maxTimestamp.value
@@ -1082,8 +1082,6 @@ const findMarkerForSite = (site) => {
       break;
     }
   }
-
-
   return theMarker;
 }
 
@@ -1093,10 +1091,12 @@ const hideSite = (site) => {
 
 function findSitesWithinConsolidationRadius(targetSite) {
   // Array to store features within consolidation radius
-  console.log(`finding sites within ${consolidationRadius.value} km from ${targetSite.id} 
+const consolidationRadius = currentStory.value.mapConfiguration.consolidationRadius? currentStory.value.mapConfiguration.consolidationRadius:2
+
+  console.log(`finding sites within ${consolidationRadius} km from ${targetSite.id} 
   at ${targetSite.geoJSON.features[0].geometry.coordinates[0]}, ${targetSite.geoJSON.features[0].geometry.coordinates[1]}`)
 
-  const consolidationRangeInMeters = 1000 * consolidationRadius.value
+  const consolidationRangeInMeters = 1000 * consolidationRadius
   let sitesWithinRadius = [];
 
   // // Convert target feature's coordinates to a Leaflet LatLng object
@@ -1131,8 +1131,8 @@ const consolidateSitesToTargetSite = (targetSite, sitesToConsolidate) => {
       //      const siteToRemove = storiesStore.getSite(feature.feature.properties.id)
       // add to targetSite.attachments an object with description (consisting of label, timestamp, description) and imageID
       if (siteToRemove.imageId || siteToRemove.description) {
-        targetSite.attachments.push({
-          description: `${formatDate(siteToRemove.timestamp)} ${siteToRemove.city}, ${siteToRemove.country}`
+         targetSite.attachments.push({
+          description: siteToRemove.description, label: siteToRemove.label
           , imageId: siteToRemove.imageId
         })
         siteToRemove.imageId = null // to prevent the removal of the site to alsoresult in removal of the referenced image 
@@ -1168,13 +1168,27 @@ const consolidateSite = (targetSite) => {
 const consolidateAllSites = () => {
   // loop over all markers/sites and consolidate each  
   // note: after a consolidation, sites may have been removed from the layer
-  const recentlyRemovedMarkers = []
-  markersLayer.eachLayer(function (marker) {
-    if (!recentlyRemovedMarkers.includes(marker)) {
-      const removedFeatures = consolidateSite(marker);
-      recentlyRemovedMarkers.push(...removedFeatures)
-    }
-  });
+  const recentlyRemovedSites = []
+for (const site of currentStory.value.sites) {
+  if (!recentlyRemovedSites.includes(site)) {
+    const consolidatedSites = consolidateSite(site)
+    recentlyRemovedSites.push(...consolidatedSites)
+  }  
+}
+// currentStory.value.sites.forEach(site => {
+//   consolidateSite(site)
+// })
+
+// // NOTE: removed markers and removed sites are not the same thing! - 
+
+//   const recentlyRemovedMarkers = []
+//   markersLayer.eachLayer(function (marker) {
+//     if (!recentlyRemovedMarkers.includes(marker)) {
+//       // TODO marker is not yhe same as site - why call consolidate site here?
+//       const removedFeatures = consolidateSite(marker.site);  
+//       recentlyRemovedMarkers.push(...removedFeatures)
+//     }
+//   });
 
 }
 
