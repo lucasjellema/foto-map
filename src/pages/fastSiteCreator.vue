@@ -250,7 +250,7 @@ const { exportStoryToZip, importStoryFromZip } = useImportExportLibrary();
 import { useSitesTreeLibrary } from '@/composables/useSitesTreeLibrary';
 
 import { useDateTimeLibrary } from '@/composables/useDateTimeLibrary';
-const { formatDate, formatDateByGrain } = useDateTimeLibrary();
+const { formatDate, formatDateByGrain, getLocalISOStringForNow } = useDateTimeLibrary();
 import { useTimelinesLibrary } from '@/composables/useTimelinesLibrary';
 const { splitTimelineAtSiteX, drawTimelinesX, hideTimelines, startTimelineAtSite, highlightTimeline, unhighlightTimeline, endTimelineAtSite, refreshTimelines, registerEventCallback, fuseTimelinesAtSite, createTimelinePer } = useTimelinesLibrary();
 const tab = ref('tab-1')
@@ -1583,7 +1583,7 @@ const attachMapListeners = () => {
         }
           ;
         console.log(`double click at location ${JSON.stringify(geoJsonPointFeature)}`)
-        createSiteFromGeoJSON(geoJsonPointFeature, null, new Date());
+        createSiteFromGeoJSON(geoJsonPointFeature, null, getLocalISOStringForNow() );
       }
     })
 

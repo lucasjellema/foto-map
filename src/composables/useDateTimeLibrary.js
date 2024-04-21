@@ -98,8 +98,15 @@ export function useDateTimeLibrary() {
 
   }
 
+  function getLocalISOStringForNow() {
+    const now = new Date();
+    const timezoneOffset = now.getTimezoneOffset() * 60000; // offset in milliseconds
+    const localTime = new Date(now - timezoneOffset);
+    return localTime.toISOString().slice(0, -1) + now.toISOString().slice(-1); // ensure the 'Z' is replaced if needed
+}
 
-  return { formatDate, formatDateByGrain, utcTimezones };
+
+  return { formatDate, formatDateByGrain, utcTimezones,getLocalISOStringForNow };
 }
 
 
