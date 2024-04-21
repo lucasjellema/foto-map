@@ -1,16 +1,19 @@
 <template>
   <v-card>
     <v-card-title>
-      <span class="headline">Add Tags to Selected Sites</span>
+      <span class="headline">Add Tags to Selected Sites {{ mode }}</span>
     </v-card-title>
     <v-card-text>
       <v-container>
         <v-form ref="form">
           <v-combobox v-model="tagSelection" :items="storyTags" chips clearable deletable-chips multiple
             label="Enter tags to add to all sites" append-icon="mdi-tag-plus" @change="handleTagChange"
-            :menu-props="{ maxHeight: 'auto' }"></v-combobox>
-            <v-select :items="utcTimezones" item-title="label" item-value="value" label="Select Timezone" outlined
-                  v-model="selectedTimezone"></v-select>
+            :menu-props="{ maxHeight: 'auto' }" v-if="mode == 'tags'"></v-combobox>
+          <v-select :items="utcTimezones" item-title="label" item-value="value" label="Select Timezone" outlined
+            v-model="selectedTimezone" v-if="mode == 'timezone'"></v-select>
+
+          <v-select :items="tours" item-title="label" label="Select Tour" outlined v-model="selectedTour"
+            :return-object="true" v-if="mode == 'tour'"></v-select>
         </v-form>
       </v-container>
     </v-card-text>
@@ -24,10 +27,11 @@
 </template>
 <script setup>
 const modelSite = defineModel('sites');
-const emit = defineEmits([ 'closeSitesDialog']);
-const props = defineProps({ storyTags: Array });
+const emit = defineEmits(['closeSitesDialog']);
+const props = defineProps({ storyTags: Array, mode: String, tours: Array });
 const tagSelection = ref([]); // 
 const selectedTimezone = ref(0);
+const selectedTour = ref(null);
 
 import { useStorieStore } from "@/store/storiesStore";
 const storiesStore = useStorieStore()
@@ -43,21 +47,38 @@ const handleTagChange = (newValue) => {
 }
 
 onMounted(() => {
+  console.log(`mode is `, props.mode)
 });
 
 const saveSites = () => {
-  modelSite.value.forEach((site) => {
-    if (!site.tags) {
-      site.tags = []
+  if (props.mode == 'tour') {
+    if (selectedTour.value) {
+      if (!selectedTour.value.sites) {
+        selectedTour.value.sites = []
+      }
+      // add the id of all sites to the selected tour but ensure the id is unique
+      modelSite.value.forEach((site) => {
+        if (!selectedTour.value.sites.includes(site.id)) {
+          selectedTour.value.sites.push(site.id)
+        }
+      })
     }
-    const tags = new Set([...site.tags, ...tagSelection.value])
-    site.tags = [...tags]
+  } else {
 
-    site.timezoneOffset = selectedTimezone.value
-    storiesStore.updateSite(site)
-  })
 
-  console.log(`selected timezone   `,selectedTimezone.value)
+    modelSite.value.forEach((site) => {
+      if (!site.tags) {
+        site.tags = []
+      }
+      const tags = new Set([...site.tags, ...tagSelection.value])
+      site.tags = [...tags]
+      if (props.mode == 'timezone') {
+        site.timezoneOffset = selectedTimezone.value
+
+      }
+      storiesStore.updateSite(site)
+    })
+  }
   emit('closeSitesDialog', {})
 
 }

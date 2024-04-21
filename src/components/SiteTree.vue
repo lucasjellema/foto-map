@@ -17,7 +17,7 @@ const contextMenu = ref(null);
 
 import { useSitesTreeLibrary } from '@/composables/useSitesTreeLibrary';
 const { getSitesTreeData, findLeafNodes } = useSitesTreeLibrary();
-const sitesTreeData = computed(() => getSitesTreeData(currentStory.value.sites, currentStory.value.mapConfiguration.timelines));
+const sitesTreeData = computed(() => getSitesTreeData(currentStory.value.sites, currentStory.value.mapConfiguration.timelines, currentStory.value.mapConfiguration.tours));
 const contextMenuItems = ref([])
 
 
@@ -255,6 +255,12 @@ const handleContextMenuClickOnTree = (event) => {
       contextMenuItems.value.push({
         label: ` Set Timezone for Selected Sites`, icon: 'mdi mdi-map-clock-outline'
         , command: () => { emit('siteAction', { action: 'setTimezoneForSites', siteIds: selectedSiteIds }) }
+      })
+    }
+    if (!readOnly && selectedSiteIds.length > 1) {
+      contextMenuItems.value.push({
+        label: ` Add Selected Sites to Tour`, icon: 'mdi mdi-vector-polyline-plus'
+        , command: () => { emit('siteAction', { action: 'addSitesToTour', siteIds: selectedSiteIds }) }
       })
     }
     if (selectedSiteIds.length > 1) {

@@ -171,13 +171,19 @@
 
     <v-dialog v-model="showAddTagToSitesDialog" max-width="800px">
       Choose Tag(s) to add to all selected sites
-      <SitesBulkEditor v-model:sites="selectedSites" :storyTags="storyTags"
+      <SitesBulkEditor v-model:sites="selectedSites" :storyTags="storyTags" mode="tags"
         @closeSitesDialog="showAddTagToSitesDialog = false"></SitesBulkEditor>
 
     </v-dialog>
     <v-dialog v-model="showSetTimezoneForSitesDialog" max-width="800px">
       Select timezone to use for time selected sites
-      <SitesBulkEditor v-model:sites="selectedSites" @closeSitesDialog="showSetTimezoneForSitesDialog = false">
+      <SitesBulkEditor v-model:sites="selectedSites" @closeSitesDialog="showSetTimezoneForSitesDialog = false" mode="timezone">
+      </SitesBulkEditor>
+
+    </v-dialog>
+    <v-dialog v-model="showAddSitesToTourDialog" max-width="800px">
+      Select Tour to add Sites to
+      <SitesBulkEditor v-model:sites="selectedSites" @closeSitesDialog="showAddSitesToTourDialog = false" mode="tour" :tours="currentStory.mapConfiguration?.tours">
       </SitesBulkEditor>
 
     </v-dialog>
@@ -255,6 +261,7 @@ const timelinesLegendRef = ref(null)
 const selectedSites = ref(null)
 const showAddTagToSitesDialog = ref(false)
 const showSetTimezoneForSitesDialog = ref(false)
+const showAddSitesToTourDialog = ref(false)
 
 const timelineToEdit = ref(null)
 const showTimelineEditorPopup = ref(false)
@@ -377,6 +384,9 @@ const handleSiteAction = ({ siteId, siteIds, action, payload }) => {
     } else if (action == 'setTimezoneForSites') {
       selectedSites.value = getSitesFromSiteIds(siteIds)
       showSetTimezoneForSitesDialog.value = true
+    } else if (action == 'addSitesToTour') {
+      selectedSites.value = getSitesFromSiteIds(siteIds)
+      showAddSitesToTourDialog.value = true
     } else if (action == 'hideSelectedSites') {
       selectedSites.value = getSitesFromSiteIds(siteIds)
       selectedSites.value.forEach(site => hideSite(site))

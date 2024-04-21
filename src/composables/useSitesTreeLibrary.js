@@ -2,11 +2,13 @@ import { useDateTimeLibrary } from '@/composables/useDateTimeLibrary';
 const { formatDate, formatDateByGrain } = useDateTimeLibrary();
 import { useTimelinesLibrary } from '@/composables/useTimelinesLibrary';
 const { getSortedSitesInTimeline } = useTimelinesLibrary();
+import { useToursLibrary } from '@/composables/useToursLibrary';
+const { getSortedSitesInTour } = useToursLibrary();
 
 
 export function useSitesTreeLibrary() {
 
-  const getTimesTreeData = (sites) => {
+  const getTimesTreeData = (sites) => { 
     const timesTreeData =
     {
       key: '0-times',
@@ -358,13 +360,61 @@ export function useSitesTreeLibrary() {
     return timelinesTreeData
   }
 
+  const getToursTreeData = (tours, sites) => {
+    const toursTreeData =
+    {
+      key: '0-tours',
+      label: 'Tours',
+      data: 'Documents Folder',
+      icon: 'mdi mdi-transit-detour',
+      styleClass: `treekey|tours`,
 
-  const getSitesTreeData = (sites, timelines) => {
+      selectable: false,
+      children: []
+    }
+    // iterate tours sorted by label
+    if (tours) {
+    const sortedTours = tours.slice().sort((a, b) => a.label.localeCompare(b.label))
+    for (const tour of sortedTours) {
+      const tourNode = {
+        key: `${tour.id}`,
+        label: tour.label,
+        data: tour,
+        icon: 'mdi mdi-transit-detour',
+        styleClass: `treekey|tour|${tour.id}`,
+        selectable: false,
+        children: []
+      }
+      const sitesInTour = getSortedSitesInTour(tour, sites)
+      for (const site of sitesInTour) {
+        const siteNode = {
+          key: `${site.id}`,
+          label: `${site.label} (${site.city}, ${site.country}) - ${formatDateByGrain(site.timestamp, site.timezoneOffset, site.timeGrain ? site.timeGrain : 0)}`,
+          data: site,
+          icon: 'mdi mdi-transit-detour',
+          leaf: true,
+          styleClass: `treekey|site|${site.id}`,
+          children: [],
+          parent: tourNode
+        }
+
+
+        tourNode.children.push(siteNode)
+      }
+
+      toursTreeData.children.push(tourNode)
+    }
+  }
+    return toursTreeData
+  }
+
+  const getSitesTreeData = (sites, timelines, tours) => {
     const sitesTreeData = [];
     sitesTreeData.push(getLocationsTreeData(sites));
     sitesTreeData.push(getTimesTreeData(sites));
     sitesTreeData.push(getTagsTreeData(sites));
     sitesTreeData.push(getTimelinesTreeData(timelines, sites));
+    sitesTreeData.push(getToursTreeData(tours, sites));
     return sitesTreeData;
   }
 
