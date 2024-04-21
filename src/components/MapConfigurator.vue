@@ -20,7 +20,6 @@
           expand-icon="mdi-sort-clock-descending-outline">
           <v-expansion-panel-text>
             <v-container>
-
               <v-row>
                 <v-col cols="12">
                   <v-data-table :headers="timelineHeaders" :items="modelMap.timelines" item-key="label"
@@ -55,6 +54,40 @@
 
           </v-expansion-panel-text>
         </v-expansion-panel>
+        <v-expansion-panel title="Tours" collapse-icon="mdi-transit-detour"
+          expand-icon="mdi-transit-detour">
+          <v-expansion-panel-text>
+            <v-container>
+              <v-row>
+                <v-col cols="12">
+                  <v-data-table :headers="tourHeaders" :items="modelMap.tours" item-key="label"
+                    class="elevation-1">
+                    <template v-slot:item.preview="{ item, index }">
+                      <hr :style="{
+                    'border-style': `${item.lineStyle} none none none`
+                    , 'border-width': item.width + 'px'
+                    , 'border-color': item.color
+                    , 'background-color': 'none'
+                }" />
+
+                    </template>
+                    <template v-slot:item.actions="{ item, index }">
+                      <v-icon small @click="editTour(item, index)">
+                        mdi-vector-polyline-edit
+                      </v-icon>
+                      <v-icon small @click="removeTour(item, index)">
+                        mdi-delete
+                      </v-icon>
+                    </template>
+                  </v-data-table>
+                  <v-btn prepend-icon="mdi-vector-polyline-plus" @click="addAndEditTour()">Add Tour</v-btn>
+                                </v-col>
+              </v-row>
+            </v-container>
+
+          </v-expansion-panel-text>
+        </v-expansion-panel>
+
         <v-expansion-panel title="Tooltips" collapse-icon="mdi-tooltip-outline" expand-icon="mdi-tooltip-outline">
           <v-expansion-panel-text>
             <v-checkbox v-model="modelMap.showTooltips" label="Show Tooltips for Markers"></v-checkbox>
@@ -119,18 +152,38 @@
     <TimelineEditor v-model="timelineToEdit" @saveTimeline="saveTimeline" @closeDialog="showTimelineEditorPopup=false">
     </TimelineEditor>
   </v-dialog>
+  <v-dialog v-model="showTourEditorPopup" max-width="800px">
+    <TourEditor v-model="tourToEdit" @saveTour="saveTour" @closeDialog="showTourEditorPopup=false">
+    </TourEditor>
+  </v-dialog>
 
 </template>
 <script setup>
 
 import { useDateTimeLibrary } from '@/composables/useDateTimeLibrary';
 const { formatDate } = useDateTimeLibrary();
+import { v4 as uuidv4 } from 'uuid';
 
 const timelineToEdit = ref(null)
 const showTimelineEditorPopup = ref(false)
+const tourToEdit = ref(null)
+const showTourEditorPopup = ref(false)
+let newTour = false
+
 const saveTimeline = () => {
   showTimelineEditorPopup.value = false
   // TODO update timeline??
+}
+
+const saveTour = () => {
+  if (!modelMap.value.tours) modelMap.value.tours = []
+
+  if (newTour) {
+    modelMap.value.tours.push(tourToEdit.value) 
+  }
+
+  showTourEditorPopup.value = false
+
 }
 
 const modelMap = defineModel('map');
@@ -151,12 +204,17 @@ const tileLayersHeaders = ref([
 const newTileLayer = ref({})
 
 const timelineHeaders = ref([
-
-
 { title: 'Preview', value: 'preview' },
 { title: 'Label', value: 'label' },
   { title: 'From Site', value: 'fromSite' },
   { title: 'To Site', value: 'toSite' },
+  { title: 'Actions', value: 'actions' },
+])
+
+
+const tourHeaders = ref([
+{ title: 'Preview', value: 'preview' },
+{ title: 'Label', value: 'label' },
   { title: 'Actions', value: 'actions' },
 ])
 
@@ -181,5 +239,28 @@ const editTimeline = (timeline) => {
   timelineToEdit.value = timeline
   showTimelineEditorPopup.value = true
 }
+
+const removeTour = (item, index) => {
+  modelMap.value.tours.splice(index, 1)
+}
+
+const editTour = (tour) => {
+  tourToEdit.value = tour
+  newTour = false
+  showTourEditorPopup.value = true
+}
+
+const addAndEditTour = () => {
+  tourToEdit.value = {
+        id: uuidv4(),
+        label: `New Tour`,
+        color: 'blue',
+        width: 3,
+        lineStyle: 'dashed'
+      }
+  newTour = true
+  showTourEditorPopup.value = true
+}
+
 
 </script>
