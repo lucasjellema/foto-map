@@ -5,7 +5,7 @@
 
             <v-card-text>
                 <v-text-field v-model="model.label" label="Label"></v-text-field>
-                <v-sheet class="flex-1-1-100  ma-0 pa-0">
+                <v-sheet class="flex-1-1-100  ma-0 pa-0 mb-5">
                   <QuillEditor theme="snow" toolbar="essential" v-model:content="model.description" contentType="delta" />
                 </v-sheet>
                 <div class="mb-5">
