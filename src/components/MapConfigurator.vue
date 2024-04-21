@@ -34,10 +34,10 @@
 
                     </template>
                     <template v-slot:item.fromSite="{ item, index }">
-                      {{ item.startSite?.label }} {{ formatDate(item.startTimestamp) }}
+                       {{ formatDate(item.startTimestamp,'short') }}, {{ formatDate(item.startTimestamp,'long') }}
                     </template>
                     <template v-slot:item.toSite="{ item }">
-                      {{ item.endSite?.label }} {{  formatDate(item.endTimestamp) }}
+                      {{ formatDate(item.endTimestamp,'short') }}, {{ formatDate(item.endTimestamp,'long') }}                       
                     </template>
                     <template v-slot:item.actions="{ item, index }">
                       <v-icon small @click="editTimeline(item, index)">
