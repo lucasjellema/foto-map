@@ -10,12 +10,12 @@
 
 import { useDateTimeLibrary } from '@/composables/useDateTimeLibrary';
 import * as d3 from "d3";
-const { formatDate } = useDateTimeLibrary();
+const { formatDate, formatDateByGrain } = useDateTimeLibrary();
 
 const props = defineProps(['thetimeline', 'sites']);
 const emit = defineEmits(['clickSite', 'dblclickSite']);
 
-let timegrain 
+let timegrain
 
 onMounted(() => {
   // Create the SVG container
@@ -24,7 +24,7 @@ onMounted(() => {
     .attr("height", height + margin.top + margin.bottom)
     .append("g")
     .attr("transform", `translate(${margin.left},${margin.top})`);
-    timegrain = timeResolution()
+  timegrain = timeResolution()
   console.log("timegrain", timegrain)
   drawTimelineProfile(svg)
 
@@ -42,7 +42,7 @@ function toggleVisibility(group) {
   // element.style("display", currentDisplay === "none" ? null : "none");
 
   const isHidden = group.style("display") === "none";
-    group.style("display", isHidden ? null : "none"); 
+  group.style("display", isHidden ? null : "none");
 }
 
 const yearInMilliseconds = 365 * 24 * 60 * 60 * 1000
@@ -57,16 +57,16 @@ const timeResolution = () => {
   const startTime = new Date(timelineStart).getTime();
   const endTime = new Date(timelineEnd).getTime();
   const timeDiff = endTime - startTime;
-  console.log('timediff ',timeDiff)
-  if (timeDiff > 3* yearInMilliseconds) return "year"
-  if (timeDiff > 3* monthInMilliseconds) return "month"
-  if (timeDiff > 3* weekInMilliseconds) return "week"
-  if (timeDiff > 3* dayInMilliseconds) return "day"
-  if (timeDiff > 3* hourInMilliseconds) return "hour"
+  console.log('timediff ', timeDiff)
+  if (timeDiff > 3 * yearInMilliseconds) return "year"
+  if (timeDiff > 3 * monthInMilliseconds) return "month"
+  if (timeDiff > 3 * weekInMilliseconds) return "week"
+  if (timeDiff > 3 * dayInMilliseconds) return "day"
+  if (timeDiff > 3 * hourInMilliseconds) return "hour"
   return "minute"
 }
 
-const addMarker = (site, position, svg, timelineColor,relativePosition) => {
+const addMarker = (site, position, svg, timelineColor, relativePosition) => {
 
   const yPos = 50; // Base Y position for the line
   const lineLength = 25; // Length of the vertical line
@@ -86,39 +86,40 @@ const addMarker = (site, position, svg, timelineColor,relativePosition) => {
 
 
   const tooltipGroup = svg.append("g")
-  .attr("id", `tooltip-group-${site.id}`)
-  .style("display", "none")
+    .attr("id", `tooltip-group-${site.id}`)
+    .style("display", "none")
 
   tooltipGroup.append("text")
     .attr("x", position)
-    .attr("y", lineLength -8 )
-    .attr("text-anchor", relativePosition<0.6 ? "start":"end")
+    .attr("y", lineLength - 8)
+    .attr("text-anchor", relativePosition < 0.6 ? "start" : "end")
     .attr("fill", "black")
     .attr("class", "tooltip")
-    .text(site.label );
+    .text(site.label);
 
-    tooltipGroup.append("line")
+  tooltipGroup.append("line")
     .attr("x1", position)
     .attr("x2", position)
     .attr("y1", yPos)
-    .attr("y2", yPos  + 2* lineLength)
+    .attr("y2", yPos + 2 * lineLength)
     .attr("stroke", timelineColor);
 
-    tooltipGroup.append("line")
+  tooltipGroup.append("line")
     .attr("x1", position)
-    .attr("x2", position+ 8 * (relativePosition<0.6 ? 1:-1))
-    .attr("y1", yPos  + 2* lineLength)
-    .attr("y2", yPos  + 2* lineLength)
+    .attr("x2", position + 8 * (relativePosition < 0.6 ? 1 : -1))
+    .attr("y1", yPos + 2 * lineLength)
+    .attr("y2", yPos + 2 * lineLength)
     .attr("stroke", timelineColor);
-  
-    tooltipGroup.append("text")
-    .attr("x", position+ 10 * (relativePosition<0.6 ? 1:-1))
-    .attr("y", yPos + 2*lineLength+8)
-    .attr("text-anchor", relativePosition<0.6 ? "start":"end")
+
+  tooltipGroup.append("text")
+    .attr("x", position + 10 * (relativePosition < 0.6 ? 1 : -1))
+    .attr("y", yPos + 2 * lineLength + 8)
+    .attr("text-anchor", relativePosition < 0.6 ? "start" : "end")
     .attr("fill", "black")
     .attr("class", "tooltip")
-    .text(formatDate(site.timestamp,'medium'));
-  
+    .text(formatDateByGrain(site.timestamp, site.timezoneOffset, site.timeGrain))
+
+
 
 
   // Hover events for tooltip
@@ -160,6 +161,31 @@ const drawTimelineProfile = (svg) => {
 
   // TODO determine proper start and end time for the timescale - rounded up to start of an hour, a day, a month or a year - instead of picking the first and last sites' timestamps
 
+  // determine the time label that covers the entire range
+  // for example: April 2024, 2025, 17 October 2024 : if the entire timeline is within one year, one month, one day then have a label indicate that 
+  // and omit year, month and day from the tick labels and possibly the tooltip time indication
+
+  let timelabel
+  if (timelineStart.substring(0, 4) == timelineEnd.substring(0, 4)) {
+    timelabel = timelineStart.substring(0, 4)
+    if (timelineStart.substring(5, 7) == timelineEnd.substring(5, 7)) {
+      timelabel = formatDateByGrain(timelineStart, 0, 8)  
+      if (timelineStart.substring(8, 10) == timelineEnd.substring(8, 10)) {
+        timelabel = timelineStart.substring(8, 10) + ' ' + timelabel
+      }
+    }
+
+  }
+  if (timelabel) {
+    svg.append("text")
+      .attr("x", timelineWidth / 2)
+      .attr("y", 130)
+      .attr("text-anchor", "middle")
+      .attr("fill", "gray")
+      .attr("class", "tooltip")
+      .text(timelabel)
+  }
+
 
   const xScale = d3.scaleTime()
     .domain([startTime, endTime])
@@ -186,7 +212,7 @@ const drawTimelineProfile = (svg) => {
   } else {
     dateTimeFormat = 'short'
   }
-  
+
 
 
   //const dateTimeFormat = timegrain =='month' ? 'long' :(timegrain =='day'? 'short' :  'medium');
@@ -214,7 +240,7 @@ const drawTimelineProfile = (svg) => {
     svg.append("text")
       .attr("x", xPos)
       .attr("y", 75)
-      .attr("text-anchor",  (i==0?"start":(i==numTicks?"end":"middle"))) 
+      .attr("text-anchor", (i == 0 ? "start" : (i == numTicks ? "end" : "middle")))
       .attr("fill", "black")
       .text(label);
   }
