@@ -5,6 +5,9 @@
 
             <v-card-text>
                 <v-text-field v-model="model.label" label="Label"></v-text-field>
+                <v-sheet class="flex-1-1-100  ma-0 pa-0">
+                  <QuillEditor theme="snow" toolbar="essential" v-model:content="model.description" contentType="delta" />
+                </v-sheet>
                 <div class="mb-5">
                     <span>Preview:
                         <hr :style="{
@@ -37,6 +40,8 @@
     </v-container>
 </template>
 <script setup>
+import { QuillEditor } from '@vueup/vue-quill'
+import '@vueup/vue-quill/dist/vue-quill.snow.css';
 
 const model = defineModel(); // contains the tour object 
 const emit = defineEmits(['saveTour', 'closeDialog']);
