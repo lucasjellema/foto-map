@@ -223,6 +223,7 @@ const { enqueueCall: enqueueCallToReverseGeocode } = useFunctionCallThrottler(15
 
 const imageEditorRef = ref(null)
 const attachmentToEdit = ref(null)
+let newAttachment = false
 const showAttachmentEditorPopup = ref(false)
 
 const hourTickLabels = {
@@ -239,11 +240,13 @@ const hourTickLabels = {
 
 const addAndEditAttachment = () => {
   attachmentToEdit.value = { label: 'new attachment', description: null, imageUrl: null, imageId: null }
+  newAttachment = true
   showAttachmentEditorPopup.value = true
 }
 
 const editAttachment = (item, index) => {
   attachmentToEdit.value = item
+  newAttachment = false
   showAttachmentEditorPopup.value = true
 }
 
@@ -255,7 +258,9 @@ const removeAttachment = (item, index) => {
 const saveAttachment = () => {
   if (!modelSite.value.attachments) modelSite.value.attachments = []
   console.log(attachmentToEdit.value.description)
-  modelSite.value.attachments.push(attachmentToEdit.value) // this will work for new attachments; existing ones should be updated or replaced
+  if (newAttachment) {
+    modelSite.value.attachments.push(attachmentToEdit.value) 
+  }
   showAttachmentEditorPopup.value = false
 }
 const handleTagChange = (newValue) => {
