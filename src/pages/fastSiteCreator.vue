@@ -1676,7 +1676,7 @@ const handlePastedText = (text) => {
         {
           "type": "FeatureCollection", "features": [feature]
         }
-        createSiteFromGeoJSON(newGeoJsonData, null, new Date());
+        createSiteFromGeoJSON(newGeoJsonData, null, getLocalISOStringForNow());
       }
     }
   }
@@ -1694,7 +1694,7 @@ const handlePastedText = (text) => {
         , "geometry": { "coordinates": [longitude, latitude], "type": "Point" }
       }]
     }
-    createSiteFromGeoJSON(newGeoJsonData, null, new Date());
+    createSiteFromGeoJSON(newGeoJsonData, null, getLocalISOStringForNow());
   }
 }
 
