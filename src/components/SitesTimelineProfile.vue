@@ -14,7 +14,7 @@ import * as d3 from "d3";
 const { formatDate, formatDateByGrain } = useDateTimeLibrary();
 
 const props = defineProps(['label', 'sites']);
-const emit = defineEmits(['clickSite', 'dblclickSite']);
+const emit = defineEmits(['clickSite', 'dblclickSite','sitesInFocus']);
 
 let timegrain
 
@@ -64,6 +64,8 @@ const drawZoomedinProfile = (sortedSites, startPercentage, durationPercentage) =
     return siteTimestamp >= startTimestamp && siteTimestamp <= endTimestamp
   })
   drawSitesTimelineProfile(svg2, sortedFilteredSites, false, new Date(startTimestamp).toISOString(), new Date(endTimestamp).toISOString())
+
+  emit('sitesInFocus', { sites: sortedFilteredSites })
 
 }
 
@@ -167,9 +169,9 @@ const getSortedSites = (allSites) => {
   return allSites.sort((a, b) => (new Date(a.timestamp) - new Date(b.timestamp)) ? 1 : -1)
 }
 
-const margin = { top: 20, right: 20, bottom: 20, left: 20 },
+const margin = { top: 10, right: 20, bottom: 10, left: 20 },
   width = 960 - margin.left - margin.right,
-  height = 160 - margin.top - margin.bottom;
+  height = 145 - margin.top - margin.bottom;
 
 let svg, svg2
 

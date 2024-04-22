@@ -59,7 +59,7 @@
             </TimelineProfile>
             <SitesTimelineProfile
               
-              :sites="sitesData" @clickSite="handleClickSite" @dblclickSite="handleDblClickSite" label="All Sites"
+              :sites="sitesData" @clickSite="handleClickSite" @dblclickSite="handleDblClickSite"  @sitesInFocus="handleSitesInFocus" label="All Sites"
               >
             </SitesTimelineProfile>
             <v-container>
@@ -289,6 +289,11 @@ const handleClickSite = ({ site }) => {
   handleSiteSelected([site.id])
 }
 
+const handleSitesInFocus = ({sites}) => {
+  console.log(`sites in focus`, sites)
+  const siteIds = sites.map(s => s.id)
+  focusOnSites(siteIds)
+}
 
 const handleDblClickSite = ({ site }) => {
   console.log(`handleDblClickSite`, site)
