@@ -174,7 +174,13 @@ const addMarker = (site, position, svg, timelineColor, relativePosition) => {
 };
 
 const getSortedSites = (allSites) => {
-  return allSites.sort((a, b) => (new Date(a.timestamp) - new Date(b.timestamp)) ? 1 : -1)
+  try {
+  const sortedSites = allSites.sort((a, b) => (new Date(a.timestamp) - new Date(b.timestamp)) ? 1 : -1)
+  return sortedSites
+  }
+  catch (err) {
+    console.log(err)
+  }
 }
 
 const margin = { top: 10, right: 20, bottom: 10, left: 20 },
@@ -187,6 +193,7 @@ let svg, svg2
 const drawSitesTimelineProfile = (svg, sortedSites, withZoombox = false, requestedTimelineStart, requestedTimelineEnd) => {
 
   svg.selectAll("*").remove();
+  if (!sortedSites ||   sortedSites.length==0) return
   // then find the starting and ending timestamps - the timestamp of the first and the last of the sorted sites
   const timelineStart = requestedTimelineStart || sortedSites[0].timestamp
   const timelineEnd = requestedTimelineEnd || sortedSites[sortedSites.length - 1].timestamp
@@ -207,11 +214,26 @@ const drawSitesTimelineProfile = (svg, sortedSites, withZoombox = false, request
   if (timelineStart.substring(0, 4) == timelineEnd.substring(0, 4)) {
     timelabel = timelineStart.substring(0, 4)
     if (timelineStart.substring(5, 7) == timelineEnd.substring(5, 7)) {
-      timelabel = formatDateByGrain(timelineStart, 0, 8)
+      timelabel = formatDateByGrain(timelineStart, 0, 8) // month
       if (timelineStart.substring(8, 10) == timelineEnd.substring(8, 10)) {
-        timelabel = timelineStart.substring(8, 10) + ' ' + timelabel
+        timelabel = timelineStart.substring(8, 10) + ' ' + timelabel  // same day
+// TODO add start and end time (or first part of day/ hour)
+
+
+      } else {
+        timelabel = timelineStart.substring(8, 10) + '-'+timelineEnd.substring(8, 10)+' ' + timelabel  // day
       }
     }
+    else {
+      timelabel = formatDateByGrain(timelineStart, 0, 8)
+      // remove last 6 characters from timelabel
+      timelabel = timelabel.substring(0, timelabel.length - 6)
+
+      
+      timelabel = timelabel+'-'+formatDateByGrain(timelineEnd, 0, 8) 
+    }
+  } else {
+    timelabel =  timelineStart.substring(0, 4) + '-' + timelineEnd.substring(0, 4)
   }
   if (timelabel) {
     svg.append("text")
