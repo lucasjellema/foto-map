@@ -57,6 +57,11 @@
               :sites="sitesData" @clickSite="handleClickSite" @dblclickSite="handleDblClickSite"
               v-if="mapShowTimelines">
             </TimelineProfile>
+            <SitesTimelineProfile
+              
+              :sites="sitesData" @clickSite="handleClickSite" @dblclickSite="handleDblClickSite" label="All Sites"
+              >
+            </SitesTimelineProfile>
             <v-container>
               <v-row align="center">
                 <v-col cols="auto">
