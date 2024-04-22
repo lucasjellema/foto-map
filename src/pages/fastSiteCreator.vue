@@ -57,9 +57,8 @@
               :sites="sitesData" @clickSite="handleClickSite" @dblclickSite="handleDblClickSite"
               v-if="mapShowTimelines">
             </TimelineProfile>
-            <SitesTimelineProfile
-              
-              :sites="sitesData" @clickSite="handleClickSite" @dblclickSite="handleDblClickSite"  @sitesInFocus="handleSitesInFocus" label="All Sites"
+            <SitesTimelineProfile              
+              :sites="sitesTimelineProfileData" @clickSite="handleClickSite" @dblclickSite="handleDblClickSite"  @sitesInFocus="handleSitesInFocus" :label="sitesTimelineProfileLabel"
               >
             </SitesTimelineProfile>
             <v-container>
@@ -268,6 +267,10 @@ const showAddTagToSitesDialog = ref(false)
 const showSetTimezoneForSitesDialog = ref(false)
 const showAddSitesToTourDialog = ref(false)
 
+const sitesTimelineProfileLabel = ref('All sites')
+const sitesTimelineProfileData = ref(sitesData.value) 
+
+
 const timelineToEdit = ref(null)
 const showTimelineEditorPopup = ref(false)
 const saveTimeline = () => {
@@ -383,6 +386,9 @@ const handleSiteAction = ({ siteId, siteIds, action, payload }) => {
   if (siteIds) {
     if (action == 'siteFocus') {
       focusOnSites(siteIds)
+      sitesTimelineProfileData.value= getSitesFromSiteIds(siteIds)
+      sitesTimelineProfileLabel.value= payload.label||"Selected Sites"
+
     } else if (action == 'selectChildren') {
       handleSiteSelected(siteIds)
     } else if (action == 'consolidateSitesToTargetSite') {
@@ -1068,6 +1074,9 @@ const refreshMap = () => {
   mapEditMode.value = false
 
   drawTimelines()
+  sitesTimelineProfileLabel.value = 'All sites'
+  sitesTimelineProfileData.value = sitesData 
+
 
 }
 
