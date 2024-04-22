@@ -89,7 +89,7 @@ export function useSitesTreeLibrary() {
           icon: 'mdi mdi-calendar-range',
           styleClass: `treekey|month|${year}_${month}`,
           selectable: false,
-          children: []
+          children: []          
         }
 
         const sitesTimesGrainMonth = sites.filter(site => new Date(site.timestamp).getFullYear() === year
@@ -129,7 +129,8 @@ export function useSitesTreeLibrary() {
             icon: 'mdi mdi-calendar-range',
             styleClass: `treekey|day|${year}_${month}_${day}`,
             selectable: false,
-            children: []
+            children: [],
+            parent: monthNode
           }
           // iterate over all sites with a timestamp that matches the year, month, and day, sorted by timestamp
           const sitesWithYearMonthAndDay = sitesWithYearAndMonth.filter(site => new Date(site.timestamp).getDate() === day).sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
@@ -149,7 +150,6 @@ export function useSitesTreeLibrary() {
             if (sitesWithYearMonthAndDay.length > 1)
               dayNode.children.push(siteNode)
             else {
-
               dayNode.key = siteNode.key
               dayNode.icon = siteNode.icon
               dayNode.selectable = siteNode.selectable
@@ -166,10 +166,14 @@ export function useSitesTreeLibrary() {
         //)
         if (uniqueMonths.length > 1 || yearNode.children.length > 0) {
           console.log(`push monthNode ${monthNode.label}`)
+          monthNode.parent= yearNode
           yearNode.children.push(monthNode)
         } else {
           yearNode.children = monthNode.children
           yearNode.label = monthNode.label + ' - ' + yearNode.label
+          for (const monthChild of monthNode.children) {
+            monthChild.parent = yearNode
+          }
         }
       }
       //)
@@ -450,9 +454,21 @@ export function useSitesTreeLibrary() {
     return leafNodes;
   }
 
+  const  findNodeWithKey= (nodes, targetKey)=> {
+    for (const node of nodes) {
+      if (node.key === targetKey) {
+        return node
+        
+      } else if (node.children && node.children.length > 0) {
+        const result =findNodeWithKey(node.children, targetKey);
+        if (result != null) return result
+        
+      }
+    }
+  }
 
 
-  return { getSitesTreeData, findLeafNodes };
+  return { getSitesTreeData, findLeafNodes,findNodeWithKey };
 }
 
 

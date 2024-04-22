@@ -42,6 +42,14 @@ onMounted(() => {
   drawSitesTimelineProfile(svg2, sortedSites, false)
 
 });
+
+watch (() => props.sites, (newValue,oldValue) => {
+  
+  sortedSites = getSortedSites(newValue);
+  drawSitesTimelineProfile(svg, sortedSites, true)
+  drawSitesTimelineProfile(svg2, sortedSites, false)
+})
+
 let sortedSites
 
 const drawZoomedinProfile = (sortedSites, startPercentage, durationPercentage) => {

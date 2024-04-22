@@ -16,7 +16,7 @@ const contextMenu = ref(null);
 
 
 import { useSitesTreeLibrary } from '@/composables/useSitesTreeLibrary';
-const { getSitesTreeData, findLeafNodes } = useSitesTreeLibrary();
+const { getSitesTreeData, findLeafNodes,findNodeWithKey } = useSitesTreeLibrary();
 const sitesTreeData = computed(() => getSitesTreeData(currentStory.value.sites, currentStory.value.mapConfiguration.timelines, currentStory.value.mapConfiguration.tours));
 const contextMenuItems = ref([])
 
@@ -86,7 +86,21 @@ const handleDoubleClickOnTree = (event) => {
   if (treeKey.keyType === 'site' && treeKey.key) {
     siteIds = [treeKey.key]
   }
-  emit('siteAction', { action: 'siteFocus', siteIds: siteIds })
+  const treeData = treeRef.value.value
+  const selectedNode = findNodeWithKey(treeData, treeKey.key)
+  let label 
+  if (selectedNode) {
+    label = selectedNode.label
+    if (selectedNode.parent) {
+      label = `${label} ${selectedNode.parent.label} `
+      if (selectedNode.parent.parent) {
+      label = `${label} ${selectedNode.parent.parent.label} `
+    }
+
+    }
+  }
+
+  emit('siteAction', { action: 'siteFocus', siteIds: siteIds, payload:{label: label} })
 }
 
 let lastSelectedNode, previouslySelectedNode, lastClickWasASelection = false, previousClickWasASelection = false
