@@ -1,10 +1,11 @@
 <template>
   <div>
-    <h5>TimelineProfile for {{label}} </h5>
+    <h5>TimelineProfile for {{ label }} </h5>
     <div id="sitesTimeline"> </div>
+    <div id="sitesTimelineZoom"> </div>
 
   </div>
-  <div id="svg2"></div>
+ 
 </template>
 <script setup>
 
@@ -17,7 +18,7 @@ const emit = defineEmits(['clickSite', 'dblclickSite']);
 
 let timegrain
 
-const  timelineColor= "steelblue"
+const timelineColor = "steelblue"
 
 onMounted(() => {
   // Create the SVG container
@@ -26,11 +27,45 @@ onMounted(() => {
     .attr("height", height + margin.top + margin.bottom)
     .append("g")
     .attr("transform", `translate(${margin.left},${margin.top})`);
-  
-  drawSitesTimelineProfile(svg)
+
+  svg2 = d3.select("#sitesTimelineZoom").append("svg")
+    .attr("width", width + margin.left + margin.right)
+    .attr("height", height + margin.top + margin.bottom)
+    .append("g")
+    .attr("transform", `translate(${margin.left},${margin.top})`);
+
+
+  // sort sites by timestamp
+  sortedSites = getSortedSites(props.sites);
+
+  drawSitesTimelineProfile(svg, sortedSites, true)
+  drawSitesTimelineProfile(svg2, sortedSites, false)
 
 });
+let sortedSites
 
+const drawZoomedinProfile = (sortedSites, startPercentage, durationPercentage) => {
+  // given the full width of the timeline for all sites, startPercentage indicates the timestamp where this zoomedin profile should start: starttime + startPercentage * (end-time - starttime)
+  // filter sites based on start and end time
+  const timelineStart = sortedSites[0].timestamp
+  const timelineEnd = sortedSites[sortedSites.length - 1].timestamp
+
+  const startTime = new Date(timelineStart).getTime();
+  const endTime = new Date(timelineEnd).getTime();
+
+  const timeDiff = endTime - startTime;
+  const startTimestamp = startTime + startPercentage * timeDiff
+  const endTimestamp = startTime + (startPercentage + durationPercentage) * timeDiff
+
+
+
+  const sortedFilteredSites = props.sites.filter((site) => {
+    const siteTimestamp = new Date(site.timestamp).getTime();
+    return siteTimestamp >= startTimestamp && siteTimestamp <= endTimestamp
+  })
+  drawSitesTimelineProfile(svg2, sortedFilteredSites, false, new Date(startTimestamp).toISOString(), new Date(endTimestamp).toISOString())
+
+}
 
 
 function toggleVisibility(group) {
@@ -48,12 +83,9 @@ const dayInMilliseconds = 24 * 60 * 60 * 1000
 const hourInMilliseconds = 60 * 60 * 1000
 
 const timeResolution = (timelineStart, timelineEnd) => {
-  // const timelineStart = props.thetimeline.startTimestamp
-  // const timelineEnd = props.thetimeline.endTimestamp
   const startTime = new Date(timelineStart).getTime();
   const endTime = new Date(timelineEnd).getTime();
   const timeDiff = endTime - startTime;
-  console.log('timediff ', timeDiff)
   if (timeDiff > 3 * yearInMilliseconds) return "year"
   if (timeDiff > 3 * monthInMilliseconds) return "month"
   if (timeDiff > 3 * weekInMilliseconds) return "week"
@@ -132,35 +164,28 @@ const addMarker = (site, position, svg, timelineColor, relativePosition) => {
 };
 
 const getSortedSites = (allSites) => {
-  return allSites.sort((a, b) => (new Date(a.timestamp) -  new Date(b.timestamp)) ? 1 : -1)
+  return allSites.sort((a, b) => (new Date(a.timestamp) - new Date(b.timestamp)) ? 1 : -1)
 }
 
 const margin = { top: 20, right: 20, bottom: 20, left: 20 },
   width = 960 - margin.left - margin.right,
   height = 160 - margin.top - margin.bottom;
 
-let svg
+let svg, svg2
 
 
-const drawSitesTimelineProfile = (svg) => {
+const drawSitesTimelineProfile = (svg, sortedSites, withZoombox = false, requestedTimelineStart, requestedTimelineEnd) => {
 
   svg.selectAll("*").remove();
-  // sort sites by timestamp
-  const sortedSites = getSortedSites(props.sites);
   // then find the starting and ending timestamps - the timestamp of the first and the last of the sorted sites
-const timelineStart = sortedSites[0].timestamp
-const timelineEnd = sortedSites[sortedSites.length - 1].timestamp
+  const timelineStart = requestedTimelineStart || sortedSites[0].timestamp
+  const timelineEnd = requestedTimelineEnd || sortedSites[sortedSites.length - 1].timestamp
 
-const startTime = new Date(timelineStart).getTime();
+  const startTime = new Date(timelineStart).getTime();
   const endTime = new Date(timelineEnd).getTime();
 
-
   timegrain = timeResolution(timelineStart, timelineEnd)
-  
-
   const timelineWidth = width
-
-
 
   // TODO determine proper start and end time for the timescale - rounded up to start of an hour, a day, a month or a year - instead of picking the first and last sites' timestamps
 
@@ -172,12 +197,11 @@ const startTime = new Date(timelineStart).getTime();
   if (timelineStart.substring(0, 4) == timelineEnd.substring(0, 4)) {
     timelabel = timelineStart.substring(0, 4)
     if (timelineStart.substring(5, 7) == timelineEnd.substring(5, 7)) {
-      timelabel = formatDateByGrain(timelineStart, 0, 8)  
+      timelabel = formatDateByGrain(timelineStart, 0, 8)
       if (timelineStart.substring(8, 10) == timelineEnd.substring(8, 10)) {
         timelabel = timelineStart.substring(8, 10) + ' ' + timelabel
       }
     }
-
   }
   if (timelabel) {
     svg.append("text")
@@ -255,7 +279,9 @@ const startTime = new Date(timelineStart).getTime();
     const xPos = xScale(new Date(site.timestamp));
     addMarker(site, xPos, svg, timelineColor, relativePosition);
   })
-  drawZoombox(svg)
+  if (withZoombox) {
+    drawZoombox(svg)
+  }
 }
 
 
@@ -346,7 +372,8 @@ const drawZoombox = (svg) => {
 
   // Placeholder for handling move or resize events
   function handleMoveOrResize() {
-    console.log("Rectangle moved or resized. New position and size:", rectX, rectY, rectWidth, rectHeight);
+    console.log("Rectangle moved or resized. New X-position and width; start as percentage and width as percentage of max :", rectX, rectWidth, (rectX - minX) / (maxX - minX), rectWidth / (maxX - minX));
+    drawZoomedinProfile(sortedSites, (rectX - minX) / (maxX - minX), rectWidth / (maxX - minX))
   }
 }
 </script>
