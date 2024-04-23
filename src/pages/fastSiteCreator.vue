@@ -52,14 +52,13 @@
           </v-col>
           <v-col cols="7" offset="0">
             <div id="mapid" style="height: 700px; width:900px"></div>
-            <TimelineProfile
+            <!-- <TimelineProfile
               :thetimeline="timelineProfileToShow ? timelineProfileToShow : currentStory.mapConfiguration.timelines[0]"
               :sites="sitesData" @clickSite="handleClickSite" @dblclickSite="handleDblClickSite"
               v-if="mapShowTimelines">
-            </TimelineProfile>
-            <SitesTimelineProfile              
-              :sites="sitesTimelineProfileData" @clickSite="handleClickSite" @dblclickSite="handleDblClickSite"  @sitesInFocus="handleSitesInFocus" :label="sitesTimelineProfileLabel"
-              >
+            </TimelineProfile> -->
+            <SitesTimelineProfile :sites="sitesTimelineProfileData" @clickSite="handleClickSite"
+              @dblclickSite="handleDblClickSite" @sitesInFocus="handleSitesInFocus" :label="sitesTimelineProfileLabel">
             </SitesTimelineProfile>
             <v-container>
               <v-row align="center">
@@ -150,8 +149,8 @@
       <!-- the content for timeline legend is referenced by $el in the Leaflet legend control  -->
       <v-container id="timelinesLegend" ref="timelinesLegendRef" style="max-width: 300px">
         <v-row v-for="timeline in currentStory.mapConfiguration?.timelines" @dblclick.stop="focusOnTimeline(timeline)"
-          @click.stop="showTimelineProfile(timeline)" @mouseover="highlightTimeline(timeline.startSiteId)"
-          @mouseout="unhighlightTimeline(timeline.startSiteId)" class="timelineLegendLine">
+          @click.stop="showTimelineProfile(timeline)" @mouseover="highlightTimeline(timeline)"
+          @mouseout="unhighlightTimeline(timeline)" class="timelineLegendLine">
           <v-col cols="2" class="timelineLegendLine">
             <hr :style="{
               'border-style': timeline.lineStyle + ' none none none'
@@ -181,13 +180,15 @@
     </v-dialog>
     <v-dialog v-model="showSetTimezoneForSitesDialog" max-width="800px">
       Select timezone to use for time selected sites
-      <SitesBulkEditor v-model:sites="selectedSites" @closeSitesDialog="showSetTimezoneForSitesDialog = false" mode="timezone">
+      <SitesBulkEditor v-model:sites="selectedSites" @closeSitesDialog="showSetTimezoneForSitesDialog = false"
+        mode="timezone">
       </SitesBulkEditor>
 
     </v-dialog>
     <v-dialog v-model="showAddSitesToTourDialog" max-width="800px">
       Select Tour to add Sites to
-      <SitesBulkEditor v-model:sites="selectedSites" @closeSitesDialog="showAddSitesToTourDialog = false" mode="tour" :tours="currentStory.mapConfiguration?.tours">
+      <SitesBulkEditor v-model:sites="selectedSites" @closeSitesDialog="showAddSitesToTourDialog = false" mode="tour"
+        :tours="currentStory.mapConfiguration?.tours">
       </SitesBulkEditor>
 
     </v-dialog>
@@ -256,10 +257,10 @@ import { useSitesTreeLibrary } from '@/composables/useSitesTreeLibrary';
 import { useDateTimeLibrary } from '@/composables/useDateTimeLibrary';
 const { formatDate, formatDateByGrain, getLocalISOStringForNow } = useDateTimeLibrary();
 import { useTimelinesLibrary } from '@/composables/useTimelinesLibrary';
-const { splitTimelineAtSiteX, drawTimelinesX, hideTimelines, startTimelineAtSite, highlightTimeline, unhighlightTimeline, endTimelineAtSite, refreshTimelines, registerEventCallback, fuseTimelinesAtSite, createTimelinePer } = useTimelinesLibrary();
+const { splitTimelineAtSiteX, drawTimelinesX, hideTimelines, startTimelineAtSite, highlightTimeline, unhighlightTimeline, endTimelineAtSite, refreshTimelines, registerEventCallback, fuseTimelinesAtSite, createTimelinePer, getSortedSitesInTimeline } = useTimelinesLibrary();
 const tab = ref('tab-1')
 
-const timelineProfileToShow = ref(null)
+
 
 const timelinesLegendRef = ref(null)
 const selectedSites = ref(null)
@@ -268,7 +269,7 @@ const showSetTimezoneForSitesDialog = ref(false)
 const showAddSitesToTourDialog = ref(false)
 
 const sitesTimelineProfileLabel = ref('All sites')
-const sitesTimelineProfileData = ref(sitesData.value) 
+const sitesTimelineProfileData = ref(sitesData.value)
 
 
 const timelineToEdit = ref(null)
@@ -284,7 +285,15 @@ const editTimeline = (timeline) => {
 }
 
 const showTimelineProfile = (timeline) => {
-  timelineProfileToShow.value = timeline
+
+  // TODO find all sites in timeline and focus on these sites
+  const timelineSites = getSortedSitesInTimeline(timeline, sitesData.value)
+  const timelineSiteIds = timelineSites.map(s => s.id)
+  // TODO set sitesTimelineProfileLabel to "Timeline"
+  focusOnSites(timelineSiteIds)
+  sitesTimelineProfileData.value = timelineSites
+  sitesTimelineProfileLabel.value = `Timeline ${timeline.label}`
+
 }
 
 const handleClickSite = ({ site }) => {
@@ -292,7 +301,7 @@ const handleClickSite = ({ site }) => {
   handleSiteSelected([site.id])
 }
 
-const handleSitesInFocus = ({sites}) => {
+const handleSitesInFocus = ({ sites }) => {
   console.log(`sites in focus`, sites)
   const siteIds = sites.map(s => s.id)
   focusOnSites(siteIds)
@@ -386,8 +395,8 @@ const handleSiteAction = ({ siteId, siteIds, action, payload }) => {
   if (siteIds) {
     if (action == 'siteFocus') {
       focusOnSites(siteIds)
-      sitesTimelineProfileData.value= getSitesFromSiteIds(siteIds)
-      sitesTimelineProfileLabel.value= payload.label||"Selected Sites"
+      sitesTimelineProfileData.value = getSitesFromSiteIds(siteIds)
+      sitesTimelineProfileLabel.value = payload.label || "Selected Sites"
 
     } else if (action == 'selectChildren') {
       handleSiteSelected(siteIds)
@@ -428,7 +437,7 @@ const handleSiteAction = ({ siteId, siteIds, action, payload }) => {
       // find timeline with timelineid in current story
       const timeline = currentStory.value.mapConfiguration.timelines.find(timeline => timeline.id == payload.timelineId)
 
-      showTimelineProfile(timeline)
+      // showTimelineProfile(timeline)
       mapShowTimelines.value = true
 
     }
@@ -510,24 +519,9 @@ const focusOnSites = (siteIds) => {
 }
 
 const focusOnTimeline = (timeline) => {
-  // using sorted list of sites, create a collection of all sites starting from timeline.startSiteId and ending with timeline.endSiteId
-
-  const siteIds = []
-
-  const sites = sitesData.value.sort((a, b) => (new Date(a.timestamp) > new Date(b.timestamp)) ? 1 : -1)
-  let inTimelineRange = false
-  for (const site of sites) {
-    if (site.id == timeline.startSiteId) {
-      inTimelineRange = true
-    }
-    if (inTimelineRange) {
-      siteIds.push(site.id)
-    }
-    if (site.id == timeline.endSiteId) {
-      break
-    }
-  }
-  focusOnSites(siteIds)
+  const sitesInTimeline = getSortedSitesInTimeline(timeline, sitesData.value)
+  const sitesIdsInTimeline =  sitesInTimeline.map(site => site.id)
+  focusOnSites(sitesIdsInTimeline)
 }
 
 const search = ref("")
@@ -1075,7 +1069,7 @@ const refreshMap = () => {
 
   drawTimelines()
   sitesTimelineProfileLabel.value = 'All sites'
-  sitesTimelineProfileData.value = sitesData 
+  sitesTimelineProfileData.value = sitesData
 
 
 }
@@ -1169,7 +1163,7 @@ const consolidateSitesToTargetSite = (targetSite, sitesToConsolidate) => {
         ]);
 
         targetSite.attachments.push({
-            description: siteToRemove.description ? siteToRemove.description : delta
+          description: siteToRemove.description ? siteToRemove.description : delta
           , label: siteToRemove.label
           , imageId: siteToRemove.imageId
         })
@@ -1602,7 +1596,7 @@ const attachMapListeners = () => {
         }
           ;
         console.log(`double click at location ${JSON.stringify(geoJsonPointFeature)}`)
-        createSiteFromGeoJSON(geoJsonPointFeature, null, getLocalISOStringForNow() );
+        createSiteFromGeoJSON(geoJsonPointFeature, null, getLocalISOStringForNow());
       }
     })
 

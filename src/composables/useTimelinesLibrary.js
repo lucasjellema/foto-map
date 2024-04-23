@@ -40,15 +40,17 @@ export function useTimelinesLibrary() {
     for (timeline of sortedTimelines) {
       // loop over sites
       let inRangeTimeline = false
+      const timelineStarttime = new Date(timeline.startTimestamp).getTime()
+      const timelineEndTime = new Date(timeline.endTimestamp).getTime()
       for (const site of allSortedSites) {
-        if (site.id === timeline.startSiteId) { // start looking for site from the start of the timeline
+        if ( new Date(site.timestamp).getTime() >= timelineStarttime) { // start looking for site from the start of the timeline
           inRangeTimeline = true
         }
         if (inRangeTimeline)
           if (site.id === siteToLocate.id) {
             timelinesForSite.push(timeline)
           }
-        if (inRangeTimeline && site.id === timeline.endSiteId) { // stop looking for site at the  end of the timeline
+        if (inRangeTimeline &&  new Date(site.timestamp).getTime()>= timelineEndTime) { // stop looking for site at the  end of the timeline
           break
         }
       }
@@ -430,8 +432,8 @@ export function useTimelinesLibrary() {
     }
   }
 
-  const highlightTimeline = (timelineStartSiteId) => {
-    const polyline = drawnTimelines.find(drawnTimeline => drawnTimeline.timeline.startSiteId === timelineStartSiteId)
+  const highlightTimeline = (timeline) => {
+    const polyline = drawnTimelines.find(drawnTimeline => drawnTimeline.timeline === timeline)
     if (polyline) {
       polyline.setStyle({
         color: 'white'
@@ -441,8 +443,8 @@ export function useTimelinesLibrary() {
     }
   }
 
-  const unhighlightTimeline = (timelineStartSiteId) => {
-    const polyline = drawnTimelines.find(drawnTimeline => drawnTimeline.timeline.startSiteId === timelineStartSiteId)
+  const unhighlightTimeline = (timeline) => {
+    const polyline = drawnTimelines.find(drawnTimeline => drawnTimeline.timeline === timeline)
     if (polyline) {
       polyline.setStyle({
         color: polyline.timeline.color
