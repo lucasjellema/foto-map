@@ -202,6 +202,8 @@ const drawSitesTimelineProfile = (svg, sortedSites, withZoombox = false, request
   const endTime = new Date(timelineEnd).getTime();
 
   timegrain = timeResolution(timelineStart, timelineEnd)
+
+
   const timelineWidth = width
 
   // TODO determine proper start and end time for the timescale - rounded up to start of an hour, a day, a month or a year - instead of picking the first and last sites' timestamps
@@ -218,7 +220,7 @@ const drawSitesTimelineProfile = (svg, sortedSites, withZoombox = false, request
       if (timelineStart.substring(8, 10) == timelineEnd.substring(8, 10)) {
         timelabel = timelineStart.substring(8, 10) + ' ' + timelabel  // same day
 // TODO add start and end time (or first part of day/ hour)
-
+timelabel = formatDate(timelineStart, 'short') + ' - ' + formatDate(timelineEnd, 'short') + ', ' + timelabel
 
       } else {
         timelabel = timelineStart.substring(8, 10) + '-'+timelineEnd.substring(8, 10)+' ' + timelabel  // day
