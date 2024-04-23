@@ -1391,12 +1391,22 @@ const drawMap = () => {
     var markersWithinRectangle = [];
 
     // Check each marker to see if it's within the bounds
+const sitesInFocus =[]
+
     getAllMarkers().forEach(function (marker) {
       if (bounds.contains(marker.getLatLng())) {
         markersWithinRectangle.push(marker);
         selectMarker(marker, true)
+        // TODO get all sites associated with these markers and focus on them
+        sitesInFocus.push(marker.site)
       }
     });
+
+    if (sitesInFocus.length > 0) {
+      sitesTimelineProfileData.value = sitesInFocus
+      sitesTimelineProfileLabel.value = "Selected Sites"
+
+    }
   })
 
 }
