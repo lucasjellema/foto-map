@@ -5,7 +5,7 @@
     <div id="sitesTimelineZoom"> </div>
 
   </div>
- 
+
 </template>
 <script setup>
 
@@ -14,7 +14,7 @@ import * as d3 from "d3";
 const { formatDate, formatDateByGrain } = useDateTimeLibrary();
 
 const props = defineProps(['label', 'sites']);
-const emit = defineEmits(['clickSite', 'dblclickSite','sitesInFocus']);
+const emit = defineEmits(['clickSite', 'dblclickSite', 'sitesInFocus']);
 
 let timegrain
 
@@ -43,8 +43,8 @@ onMounted(() => {
 
 });
 
-watch (() => props.sites, (newValue,oldValue) => {
-  
+watch(() => props.sites, (newValue, oldValue) => {
+
   sortedSites = getSortedSites(newValue);
   drawSitesTimelineProfile(svg, sortedSites, true)
   drawSitesTimelineProfile(svg2, sortedSites, false)
@@ -55,6 +55,8 @@ let sortedSites
 const drawZoomedinProfile = (sortedSites, startPercentage, durationPercentage) => {
   // given the full width of the timeline for all sites, startPercentage indicates the timestamp where this zoomedin profile should start: starttime + startPercentage * (end-time - starttime)
   // filter sites based on start and end time
+
+  // TODO adopt the updated start and end of timeline!
   const timelineStart = sortedSites[0].timestamp
   const timelineEnd = sortedSites[sortedSites.length - 1].timestamp
 
@@ -175,8 +177,8 @@ const addMarker = (site, position, svg, timelineColor, relativePosition) => {
 
 const getSortedSites = (allSites) => {
   try {
-  const sortedSites = allSites.sort((a, b) => (new Date(a.timestamp) - new Date(b.timestamp)) ? 1 : -1)
-  return sortedSites
+    const sortedSites = allSites.sort((a, b) => (new Date(a.timestamp) - new Date(b.timestamp)) ? 1 : -1)
+    return sortedSites
   }
   catch (err) {
     console.log(err)
@@ -193,18 +195,85 @@ let svg, svg2
 const drawSitesTimelineProfile = (svg, sortedSites, withZoombox = false, requestedTimelineStart, requestedTimelineEnd) => {
 
   svg.selectAll("*").remove();
-  if (!sortedSites ||   sortedSites.length==0) return
+  if (!sortedSites || sortedSites.length == 0) return
   // then find the starting and ending timestamps - the timestamp of the first and the last of the sorted sites
-  const timelineStart = requestedTimelineStart || sortedSites[0].timestamp
-  const timelineEnd = requestedTimelineEnd || sortedSites[sortedSites.length - 1].timestamp
+  let timelineStart = requestedTimelineStart || sortedSites[0].timestamp
+  let timelineEnd = requestedTimelineEnd || sortedSites[sortedSites.length - 1].timestamp
 
-  const startTime = new Date(timelineStart).getTime();
-  const endTime = new Date(timelineEnd).getTime();
+
+  let startDate = new Date(timelineStart);
+  let endDate = new Date(timelineEnd);
 
   timegrain = timeResolution(timelineStart, timelineEnd)
-
-
   const timelineWidth = width
+
+  // determine real start time and end time and ticks 
+
+  let numTicks = 5;
+  // if timegrain is day or hour then dateTimeFormat = short, if timegrain is month then dateTimeFormat = long
+  // if timegrain is year then dateTimeFormat = medium
+  let dateTimeFormat
+  if (timegrain == 'year') {
+    dateTimeFormat = 'medium'
+  } else if (timegrain == 'month') {
+    dateTimeFormat = 'long'
+  } else if (timegrain == 'day' || timegrain == 'hour') {
+    dateTimeFormat = 'short'
+  } else {
+    dateTimeFormat = 'short'
+  }
+
+
+  // WORKING
+  // TODO!!!
+  // if same day
+  const sameDay = timelineStart.substring(0, 10) == timelineEnd.substring(0, 10)
+  const sameMonth = timelineStart.substring(0, 7) == timelineEnd.substring(0, 7)
+
+  // TODO same hour / within a few hours?
+  if (sameDay) {
+    const earliestHour = parseInt(timelineStart.substring(11, 13))
+    const lastHour = parseInt(timelineEnd.substring(11, 13)) + 1
+
+    timelineStart = timelineStart.substring(0, 10) + 'T' + (earliestHour < 10 ? '0' : '') + earliestHour + ':00:00Z'
+    timelineEnd = timelineStart.substring(0, 10) + 'T' + (lastHour < 10 ? '0' : '') + lastHour + ':00:00Z'
+    startDate = new Date(timelineStart);
+    endDate = new Date(timelineEnd);
+    numTicks = lastHour - earliestHour
+    if (numTicks < 4) numTicks = numTicks * 2
+    if (numTicks > 8) numTicks = Math.ceil(numTicks / 2)
+  } else if (sameMonth) {
+    const earliestDay = parseInt(timelineStart.substring(8, 10))
+    const lastDay = parseInt(timelineEnd.substring(8, 10)) + 1
+    timelineStart = timelineStart.substring(0, 8) + (earliestDay < 10 ? '0' : '') + earliestDay + 'T00:00:00Z'
+    timelineEnd = timelineStart.substring(0, 8) + (lastDay < 10 ? '0' : '') + lastDay + 'T00:00:00Z'
+    startDate = new Date(timelineStart);
+    endDate = new Date(timelineEnd);
+    numTicks = lastDay - earliestDay
+   
+    if (numTicks > 8) numTicks = Math.ceil(numTicks / 2)
+
+  }
+
+  let startTime = startDate.getTime();
+  let endTime = endDate.getTime();
+
+  const ticks = []
+
+  for (let i = 0; i <= numTicks; i++) {
+    const relativePosition = i / numTicks;
+    const xPos = relativePosition * timelineWidth;
+
+    // Timestamp for tick
+    const tickTime = startTime + (relativePosition * (endTime - startTime));
+    const date = new Date(tickTime);
+
+    // Format date for label
+    let label = formatDate(date, dateTimeFormat)
+    if (sameMonth && !sameDay) label = formatDate(date, 'day')
+    ticks.push({ label: label, xPos: xPos, relativePosition: relativePosition, tickTime: tickTime })
+  }
+
 
   // TODO determine proper start and end time for the timescale - rounded up to start of an hour, a day, a month or a year - instead of picking the first and last sites' timestamps
 
@@ -219,11 +288,10 @@ const drawSitesTimelineProfile = (svg, sortedSites, withZoombox = false, request
       timelabel = formatDateByGrain(timelineStart, 0, 8) // month
       if (timelineStart.substring(8, 10) == timelineEnd.substring(8, 10)) {
         timelabel = timelineStart.substring(8, 10) + ' ' + timelabel  // same day
-// TODO add start and end time (or first part of day/ hour)
-timelabel = formatDate(timelineStart, 'short') + ' - ' + formatDate(timelineEnd, 'short') + ', ' + timelabel
-
+        // add start and end time 
+        timelabel = formatDate(timelineStart, 'short') + ' - ' + formatDate(timelineEnd, 'short') + ', ' + timelabel
       } else {
-        timelabel = timelineStart.substring(8, 10) + '-'+timelineEnd.substring(8, 10)+' ' + timelabel  // day
+        timelabel = timelineStart.substring(8, 10) + '-' + timelineEnd.substring(8, 10) + ' ' + timelabel  // day
       }
     }
     else {
@@ -231,11 +299,11 @@ timelabel = formatDate(timelineStart, 'short') + ' - ' + formatDate(timelineEnd,
       // remove last 6 characters from timelabel
       timelabel = timelabel.substring(0, timelabel.length - 6)
 
-      
-      timelabel = timelabel+'-'+formatDateByGrain(timelineEnd, 0, 8) 
+
+      timelabel = timelabel + '-' + formatDateByGrain(timelineEnd, 0, 8)
     }
   } else {
-    timelabel =  timelineStart.substring(0, 4) + '-' + timelineEnd.substring(0, 4)
+    timelabel = timelineStart.substring(0, 4) + '-' + timelineEnd.substring(0, 4)
   }
   if (timelabel) {
     svg.append("text")
@@ -260,50 +328,25 @@ timelabel = formatDate(timelineStart, 'short') + ' - ' + formatDate(timelineEnd,
     .attr("y2", 50)
     .attr("stroke", timelineColor);
 
-  const numTicks = 5;
-  // if timegrain is day or hour then dateTimeFormat = short, if timegrain is month then dateTimeFormat = long
-  // if timegrain is year then dateTimeFormat = medium
-  let dateTimeFormat
-  if (timegrain == 'year') {
-    dateTimeFormat = 'medium'
-  } else if (timegrain == 'month') {
-    dateTimeFormat = 'long'
-  } else if (timegrain == 'day' || timegrain == 'hour') {
-    dateTimeFormat = 'short'
-  } else {
-    dateTimeFormat = 'short'
-  }
+  for (let i = 0; i < ticks.length; i++) {
 
-
-
-  //const dateTimeFormat = timegrain =='month' ? 'long' :(timegrain =='day'? 'short' :  'medium');
-  for (let i = 0; i <= numTicks; i++) {
-    const relativePosition = i / numTicks;
-    const xPos = relativePosition * timelineWidth;
-
-    // Timestamp for tick
-    const tickTime = startTime + (relativePosition * (endTime - startTime));
-    const date = new Date(tickTime);
-
-    // Format date for label
-    const label = formatDate(date, dateTimeFormat)
-
+    const tick = ticks[i]
     // Create tick
-    const tick =
+    const tickie =
       svg.append("line")
-        .attr("x1", xPos)
-        .attr("x2", xPos)
+        .attr("x1", tick.xPos)
+        .attr("x2", tick.xPos)
         .attr("y1", 47)
         .attr("y2", 60)
         .attr("stroke", timelineColor);
 
     // Add label
     svg.append("text")
-      .attr("x", xPos)
+      .attr("x", tick.xPos)
       .attr("y", 75)
-      .attr("text-anchor", (i == 0 ? "start" : (i == numTicks ? "end" : "middle")))
+      .attr("text-anchor", (i == 0 ? "start" : (i == ticks.length ? "end" : "middle")))
       .attr("fill", "black")
-      .text(label);
+      .text(tick.label);
   }
 
   sortedSites.forEach((site, index) => {

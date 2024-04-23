@@ -3,7 +3,7 @@ export function useDateTimeLibrary() {
 
   const formatDate = (timestamp, dateFormatStyle, timezoneOffset) => {
 //    const date = timezoneOffset? new Date( new Date(timestamp)- timezoneOffset * 60 * 1000):new Date(timestamp)
-    const date = new Date(timestamp) // this is not correct: it uses the current local timezone.
+    const date = new Date(timestamp) // if the last character in the timestamp is Z then this Date is not corrected for current / local timezone
 
     if (dateFormatStyle === "dow") {
       const dayOfWeek = date.toLocaleString('default', { weekday: 'long' })
@@ -21,6 +21,9 @@ export function useDateTimeLibrary() {
       const hour = date.getUTCHours();
       const min = date.getUTCMinutes();
       return `${day} ${month} ${hour}:${min < 10 ? '0' : ''}${min}`
+    } else if (dateFormatStyle === "day") {  // DD 
+      const day = date.getUTCDate();
+      return `${day}`
     } else { // DD month YYYY
       const day = date.getUTCDate();
       const month = date.toLocaleString('default', { month: 'long' })
