@@ -229,11 +229,13 @@ const drawSitesTimelineProfile = (svg, sortedSites, withZoombox = false, request
   // if same day
   const sameDay = timelineStart.substring(0, 10) == timelineEnd.substring(0, 10)
   const sameMonth = timelineStart.substring(0, 7) == timelineEnd.substring(0, 7)
+  const sameYear = timelineStart.substring(0, 4) == timelineEnd.substring(0, 4)
 
   // TODO same hour / within a few hours?
+  // TODO several months or even multiple years
   if (sameDay) {
     const earliestHour = parseInt(timelineStart.substring(11, 13))
-    const lastHour = parseInt(timelineEnd.substring(11, 13)) + 1
+    const lastHour = parseInt(timelineEnd.substring(11, 13)) + 1 // TO DO should be <= 23 ;what if last hour is last hour in day?
 
     timelineStart = timelineStart.substring(0, 10) + 'T' + (earliestHour < 10 ? '0' : '') + earliestHour + ':00:00Z'
     timelineEnd = timelineStart.substring(0, 10) + 'T' + (lastHour < 10 ? '0' : '') + lastHour + ':00:00Z'
@@ -244,15 +246,23 @@ const drawSitesTimelineProfile = (svg, sortedSites, withZoombox = false, request
     if (numTicks > 8) numTicks = Math.ceil(numTicks / 2)
   } else if (sameMonth) {
     const earliestDay = parseInt(timelineStart.substring(8, 10))
-    const lastDay = parseInt(timelineEnd.substring(8, 10)) + 1
+    const lastDay = parseInt(timelineEnd.substring(8, 10)) + 1  // TODO should be <= 28,30 or 31  ;what if last day is last day in month?
     timelineStart = timelineStart.substring(0, 8) + (earliestDay < 10 ? '0' : '') + earliestDay + 'T00:00:00Z'
     timelineEnd = timelineStart.substring(0, 8) + (lastDay < 10 ? '0' : '') + lastDay + 'T00:00:00Z'
     startDate = new Date(timelineStart);
     endDate = new Date(timelineEnd);
     numTicks = lastDay - earliestDay
-   
     if (numTicks > 8) numTicks = Math.ceil(numTicks / 2)
-
+  } else if (sameYear) {
+    const earliestMonth = parseInt(timelineStart.substring(5, 7))
+    const lastMonth = Math.min(12,parseInt(timelineEnd.substring(5,7)) + 1)  // TODO should be <= 12  ;what if last month is december? go to 31st of december?
+    timelineStart = timelineStart.substring(0, 5) + (earliestMonth < 10 ? '0' : '') + earliestMonth + '-01T00:00:00Z'
+    timelineEnd = timelineEnd.substring(0, 5) + (lastMonth < 10 ? '0' : '') + lastMonth + '-01T00:00:00Z'
+    //timelineEnd = timelineStart.substring(0, 8) + (lastDay < 10 ? '0' : '') + lastDay + '01T00:00:00Z'
+    startDate = new Date(timelineStart);
+    endDate = new Date(timelineEnd);
+    numTicks = lastMonth - earliestMonth
+    if (numTicks > 8) numTicks = Math.ceil(numTicks / 2)
   }
 
   let startTime = startDate.getTime();
@@ -271,6 +281,8 @@ const drawSitesTimelineProfile = (svg, sortedSites, withZoombox = false, request
     // Format date for label
     let label = formatDate(date, dateTimeFormat)
     if (sameMonth && !sameDay) label = formatDate(date, 'day')
+    if (sameYear && !sameMonth) label = formatDate(date, 'month')
+    
     ticks.push({ label: label, xPos: xPos, relativePosition: relativePosition, tickTime: tickTime })
   }
 
@@ -341,10 +353,12 @@ const drawSitesTimelineProfile = (svg, sortedSites, withZoombox = false, request
         .attr("stroke", timelineColor);
 
     // Add label
+    const textAnchor = (i == 0 ? "start" : (i == ticks.length-1 ? "end" : "middle"))
+    
     svg.append("text")
       .attr("x", tick.xPos)
       .attr("y", 75)
-      .attr("text-anchor", (i == 0 ? "start" : (i == ticks.length ? "end" : "middle")))
+      .attr("text-anchor", textAnchor)
       .attr("fill", "black")
       .text(tick.label);
   }

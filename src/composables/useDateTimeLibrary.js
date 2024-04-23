@@ -24,6 +24,9 @@ export function useDateTimeLibrary() {
     } else if (dateFormatStyle === "day") {  // DD 
       const day = date.getUTCDate();
       return `${day}`
+    } else if (dateFormatStyle === "month") {  // DD 
+      const month = date.toLocaleString('default', { month: 'long' })
+      return `${month}`
     } else { // DD month YYYY
       const day = date.getUTCDate();
       const month = date.toLocaleString('default', { month: 'long' })
