@@ -76,7 +76,7 @@ const findTreeKeyForElement = (currentElement) => {
 const handleDoubleClickOnTree = (event) => {
   const treeKey = findTreeKeyForElement(event.target)
   let siteIds = []
-  if ((treeKey.keyType === 'year' || treeKey.keyType === 'month' || treeKey.keyType === 'day' || treeKey.keyType === 'tag' || treeKey.keyType === 'country' || treeKey.keyType === 'city' || treeKey.keyType === 'timeline')
+  if ((treeKey.keyType === 'year' || treeKey.keyType === 'month' || treeKey.keyType === 'day' || treeKey.keyType === 'tag' || treeKey.keyType === 'country' || treeKey.keyType === 'city' || treeKey.keyType === 'timeline'|| treeKey.keyType === 'tour')
     && treeKey.key) {
     const treeData = treeRef.value.value
     // find all sites under this key 
