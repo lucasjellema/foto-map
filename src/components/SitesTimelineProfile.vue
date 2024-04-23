@@ -52,13 +52,13 @@ watch(() => props.sites, (newValue, oldValue) => {
 
 let sortedSites
 
-const drawZoomedinProfile = (sortedSites, startPercentage, durationPercentage) => {
+const drawZoomedinProfile = (sortedSites, startPercentage, durationPercentage, timelineStart, timelineEnd) => {
   // given the full width of the timeline for all sites, startPercentage indicates the timestamp where this zoomedin profile should start: starttime + startPercentage * (end-time - starttime)
   // filter sites based on start and end time
 
-  // TODO adopt the updated start and end of timeline!
-  const timelineStart = sortedSites[0].timestamp
-  const timelineEnd = sortedSites[sortedSites.length - 1].timestamp
+  // // TODO adopt the updated start and end of timeline!
+  // const timelineStart = sortedSites[0].timestamp
+  // const timelineEnd = sortedSites[sortedSites.length - 1].timestamp
 
   const startTime = new Date(timelineStart).getTime();
   const endTime = new Date(timelineEnd).getTime();
@@ -203,13 +203,13 @@ const drawSitesTimelineProfile = (svg, sortedSites, withZoombox = false, request
 
   let startDate = new Date(timelineStart);
   let endDate = new Date(timelineEnd);
+  let numTicks = 5;
 
   timegrain = timeResolution(timelineStart, timelineEnd)
   const timelineWidth = width
 
   // determine real start time and end time and ticks 
 
-  let numTicks = 5;
   // if timegrain is day or hour then dateTimeFormat = short, if timegrain is month then dateTimeFormat = long
   // if timegrain is year then dateTimeFormat = medium
   let dateTimeFormat
@@ -227,38 +227,76 @@ const drawSitesTimelineProfile = (svg, sortedSites, withZoombox = false, request
   // WORKING
   // TODO!!!
   // if same day
+  const sameHour = timelineStart.substring(0, 13) == timelineEnd.substring(0, 13)
   const sameDay = timelineStart.substring(0, 10) == timelineEnd.substring(0, 10)
   const sameMonth = timelineStart.substring(0, 7) == timelineEnd.substring(0, 7)
   const sameYear = timelineStart.substring(0, 4) == timelineEnd.substring(0, 4)
 
+
+  // TODO what if not same day but a few hours apart or not the same month but a few days apart? do not show all hours in  both days or all days in both months
   // TODO same hour / within a few hours?
   // TODO several months or even multiple years
-  if (sameDay) {
+  if (sameHour || endDate.getTime() - startDate.getTime() < hourInMilliseconds) {
+    const earliestMinute = parseInt(timelineStart.substring(14, 16))
+    const lastMinute = parseInt(timelineEnd.substring(14, 16)) + 1 // 
+    timelineStart = timelineStart.substring(0, 14) + (earliestMinute < 10 ? '0' : '') + earliestMinute + ':00Z'
+    if (lastMinute > 59) {
+      timelineEnd = timelineEnd.substring(0, 14) + '59:59Z'
+    } else {
+      timelineEnd = timelineEnd.substring(0, 14) + (lastMinute < 10 ? '0' : '') + lastMinute + ':00Z'
+    }
+    startDate = new Date(timelineStart);
+    endDate = new Date(timelineEnd);
+    numTicks = (endDate.getTime() - startDate.getTime()) / 1000 * 60 * 10  // 10 minutes
+    if (numTicks < 4) numTicks = numTicks * 2
+
+    if (numTicks > 8) numTicks = Math.min(8, Math.ceil(numTicks / 2)) // Math.ceil(numTicks / 2)
+  }
+  else if (sameDay || endDate.getTime() - startDate.getTime() < dayInMilliseconds) {
     const earliestHour = parseInt(timelineStart.substring(11, 13))
     const lastHour = parseInt(timelineEnd.substring(11, 13)) + 1 // TO DO should be <= 23 ;what if last hour is last hour in day?
 
     timelineStart = timelineStart.substring(0, 10) + 'T' + (earliestHour < 10 ? '0' : '') + earliestHour + ':00:00Z'
-    timelineEnd = timelineStart.substring(0, 10) + 'T' + (lastHour < 10 ? '0' : '') + lastHour + ':00:00Z'
+    if (lastHour > 23) {
+      timelineEnd = timelineEnd.substring(0, 10) + 'T23:59:59Z'
+    } else {
+      timelineEnd = timelineEnd.substring(0, 10) + 'T' + (lastHour < 10 ? '0' : '') + lastHour + ':00:00Z'
+    }
     startDate = new Date(timelineStart);
     endDate = new Date(timelineEnd);
-    numTicks = lastHour - earliestHour
+    numTicks = (endDate.getTime() - startDate.getTime()) / hourInMilliseconds
     if (numTicks < 4) numTicks = numTicks * 2
     if (numTicks > 8) numTicks = Math.ceil(numTicks / 2)
-  } else if (sameMonth) {
+  } 
+else if (sameMonth || endDate.getTime() - startDate.getTime() < monthInMilliseconds) {
     const earliestDay = parseInt(timelineStart.substring(8, 10))
-    const lastDay = parseInt(timelineEnd.substring(8, 10)) + 1  // TODO should be <= 28,30 or 31  ;what if last day is last day in month?
+    let lastDay = parseInt(timelineEnd.substring(8, 10)) + 1
+
+    let month = parseInt(timelineEnd.substring(5, 7))
+    let daysInMonth = new Date(timelineEnd.substring(0, 4), month, 0).getDate()
+    if (lastDay > daysInMonth) {
+      timelineEnd = timelineEnd.substring(0, 8) + `${daysInMonth}T23:59:59Z`
+    } else {
+      timelineEnd = timelineEnd.substring(0, 8) + (lastDay < 10 ? '0' : '') + lastDay + 'T00:00:00Z'
+    }
+
     timelineStart = timelineStart.substring(0, 8) + (earliestDay < 10 ? '0' : '') + earliestDay + 'T00:00:00Z'
-    timelineEnd = timelineStart.substring(0, 8) + (lastDay < 10 ? '0' : '') + lastDay + 'T00:00:00Z'
     startDate = new Date(timelineStart);
     endDate = new Date(timelineEnd);
-    numTicks = lastDay - earliestDay
+    numTicks = (endDate.getTime() - startDate.getTime()) / dayInMilliseconds
+    if (numTicks < 4) numTicks = numTicks * 2
     if (numTicks > 8) numTicks = Math.ceil(numTicks / 2)
   } else if (sameYear) {
+
+
     const earliestMonth = parseInt(timelineStart.substring(5, 7))
-    const lastMonth = Math.min(12,parseInt(timelineEnd.substring(5,7)) + 1)  // TODO should be <= 12  ;what if last month is december? go to 31st of december?
+    let lastMonth = parseInt(timelineEnd.substring(5, 7)) + 1
     timelineStart = timelineStart.substring(0, 5) + (earliestMonth < 10 ? '0' : '') + earliestMonth + '-01T00:00:00Z'
-    timelineEnd = timelineEnd.substring(0, 5) + (lastMonth < 10 ? '0' : '') + lastMonth + '-01T00:00:00Z'
-    //timelineEnd = timelineStart.substring(0, 8) + (lastDay < 10 ? '0' : '') + lastDay + '01T00:00:00Z'
+    if (lastMonth > 12) {
+      timelineEnd = timelineEnd.substring(0, 5) + '12-31T23:59:59Z'
+    } else {
+      timelineEnd = timelineEnd.substring(0, 5) + (lastMonth < 10 ? '0' : '') + lastMonth + '-01T00:00:00Z'
+    }
     startDate = new Date(timelineStart);
     endDate = new Date(timelineEnd);
     numTicks = lastMonth - earliestMonth
@@ -280,9 +318,9 @@ const drawSitesTimelineProfile = (svg, sortedSites, withZoombox = false, request
 
     // Format date for label
     let label = formatDate(date, dateTimeFormat)
-    if (sameMonth && !sameDay) label = formatDate(date, 'day')
-    if (sameYear && !sameMonth) label = formatDate(date, 'month')
-    
+    if (!sameDay && (sameMonth  || ( endDate.getTime() - startDate.getTime() < monthInMilliseconds))) label = formatDate(date, 'day')  // 13, 14, 15
+    else if (sameYear && !sameMonth) label = formatDate(date, 'month')  // april, may, june 
+    // TODO should label not always start at marker instead of be centered? from the tick starts the hour/day/month/year 
     ticks.push({ label: label, xPos: xPos, relativePosition: relativePosition, tickTime: tickTime })
   }
 
@@ -339,7 +377,7 @@ const drawSitesTimelineProfile = (svg, sortedSites, withZoombox = false, request
     .attr("y1", 50)
     .attr("y2", 50)
     .attr("stroke", timelineColor);
-
+  let previousLabel
   for (let i = 0; i < ticks.length; i++) {
 
     const tick = ticks[i]
@@ -353,14 +391,18 @@ const drawSitesTimelineProfile = (svg, sortedSites, withZoombox = false, request
         .attr("stroke", timelineColor);
 
     // Add label
-    const textAnchor = (i == 0 ? "start" : (i == ticks.length-1 ? "end" : "middle"))
-    
-    svg.append("text")
-      .attr("x", tick.xPos)
-      .attr("y", 75)
-      .attr("text-anchor", textAnchor)
-      .attr("fill", "black")
-      .text(tick.label);
+    const textAnchor = (i == 0 ? "start" : (i == ticks.length - 1 ? "end" : "start"))  // the tick indicates the start of the new hour/day/month/year
+    if (tick.label && tick.label != previousLabel) {
+
+
+      svg.append("text")
+        .attr("x", tick.xPos)
+        .attr("y", 75)
+        .attr("text-anchor", textAnchor)
+        .attr("fill", "black")
+        .text(tick.label);
+    }
+    previousLabel = tick.label
   }
 
   sortedSites.forEach((site, index) => {
@@ -371,12 +413,12 @@ const drawSitesTimelineProfile = (svg, sortedSites, withZoombox = false, request
     addMarker(site, xPos, svg, timelineColor, relativePosition);
   })
   if (withZoombox) {
-    drawZoombox(svg)
+    drawZoombox(svg, timelineStart, timelineEnd)
   }
 }
 
 
-const drawZoombox = (svg) => {
+const drawZoombox = (svg, timelineStart, timelineEnd) => {
   const maxX = width
   const minX = 0
   const minWidth = 15;
@@ -418,7 +460,7 @@ const drawZoombox = (svg) => {
     rectangle.attr("x", rectX);
     leftHandle.attr("cx", rectX);
     rightHandle.attr("cx", rectX + rectWidth);
-    handleMoveOrResize(); // Function triggered on move or resize
+    handleMoveOrResize(timelineStart, timelineEnd); // Function triggered on move or resize
   }
 
   rectangle.call(dragMove);
@@ -462,9 +504,9 @@ const drawZoombox = (svg) => {
     .call(resizeRect('left'));
 
   // Placeholder for handling move or resize events
-  function handleMoveOrResize() {
+  function handleMoveOrResize(timelineStart, timelineEnd) {
     console.log("Rectangle moved or resized. New X-position and width; start as percentage and width as percentage of max :", rectX, rectWidth, (rectX - minX) / (maxX - minX), rectWidth / (maxX - minX));
-    drawZoomedinProfile(sortedSites, (rectX - minX) / (maxX - minX), rectWidth / (maxX - minX))
+    drawZoomedinProfile(sortedSites, (rectX - minX) / (maxX - minX), rectWidth / (maxX - minX), timelineStart, timelineEnd)
   }
 }
 </script>
