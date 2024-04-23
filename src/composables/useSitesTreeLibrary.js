@@ -117,7 +117,7 @@ export function useSitesTreeLibrary() {
           && (!site.timeGrain || site.timeGrain < 8))
         // for all sites with the same year and month, add them to the month node
         const uniqueDays = [...new Set(sitesWithYearAndMonth.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
-          .map(site => new Date(site.timestamp).getDate()))];
+          .map(site => new Date(site.timestamp).getUTCDate()))];
         //iterate over all unique days sorted by date and create a node for each day
         for (const day of uniqueDays) {
           //        uniqueDays.forEach(day => {
@@ -133,7 +133,7 @@ export function useSitesTreeLibrary() {
             parent: monthNode
           }
           // iterate over all sites with a timestamp that matches the year, month, and day, sorted by timestamp
-          const sitesWithYearMonthAndDay = sitesWithYearAndMonth.filter(site => new Date(site.timestamp).getDate() === day).sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
+          const sitesWithYearMonthAndDay = sitesWithYearAndMonth.filter(site => new Date(site.timestamp).getUTCDate() === day).sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
           for (const site of sitesWithYearMonthAndDay) {
             //          sitesWithYearMonthAndDay.forEach(site => {
             const siteNode = {
