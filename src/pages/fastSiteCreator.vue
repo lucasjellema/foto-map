@@ -164,15 +164,15 @@
             {{ timeline.label }}
           </v-col>
         </v-row>
-       
+
       </v-container>
     </div>
     <div style="display: none;">
       <!-- the content for tour legend is referenced by $el in the Leaflet legend control  -->
       <v-container id="toursLegend" ref="toursLegendRef" style="max-width: 300px">
         <v-row v-for="tour in currentStory.mapConfiguration?.tours" @dblclick.stop="focusOnTour(tour)"
-          @click.stop="showTour(tour)" @mouseover="highlightTour(tour)"
-          @mouseout="unhighlightTour(tour)" class="timelineLegendLine">
+          @click.stop="showTour(tour)" @mouseover="highlightTour(tour)" @mouseout="unhighlightTour(tour)"
+          class="timelineLegendLine">
           <v-col cols="2" class="timelineLegendLine">
             <hr :style="{
               'border-style': tour.lineStyle + ' none none none'
@@ -284,7 +284,7 @@ import { useTimelinesLibrary } from '@/composables/useTimelinesLibrary';
 const { splitTimelineAtSiteX, drawTimelinesX, hideTimelines, startTimelineAtSite, highlightTimeline, unhighlightTimeline, endTimelineAtSite, refreshTimelines, registerEventCallback, fuseTimelinesAtSite, createTimelinePer, getSortedSitesInTimeline } = useTimelinesLibrary();
 
 import { useToursLibrary } from '@/composables/useToursLibrary';
-const {drawTours,hideTours,highlightTour,unhighlightTour, removeSitesFromTour } = useToursLibrary();
+const { drawTours, hideTours, highlightTour, unhighlightTour, removeSitesFromTour } = useToursLibrary();
 
 const tab = ref('tab-1')
 
@@ -553,8 +553,14 @@ const focusOnSites = (siteIds) => {
 
 const focusOnTimeline = (timeline) => {
   const sitesInTimeline = getSortedSitesInTimeline(timeline, sitesData.value)
-  const sitesIdsInTimeline =  sitesInTimeline.map(site => site.id)
+  const sitesIdsInTimeline = sitesInTimeline.map(site => site.id)
   focusOnSites(sitesIdsInTimeline)
+}
+
+const focusOnTour = (tour) => {
+  focusOnSites(tour.sites)
+  sitesTimelineProfileData.value = getSitesFromSiteIds(tour.sites)
+  sitesTimelineProfileLabel.value = `Tour ${tour.label}`
 }
 
 const search = ref("")
@@ -1427,7 +1433,7 @@ const drawMap = () => {
     var markersWithinRectangle = [];
 
     // Check each marker to see if it's within the bounds
-const sitesInFocus =[]
+    const sitesInFocus = []
 
     getAllMarkers().forEach(function (marker) {
       if (bounds.contains(marker.getLatLng())) {
@@ -1922,9 +1928,9 @@ img.hover-zoom:hover {
 
 .tourLegendLine {
 
-padding-top: 1px;
-padding-right: 6px;
-padding-bottom: 1px;
-padding-left: 6px;
+  padding-top: 1px;
+  padding-right: 6px;
+  padding-bottom: 1px;
+  padding-left: 6px;
 }
 </style>
