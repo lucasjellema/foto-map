@@ -15,17 +15,17 @@
                         </v-col>
                     </v-row>
                     <v-row class="mt-0">
-                        <v-col cols="3">
+                        <v-col cols="4">
                             <v-text-field label="Start Date" type="date" v-model="startDatePart" </v-text-field>
                         </v-col>
-                        <v-col cols="3">
+                        <v-col cols="2">
                             <v-text-field label="Start Time" type="time" v-model="startTimePart"></v-text-field>
                         </v-col>
-                        <v-col cols="3">
+                        <v-col cols="4">
                             <v-text-field label="End Date" type="date" v-model="endDatePart" </v-text-field>
                         </v-col>
 
-                        <v-col cols="3">
+                        <v-col cols="2">
                             <v-text-field label="End Time" type="time" v-model="endTimePart"></v-text-field>
                         </v-col>
                     </v-row>
