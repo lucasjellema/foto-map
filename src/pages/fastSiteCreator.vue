@@ -164,8 +164,32 @@
             {{ timeline.label }}
           </v-col>
         </v-row>
+       
       </v-container>
     </div>
+    <div style="display: none;">
+      <!-- the content for tour legend is referenced by $el in the Leaflet legend control  -->
+      <v-container id="toursLegend" ref="toursLegendRef" style="max-width: 300px">
+        <v-row v-for="tour in currentStory.mapConfiguration?.tours" @dblclick.stop="focusOnTour(tour)"
+          @click.stop="showTour(tour)" @mouseover="highlightTour(tour)"
+          @mouseout="unhighlightTour(tour)" class="timelineLegendLine">
+          <v-col cols="2" class="timelineLegendLine">
+            <hr :style="{
+              'border-style': tour.lineStyle + ' none none none'
+              , 'border-width': tour.width + 'px'
+              , 'border-color': tour.color
+              , 'background-color': 'none'
+            }" />
+
+          </v-col>
+          <v-col cols="10" class="timelineLegendLine">
+            {{ tour.label }}
+          </v-col>
+        </v-row>
+      </v-container>
+    </div>
+
+
     <v-dialog v-model="showTimelineEditorPopup" max-width="800px">
       <TimelineEditor v-model="timelineToEdit" @saveTimeline="saveTimeline"
         @closeDialog="showTimelineEditorPopup = false">
@@ -260,7 +284,7 @@ import { useTimelinesLibrary } from '@/composables/useTimelinesLibrary';
 const { splitTimelineAtSiteX, drawTimelinesX, hideTimelines, startTimelineAtSite, highlightTimeline, unhighlightTimeline, endTimelineAtSite, refreshTimelines, registerEventCallback, fuseTimelinesAtSite, createTimelinePer, getSortedSitesInTimeline } = useTimelinesLibrary();
 
 import { useToursLibrary } from '@/composables/useToursLibrary';
-const { removeSitesFromTour } = useToursLibrary();
+const {drawTours,hideTours,highlightTour,unhighlightTour, removeSitesFromTour } = useToursLibrary();
 
 const tab = ref('tab-1')
 
@@ -269,6 +293,7 @@ const tab = ref('tab-1')
 
 
 const timelinesLegendRef = ref(null)
+const toursLegendRef = ref(null)
 const selectedSites = ref(null)
 const showAddTagToSitesDialog = ref(false)
 const showSetTimezoneForSitesDialog = ref(false)
@@ -547,6 +572,7 @@ const mapEditMode = ref(false)
 const mapClusterMode = ref(false)
 const mapFilterMode = ref(false)
 const mapShowTimelines = ref(false)
+const mapShowTours = ref(false)
 //const consolidationRadius = ref(2)
 const dateRangeTicks = computed(() => {
   const start = minTimestamp.value
@@ -1386,8 +1412,10 @@ const drawMap = () => {
     addEditModeControl()
   }
   addTimelinesControl()
+  addToursControl()
   addFilterControl()
   addTimelinesLegendControl()
+  addToursLegendControl()
 
   clustersLayer = L.markerClusterGroup();
   map.value.addLayer(clustersLayer);
@@ -1450,7 +1478,50 @@ const addFilterControl = () => {
   });
 }
 
-// TODO add Tours: control, legend, draw
+
+let toursLegendControl, toursLegendDiv
+const addToursLegendControl = () => {
+  toursLegendControl = L.control({ position: 'bottomright' });
+  toursLegendControl.onAdd = function (map) {
+    toursLegendDiv = L.DomUtil.create('div', 'info legend');
+    toursLegendDiv.style.overflowY = 'auto'; // Enable vertical scroll
+    toursLegendDiv.style.maxHeight = '150px'; // Set a max height for scroll
+    toursLegendDiv.style.opacity = '0.7 ';
+    toursLegendDiv.style.background = 'white';
+    refreshToursLegendControl()
+    return toursLegendDiv;
+  };
+}
+
+const refreshToursLegendControl = () => {
+  const el = toursLegendRef.value.$el
+  toursLegendDiv.appendChild(el);
+}
+
+const addToursControl = () => {
+  const toursControl = L.control({ position: 'bottomleft' });
+  myControls.push(toursControl);
+
+  toursControl.onAdd = function (map) {
+    const div = L.DomUtil.create('div', 'map-control');
+    div.innerHTML = `<form><input id="toursCheckbox" ${mapShowTours.value ? 'checked' : ''} type="checkbox" title="Show Tours"> Show Tours</form>`;
+    return div;
+  };
+  toursControl.addTo(map.value);
+  document.getElementById('toursCheckbox').addEventListener('change', function () {
+    if (this.checked) {
+      mapShowTours.value = true;
+      drawTours(sitesData.value, currentStory.value.mapConfiguration?.tours, map.value);
+      toursLegendControl.addTo(map.value)
+    } else {
+      mapShowTours.value = false;
+      hideTours();
+      toursLegendControl.remove()
+    }
+  });
+}
+
+
 
 
 
@@ -1846,5 +1917,14 @@ img.hover-zoom:hover {
   padding-right: 6px;
   padding-bottom: 1px;
   padding-left: 6px;
+}
+
+
+.tourLegendLine {
+
+padding-top: 1px;
+padding-right: 6px;
+padding-bottom: 1px;
+padding-left: 6px;
 }
 </style>
