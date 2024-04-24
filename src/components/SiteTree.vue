@@ -228,14 +228,14 @@ console.log(`selectedNode ID`, selectedNode.id)
   let siteIds = []
 
   if ((selectedNode.nodeType === 'year' || selectedNode.nodeType === 'month' || selectedNode.nodeType === 'day' || selectedNode.nodeType === 'tag')
-    || selectedNode.nodeType === 'country' || selectedNode.nodeType === 'city'
+    || selectedNode.nodeType === 'country' || selectedNode.nodeType === 'city' || selectedNode.nodeType === 'tour'
     && selectedNode.key) {
     const treeData = treeRef.value.value
     // find all sites under this key 
     siteIds = findLeafNodes(treeData, selectedNode.key).map(siteNode => siteNode.key)
   }
 
-  if (selectedNode.nodeType === 'site' && treeKey.key) {
+  if (selectedNode.nodeType === 'site' && selectedNode.key) {
     // https://primevue.org/contextmenu/
     const siteId = selectedNode.key
     siteIds = [siteId]
@@ -252,6 +252,14 @@ console.log(`selectedNode ID`, selectedNode.id)
         label: ` Split Timeline at Site`, icon: 'mdi mdi-timeline-clock-outline'
         , command: () => { emit('siteAction', { action: 'splitTimeline', siteIds: siteIds }) }
       })
+
+      if (selectedNode.parent.nodeType==='tour') {
+        contextMenuItems.value.push({
+        label: ` Remove Site from Tour`, icon: 'mdi mdi-vector-polyline-remove'
+        , command: () => { emit('siteAction', { action: 'removeSiteFromTour', siteIds: siteIds, payload: { tourId: selectedNode.parent.key } }) }
+      })
+        
+      }
     }
     // if multiple sites are selected, they can all be consolidated into the site for which the menu is shown
     const selectedSiteIds =

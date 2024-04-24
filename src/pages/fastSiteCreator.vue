@@ -258,7 +258,13 @@ import { useDateTimeLibrary } from '@/composables/useDateTimeLibrary';
 const { formatDate, formatDateByGrain, getLocalISOStringForNow } = useDateTimeLibrary();
 import { useTimelinesLibrary } from '@/composables/useTimelinesLibrary';
 const { splitTimelineAtSiteX, drawTimelinesX, hideTimelines, startTimelineAtSite, highlightTimeline, unhighlightTimeline, endTimelineAtSite, refreshTimelines, registerEventCallback, fuseTimelinesAtSite, createTimelinePer, getSortedSitesInTimeline } = useTimelinesLibrary();
+
+import { useToursLibrary } from '@/composables/useToursLibrary';
+const { removeSitesFromTour } = useToursLibrary();
+
 const tab = ref('tab-1')
+
+
 
 
 
@@ -398,6 +404,8 @@ const handleSiteAction = ({ siteId, siteIds, action, payload }) => {
       sitesTimelineProfileData.value = getSitesFromSiteIds(siteIds)
       sitesTimelineProfileLabel.value = payload.label || "Selected Sites"
 
+    } else if (action == 'removeSiteFromTour') {
+      removeSitesFromTour(siteIds, payload.tourId, currentStory.value)
     } else if (action == 'selectChildren') {
       handleSiteSelected(siteIds)
     } else if (action == 'consolidateSitesToTargetSite') {
@@ -1442,6 +1450,9 @@ const addFilterControl = () => {
   });
 }
 
+// TODO add Tours: control, legend, draw
+
+
 
 let timelinesLegendControl, timelinesLegendDiv
 const addTimelinesLegendControl = () => {
@@ -1453,7 +1464,7 @@ const addTimelinesLegendControl = () => {
     timelinesLegendDiv = L.DomUtil.create('div', 'info legend');
     timelinesLegendDiv.style.overflowY = 'auto'; // Enable vertical scroll
     timelinesLegendDiv.style.maxHeight = '150px'; // Set a max height for scroll
-    timelinesLegendDiv.style.opacity = '0.6 ';
+    timelinesLegendDiv.style.opacity = '0.7 ';
     timelinesLegendDiv.style.background = 'white';
     refreshTimelinesLegendControl()
     return timelinesLegendDiv;
