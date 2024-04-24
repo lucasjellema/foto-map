@@ -16,6 +16,7 @@ export function useSitesTreeLibrary() {
       data: 'Documents Folder',
       icon: 'mdi mdi-calendar-clock',
       styleClass: `treekey|times`,
+      nodeType: 'times',
       children: []
     }
     // if multiple years/months/days, then add children for years/months/days
@@ -29,6 +30,7 @@ export function useSitesTreeLibrary() {
         data: year,
         icon: 'mdi mdi-calendar-range',
         styleClass: `treekey|year|${year}`,
+        nodeType: 'year',
 
         selectable: false,
         children: []
@@ -45,6 +47,7 @@ export function useSitesTreeLibrary() {
           icon: 'mdi mdi-clock-outline',
           selectable: true,
           styleClass: `treekey|site|${site.id}`,
+          nodeType: 'site',
           leaf: true,
           children: [],
           parent: yearNode
@@ -66,6 +69,7 @@ export function useSitesTreeLibrary() {
           icon: 'mdi mdi-clock-outline',
           selectable: true,
           styleClass: `treekey|site|${site.id}`,
+          nodeType: 'site',
           leaf: true,
           children: [],
           parent: yearNode
@@ -88,6 +92,7 @@ export function useSitesTreeLibrary() {
           data: month,
           icon: 'mdi mdi-calendar-range',
           styleClass: `treekey|month|${year}_${month}`,
+          nodeType: 'month',
           selectable: false,
           children: []          
         }
@@ -103,6 +108,7 @@ export function useSitesTreeLibrary() {
             icon: 'mdi mdi-clock-outline',
             selectable: true,
             styleClass: `treekey|site|${site.id}`,
+            nodeType: 'site',
             leaf: true,
             children: [],
             parent: monthNode
@@ -128,6 +134,7 @@ export function useSitesTreeLibrary() {
             data: day,
             icon: 'mdi mdi-calendar-range',
             styleClass: `treekey|day|${year}_${month}_${day}`,
+            nodeType: 'day',
             selectable: false,
             children: [],
             parent: monthNode
@@ -143,6 +150,7 @@ export function useSitesTreeLibrary() {
               icon: 'mdi mdi-clock-outline',
               selectable: true,
               styleClass: `treekey|site|${site.id}`,
+              nodeType: 'site',
               leaf: true,
               children: [],
               parent: dayNode
@@ -158,6 +166,7 @@ export function useSitesTreeLibrary() {
               dayNode.data = siteNode.data
               dayNode.parent = monthNode
               dayNode.label = dayNode.label + ' - ' + siteNode.label
+              dayNode.nodeType = 'site'
             }
           }
           //)
@@ -171,6 +180,7 @@ export function useSitesTreeLibrary() {
         } else {
           yearNode.children = monthNode.children
           yearNode.label = monthNode.label + ' - ' + yearNode.label
+          yearNode.nodeType = 'month'
           for (const monthChild of monthNode.children) {
             monthChild.parent = yearNode
           }
@@ -198,6 +208,7 @@ export function useSitesTreeLibrary() {
       data: 'Documents Folder',
       icon: 'mdi mdi-map-marker',
       styleClass: `treekey|locations`,
+      nodeType: 'locations',
       selectable: false,
       children: []
     }
@@ -213,6 +224,7 @@ export function useSitesTreeLibrary() {
         data: country,
         selectable: false,
         styleClass: `treekey|country|${countryKey}`,
+        nodeType: 'country',
         icon: 'mdi mdi-map-marker',
         children: []
       }
@@ -227,6 +239,7 @@ export function useSitesTreeLibrary() {
           selectable: false,
           icon: 'mdi mdi-city',
           styleClass: `treekey|city|${countryKey}_${cityKey}`,
+          nodeType: 'city',
           children: []
         }
         // loop over sites, ordered by timestamp, filtered by city and add to children
@@ -240,6 +253,7 @@ export function useSitesTreeLibrary() {
             leaf: true,
             icon: 'mdi mdi-map-clock-outline',
             styleClass: `treekey|site|${site.id}`,
+            nodeType: 'site',
             children: [],
             parent: uniqueCities.length > 1 ? cityNode : countryNode
           }
@@ -268,7 +282,7 @@ export function useSitesTreeLibrary() {
       data: 'Documents Folder',
       icon: 'mdi mdi-tag-outline',
       styleClass: `treekey|tags`,
-
+      nodeType: 'tags',
       selectable: false,
       children: []
     }
@@ -295,6 +309,7 @@ export function useSitesTreeLibrary() {
         selectable: false,
         icon: 'mdi mdi-tag-outline',
         styleClass: `treekey|tag|${tag}`,
+        nodeType: 'tag',
         children: []
       }
       // loop over sites that have that tag and add to node for that tag to the tagNode children
@@ -307,6 +322,7 @@ export function useSitesTreeLibrary() {
           icon: 'mdi mdi-map-clock-outline',
           leaf: true,
           styleClass: `treekey|site|${site.id}`,
+          nodeType: 'site',
           children: [],
           parent: tagNode
         }
@@ -325,6 +341,7 @@ export function useSitesTreeLibrary() {
       data: 'Documents Folder',
       icon: 'mdi mdi-timeline-clock-outline',
       styleClass: `treekey|timelines`,
+      nodeType: 'timelines',
 
       selectable: false,
       children: []
@@ -338,6 +355,7 @@ export function useSitesTreeLibrary() {
         data: timeline,
         icon: 'mdi mdi-timeline-clock-outline',
         styleClass: `treekey|timeline|${timeline.id}`,
+        nodeType: 'timeline',
         selectable: false,
         children: []
       }
@@ -350,6 +368,7 @@ export function useSitesTreeLibrary() {
           icon: 'mdi mdi-map-clock-outline',
           leaf: true,
           styleClass: `treekey|site|${site.id}`,
+          nodeType: 'site',
           children: [],
           parent: timelineNode
         }
@@ -372,7 +391,7 @@ export function useSitesTreeLibrary() {
       data: 'Documents Folder',
       icon: 'mdi mdi-transit-detour',
       styleClass: `treekey|tours`,
-
+      nodeType: 'tours',
       selectable: false,
       children: []
     }
@@ -386,6 +405,7 @@ export function useSitesTreeLibrary() {
         data: tour,
         icon: 'mdi mdi-transit-detour',
         styleClass: `treekey|tour|${tour.id}`,
+        nodeType: 'tour',
         selectable: false,
         children: []
       }
@@ -398,6 +418,7 @@ export function useSitesTreeLibrary() {
           icon: 'mdi mdi-transit-detour',
           leaf: true,
           styleClass: `treekey|site|${site.id}`,
+          nodeType: 'site',
           children: [],
           parent: tourNode
         }
@@ -419,8 +440,23 @@ export function useSitesTreeLibrary() {
     sitesTreeData.push(getTagsTreeData(sites));
     sitesTreeData.push(getTimelinesTreeData(timelines, sites));
     sitesTreeData.push(getToursTreeData(tours, sites));
+    // add an id property to each node in sitesTreeData and to all children nodes
+    let i = 0
+    i = addIdToNodes(sitesTreeData, i)
+    console.log(`sitesTreeData with ids`,i, sitesTreeData)
     return sitesTreeData;
   }
+
+const addIdToNodes = (nodes, i) => {
+  for (const node of nodes) {
+    node.id = ++i;
+    node.styleClass= `treekey|id|${i}`
+    if (node.children) {
+      i = addIdToNodes(node.children, i);
+    }
+  }
+  return i
+}
 
   function findLeafNodes(nodes, targetKey) {
     let leafNodes = [];
@@ -468,7 +504,21 @@ export function useSitesTreeLibrary() {
   }
 
 
-  return { getSitesTreeData, findLeafNodes,findNodeWithKey };
+  const  findNodeWithId= (nodes, id)=> {
+    for (const node of nodes) {
+      if (node.id === id) {
+        return node
+        
+      } else if (node.children && node.children.length > 0) {
+        const result = findNodeWithId(node.children, id);
+        if (result != null) return result
+        
+      }
+    }
+  }
+
+
+  return { getSitesTreeData, findLeafNodes,findNodeWithKey,findNodeWithId };
 }
 
 

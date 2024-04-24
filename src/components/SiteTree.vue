@@ -16,7 +16,7 @@ const contextMenu = ref(null);
 
 
 import { useSitesTreeLibrary } from '@/composables/useSitesTreeLibrary';
-const { getSitesTreeData, findLeafNodes,findNodeWithKey } = useSitesTreeLibrary();
+const { getSitesTreeData, findLeafNodes,findNodeWithKey,findNodeWithId } = useSitesTreeLibrary();
 const sitesTreeData = computed(() => getSitesTreeData(currentStory.value.sites, currentStory.value.mapConfiguration.timelines, currentStory.value.mapConfiguration.tours));
 const contextMenuItems = ref([])
 
@@ -62,7 +62,8 @@ const findTreeKeyForElement = (currentElement) => {
             element: currentElement,
             treeKey: nameAfterTreeKey,
             keyType: nameAfterTreeKey.split('|')[0],
-            key: nameAfterTreeKey.split('|')[1]
+            key: nameAfterTreeKey.split('|')[1],
+            className: className
           };
         }
       }
@@ -75,19 +76,19 @@ const findTreeKeyForElement = (currentElement) => {
 
 const handleDoubleClickOnTree = (event) => {
   const treeKey = findTreeKeyForElement(event.target)
+  const treeData = treeRef.value.value
+  const selectedNode = findNodeWithId(treeData, parseInt(treeKey.key))
   let siteIds = []
-  if ((treeKey.keyType === 'year' || treeKey.keyType === 'month' || treeKey.keyType === 'day' || treeKey.keyType === 'tag' || treeKey.keyType === 'country' || treeKey.keyType === 'city' || treeKey.keyType === 'timeline'|| treeKey.keyType === 'tour')
-    && treeKey.key) {
-    const treeData = treeRef.value.value
+  if ((selectedNode.nodeType === 'year' || selectedNode.nodeType === 'month' || selectedNode.nodeType === 'day' || selectedNode.nodeType === 'tag' || selectedNode.nodeType === 'country' || selectedNode.nodeType === 'city' || selectedNode.nodeType === 'timeline'|| selectedNode.nodeType === 'tour')
+    && selectedNode.key) {
     // find all sites under this key 
-    siteIds = findLeafNodes(treeData, treeKey.key).map(siteNode => siteNode.key)
+    siteIds = findLeafNodes(treeData, selectedNode.key).map(siteNode => siteNode.key)
   }
   resetSelection()
-  if (treeKey.keyType === 'site' && treeKey.key) {
-    siteIds = [treeKey.key]
+  if (selectedNode.nodeType === 'site' && selectedNode.key) {
+    siteIds = [selectedNode.key]
   }
-  const treeData = treeRef.value.value
-  const selectedNode = findNodeWithKey(treeData, treeKey.key)
+  
   let label 
   if (selectedNode) {
     label = selectedNode.label
@@ -126,7 +127,10 @@ const handleNodeUnselect = (selectedNode) => {
 
 const handleClickOnTree = (event) => {
   const treeKey = findTreeKeyForElement(event.target)
-  if (treeKey.keyType === 'site' && treeKey.key) {
+  const treeData = treeRef.value.value
+
+  const selectedNode = findNodeWithId(treeData, parseInt(treeKey.key))
+  if (selectedNode.nodeType === 'site' && selectedNode.key) {
     if (event.shiftKey) {
       console.log(`tree was shift clicked - find all sites from ${previouslySelectedNode.key} to  ${lastSelectedNode.key}`)
 
@@ -170,7 +174,7 @@ const handleClickOnTree = (event) => {
     }
 
   }
-  if (treeKey.keyType === 'timeline' && treeKey.key) {
+  if (selectedNode.nodeType === 'timeline' && treeKey.key) {
     emit('siteAction', { action: 'selectTimeline', payload: { timelineId: treeKey.key } });
   }
 
@@ -182,15 +186,22 @@ const handleContextMenuClickOnTree = (event) => {
   contextMenuItems.value = []
   const treeKey = findTreeKeyForElement(event.target)
   console.log(`keyType`, treeKey.keyType)
-  if (treeKey.keyType === 'locations' || treeKey.keyType === 'tags' || treeKey.keyType === 'times') {
+  const treeData = treeRef.value.value
+ // const selectedNode = findNodeWithKey(treeData, treeKey.key)
+ console.log(`node id = `, treeKey.key)
+  const selectedNode = findNodeWithId(treeData, parseInt(treeKey.key))
+  
+  // TODO in case of a site node - it will find the first occurrence of the site in the tree, which may not be the one that is context menu clicked 
+console.log(`selectedNode ID`, selectedNode.id)
+  if (selectedNode.nodeType === 'locations' || selectedNode.nodeType === 'tags' || selectedNode.nodeType === 'times') {
     contextMenuItems.value.push({
       label: ` Reset Selection`, icon: 'mdi mdi-cancel'
       , command: () => { resetSelection() }
     })
   }
   if (!readOnly &&
-    (treeKey.keyType === 'times' || treeKey.keyType === 'timelines'
-      || treeKey.keyType === 'year' || treeKey.keyType === 'month' || treeKey.keyType === 'day'
+    (selectedNode.nodeType === 'times' || selectedNode.nodeType === 'timelines'
+      || selectedNode.nodeType === 'year' || selectedNode.nodeType === 'month' || selectedNode.nodeType === 'day'
     )
   ) {
     const createTimelineMenuItem = {
@@ -198,15 +209,15 @@ const handleContextMenuClickOnTree = (event) => {
       , items: []
     }
     const payload = {}
-    if (treeKey.keyType === 'year') payload.year = treeKey.key
-    if (treeKey.keyType === 'month') { payload.year = treeKey.key.split('_')[0]; payload.month = treeKey.key.split('_')[1] }
-    if (treeKey.keyType === 'day') { payload.year = treeKey.key.split('_')[0]; payload.month = treeKey.key.split('_')[1]; payload.day = treeKey.key.split('_')[2] }
+    if (selectedNode.nodeType === 'year') payload.year = treeKey.key
+    if (selectedNode.nodeType === 'month') { payload.year = treeKey.key.split('_')[0]; payload.month = treeKey.key.split('_')[1] }
+    if (selectedNode.nodeType === 'day') { payload.year = treeKey.key.split('_')[0]; payload.month = treeKey.key.split('_')[1]; payload.day = treeKey.key.split('_')[2] }
 
     createTimelineMenuItem.items.push({ label: `Per Day`, command: () => { emit('siteAction', { action: 'createTimelinesPerDay', payload: payload }) } })
-    if (treeKey.keyType !== 'day') {
+    if (selectedNode.nodeType !== 'day') {
       createTimelineMenuItem.items.push({ label: `Per Week`, command: () => { emit('siteAction', { action: 'createTimelinesPerWeek', payload: payload }) } })
       createTimelineMenuItem.items.push({ label: `Per Month`, command: () => { emit('siteAction', { action: 'createTimelinesPerMonth', payload: payload }) } })
-      if (treeKey.keyType !== 'month') {
+      if (selectedNode.nodeType !== 'month') {
         createTimelineMenuItem.items.push({ label: `Per Year`, command: () => { emit('siteAction', { action: 'createTimelinesPerYear', payload: payload }) } })
       }
     }
@@ -216,17 +227,17 @@ const handleContextMenuClickOnTree = (event) => {
 
   let siteIds = []
 
-  if ((treeKey.keyType === 'year' || treeKey.keyType === 'month' || treeKey.keyType === 'day' || treeKey.keyType === 'tag')
-    || treeKey.keyType === 'country' || treeKey.keyType === 'city'
-    && treeKey.key) {
+  if ((selectedNode.nodeType === 'year' || selectedNode.nodeType === 'month' || selectedNode.nodeType === 'day' || selectedNode.nodeType === 'tag')
+    || selectedNode.nodeType === 'country' || selectedNode.nodeType === 'city'
+    && selectedNode.key) {
     const treeData = treeRef.value.value
     // find all sites under this key 
-    siteIds = findLeafNodes(treeData, treeKey.key).map(siteNode => siteNode.key)
+    siteIds = findLeafNodes(treeData, selectedNode.key).map(siteNode => siteNode.key)
   }
 
-  if (treeKey.keyType === 'site' && treeKey.key) {
+  if (selectedNode.nodeType === 'site' && treeKey.key) {
     // https://primevue.org/contextmenu/
-    const siteId = treeKey.key
+    const siteId = selectedNode.key
     siteIds = [siteId]
     if (!readOnly) {
       contextMenuItems.value.push({
@@ -298,7 +309,7 @@ const handleContextMenuClickOnTree = (event) => {
 
   }
   if (siteIds.length > 0) {
-    if (treeKey.keyType != 'site') {
+    if (selectedNode.nodeType != 'site') {
       contextMenuItems.value.push({
         label: `Select Child Sites`, icon: 'mdi mdi-file-tree'
         , command: () => {
