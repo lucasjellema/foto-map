@@ -1,6 +1,7 @@
 <template>
   <div>
-    <h5>TimelineProfile for {{ label }} </h5>
+    <h5>TimelineProfile for {{ label }} <v-icon icon="mdi-arrow-top-left" @click="rollup()" v-if="showRollup"></v-icon>
+    </h5>
     <div id="sitesTimeline"> </div>
     <div id="sitesTimelineZoom"> </div>
 
@@ -18,6 +19,7 @@ const emit = defineEmits(['clickSite', 'dblclickSite', 'sitesInFocus']);
 
 let timegrain
 
+const showRollup = ref(false)
 const timelineColor = "steelblue"
 
 onMounted(() => {
@@ -33,33 +35,30 @@ onMounted(() => {
     .attr("height", height + margin.top + margin.bottom)
     .append("g")
     .attr("transform", `translate(${margin.left},${margin.top})`);
-
-
-  // sort sites by timestamp
-  sortedSites = getSortedSites(props.sites);
-
-  drawSitesTimelineProfile(svg, sortedSites, true)
-  drawSitesTimelineProfile(svg2, sortedSites, false)
-
+  resetTimelines()
 });
 
 watch(() => props.sites, (newValue, oldValue) => {
+  resetTimelines()
+})
 
-  sortedSites = getSortedSites(newValue);
+const resetTimelines = () => {
+  // sort sites by timestamp
+  sortedSites = getSortedSites(props.sites);
   drawSitesTimelineProfile(svg, sortedSites, true)
   drawSitesTimelineProfile(svg2, sortedSites, false)
-})
+  showRollup.value = false
+}
 
 let sortedSites
 
+const rollup = () => {
+  showRollup.value = !showRollup.value
+  resetTimelines()
+}
 const drawZoomedinProfile = (sortedSites, startPercentage, durationPercentage, timelineStart, timelineEnd) => {
   // given the full width of the timeline for all sites, startPercentage indicates the timestamp where this zoomedin profile should start: starttime + startPercentage * (end-time - starttime)
   // filter sites based on start and end time
-
-  // // TODO adopt the updated start and end of timeline!
-  // const timelineStart = sortedSites[0].timestamp
-  // const timelineEnd = sortedSites[sortedSites.length - 1].timestamp
-
   const startTime = new Date(timelineStart).getTime();
   const endTime = new Date(timelineEnd).getTime();
 
@@ -67,16 +66,29 @@ const drawZoomedinProfile = (sortedSites, startPercentage, durationPercentage, t
   const startTimestamp = startTime + startPercentage * timeDiff
   const endTimestamp = startTime + (startPercentage + durationPercentage) * timeDiff
 
-
-
-  const sortedFilteredSites = props.sites.filter((site) => {
+  const sortedFilteredSites = sortedSites.filter((site) => {
     const siteTimestamp = new Date(site.timestamp).getTime();
     return siteTimestamp >= startTimestamp && siteTimestamp <= endTimestamp
   })
   drawSitesTimelineProfile(svg2, sortedFilteredSites, false, new Date(startTimestamp).toISOString(), new Date(endTimestamp).toISOString())
-
   emit('sitesInFocus', { sites: sortedFilteredSites })
+}
 
+const zoomInOnZoombox = (sortedSites, startPercentage, durationPercentage, timelineStart, timelineEnd) => {
+  const startTime = new Date(timelineStart).getTime();
+  const endTime = new Date(timelineEnd).getTime();
+
+  const timeDiff = endTime - startTime;
+  const startTimestamp = startTime + startPercentage * timeDiff
+  const endTimestamp = startTime + (startPercentage + durationPercentage) * timeDiff
+
+  const sortedFilteredSites = sortedSites.filter((site) => {
+    const siteTimestamp = new Date(site.timestamp).getTime();
+    return siteTimestamp >= startTimestamp && siteTimestamp <= endTimestamp
+  })
+  drawSitesTimelineProfile(svg, sortedFilteredSites, true)
+  drawSitesTimelineProfile(svg2, sortedFilteredSites, false)
+  showRollup.value = true
 }
 
 
@@ -267,8 +279,8 @@ const drawSitesTimelineProfile = (svg, sortedSites, withZoombox = false, request
     numTicks = (endDate.getTime() - startDate.getTime()) / hourInMilliseconds
     if (numTicks < 4) numTicks = numTicks * 2
     if (numTicks > 8) numTicks = Math.ceil(numTicks / 2)
-  } 
-else if (sameMonth || endDate.getTime() - startDate.getTime() < monthInMilliseconds) {
+  }
+  else if (sameMonth || endDate.getTime() - startDate.getTime() < monthInMilliseconds) {
     const earliestDay = parseInt(timelineStart.substring(8, 10))
     let lastDay = parseInt(timelineEnd.substring(8, 10)) + 1
 
@@ -318,14 +330,12 @@ else if (sameMonth || endDate.getTime() - startDate.getTime() < monthInMilliseco
 
     // Format date for label
     let label = formatDate(date, dateTimeFormat)
-    if (!sameDay && (sameMonth  || ( endDate.getTime() - startDate.getTime() < monthInMilliseconds))) label = formatDate(date, 'day')  // 13, 14, 15
+    if (!sameDay && (sameMonth || (endDate.getTime() - startDate.getTime() < monthInMilliseconds))) label = formatDate(date, 'day')  // 13, 14, 15
     else if (sameYear && !sameMonth) label = formatDate(date, 'month')  // april, may, june 
-    // TODO should label not always start at marker instead of be centered? from the tick starts the hour/day/month/year 
     ticks.push({ label: label, xPos: xPos, relativePosition: relativePosition, tickTime: tickTime })
   }
 
 
-  // TODO determine proper start and end time for the timescale - rounded up to start of an hour, a day, a month or a year - instead of picking the first and last sites' timestamps
 
   // determine the time label that covers the entire range
   // for example: April 2024, 2025, 17 October 2024 : if the entire timeline is within one year, one month, one day then have a label indicate that 
@@ -465,6 +475,13 @@ const drawZoombox = (svg, timelineStart, timelineEnd) => {
 
   rectangle.call(dragMove);
 
+  // handle double click on rectangle
+  rectangle.on("dblclick", function () {
+    // TODO - zoom to rectangle
+    console.log("double click on rectangle")
+    zoomInOnZoombox(sortedSites, (rectX - minX) / (maxX - minX), rectWidth / (maxX - minX), timelineStart, timelineEnd)
+  });
+
   function resizeRect(dragHandle) {
     return d3.drag()
       .on("drag", function (event) {
@@ -505,7 +522,6 @@ const drawZoombox = (svg, timelineStart, timelineEnd) => {
 
   // Placeholder for handling move or resize events
   function handleMoveOrResize(timelineStart, timelineEnd) {
-    console.log("Rectangle moved or resized. New X-position and width; start as percentage and width as percentage of max :", rectX, rectWidth, (rectX - minX) / (maxX - minX), rectWidth / (maxX - minX));
     drawZoomedinProfile(sortedSites, (rectX - minX) / (maxX - minX), rectWidth / (maxX - minX), timelineStart, timelineEnd)
   }
 }
