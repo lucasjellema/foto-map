@@ -43,14 +43,14 @@ export function useTimelinesLibrary() {
       const timelineStarttime = new Date(timeline.startTimestamp).getTime()
       const timelineEndTime = new Date(timeline.endTimestamp).getTime()
       for (const site of allSortedSites) {
-        if ( new Date(site.timestamp).getTime() >= timelineStarttime) { // start looking for site from the start of the timeline
+        if (new Date(site.timestamp).getTime() >= timelineStarttime) { // start looking for site from the start of the timeline
           inRangeTimeline = true
         }
         if (inRangeTimeline)
           if (site.id === siteToLocate.id) {
             timelinesForSite.push(timeline)
           }
-        if (inRangeTimeline &&  new Date(site.timestamp).getTime()>= timelineEndTime) { // stop looking for site at the  end of the timeline
+        if (inRangeTimeline && new Date(site.timestamp).getTime() >= timelineEndTime) { // stop looking for site at the  end of the timeline
           break
         }
       }
@@ -110,8 +110,8 @@ export function useTimelinesLibrary() {
   const createTimeline = (siteToStartAt, siteToEndAt, label, color) => {
     return {
       id: uuidv4(),
-      startSiteId: siteToStartAt.id,
-      endSiteId: siteToEndAt.id,
+//      startSiteId: siteToStartAt.id,
+ //     endSiteId: siteToEndAt.id,
       startTimestamp: siteToStartAt.timestamp,
       endTimestamp: siteToEndAt.timestamp,
       label: label,
@@ -121,40 +121,40 @@ export function useTimelinesLibrary() {
     }
   }
 
-  const createTimelinePer = (level, sites, timelines, map,context) => { // level = year, month, week, day; optional context = {year: , month: , day:}
+  const createTimelinePer = (level, sites, timelines, map, context) => { // level = year, month, week, day; optional context = {year: , month: , day:}
     const sitesPerTimes = getSitesPerTimes(sites)
     const colors = ['red', 'green', 'blue', 'yellow', 'purple', 'orange', 'brown', 'pink', 'gray', 'black', 'gold', 'silver', 'aqua', 'fuchsia', 'lime', 'maroon', 'navy', 'olive', 'purple', 'teal']
     let colorIndex = 0
     for (const year of sitesPerTimes) {
-      if (!context.year || context.year == year.data ) // if there is a year set in context then then only process that year
-      if (level === 'year') {
-        const siteToStartAt = year.children[0].children[0].children[0] // first month, first day, first site
-        const lastMonthIndex = year.children.length - 1
-        const lastDayIndex = year.children[lastMonthIndex].children.length - 1
-        const lastSiteIndex = year.children[lastMonthIndex].children[lastDayIndex].children.length - 1
-        const siteToEndAt = year.children[lastMonthIndex].children[lastDayIndex].children[lastSiteIndex] // last month, last day, last site
-        timelines.push(createTimeline(siteToStartAt, siteToEndAt, `the year ${year.label}`, colors[colorIndex++]))
-        if (colorIndex >= colors.length) { colorIndex = 0 }
-      } else for (const month of year.children) {
-        if (!context.month || context.month == month.data ) 
-        if (level === 'month') {
-          const siteToStartAt = month.children[0].children[0] // first day, first site
-          const lastDayIndex = month.children.length - 1
-          const lastSiteIndex = month.children[lastDayIndex].children.length - 1
-          const siteToEndAt = month.children[lastDayIndex].children[lastSiteIndex] // last day, last site
-          timelines.push(createTimeline(siteToStartAt, siteToEndAt, `${month.label} ${year.label}`, colors[colorIndex++]))
+      if (!context.year || context.year == year.data) // if there is a year set in context then then only process that year
+        if (level === 'year') {
+          const siteToStartAt = year.children[0].children[0].children[0] // first month, first day, first site
+          const lastMonthIndex = year.children.length - 1
+          const lastDayIndex = year.children[lastMonthIndex].children.length - 1
+          const lastSiteIndex = year.children[lastMonthIndex].children[lastDayIndex].children.length - 1
+          const siteToEndAt = year.children[lastMonthIndex].children[lastDayIndex].children[lastSiteIndex] // last month, last day, last site
+          timelines.push(createTimeline(siteToStartAt, siteToEndAt, `the year ${year.label}`, colors[colorIndex++]))
           if (colorIndex >= colors.length) { colorIndex = 0 }
-        } else for (const day of month.children) {
-          if (!context.day || context.day == day.data ) 
-          if (level === 'day') {
-            const siteToStartAt = day.children[0] // first site
-            const lastSiteIndex = day.children.length - 1
-            const siteToEndAt = day.children[lastSiteIndex] // last site
-            timelines.push(createTimeline(siteToStartAt, siteToEndAt, `${day.label} ${month.label} ${year.label}`, colors[colorIndex++]))
-            if (colorIndex >= colors.length) { colorIndex = 0 }
-          }
+        } else for (const month of year.children) {
+          if (!context.month || context.month == month.data)
+            if (level === 'month') {
+              const siteToStartAt = month.children[0].children[0] // first day, first site
+              const lastDayIndex = month.children.length - 1
+              const lastSiteIndex = month.children[lastDayIndex].children.length - 1
+              const siteToEndAt = month.children[lastDayIndex].children[lastSiteIndex] // last day, last site
+              timelines.push(createTimeline(siteToStartAt, siteToEndAt, `${month.label} ${year.label}`, colors[colorIndex++]))
+              if (colorIndex >= colors.length) { colorIndex = 0 }
+            } else for (const day of month.children) {
+              if (!context.day || context.day == day.data)
+                if (level === 'day') {
+                  const siteToStartAt = day.children[0] // first site
+                  const lastSiteIndex = day.children.length - 1
+                  const siteToEndAt = day.children[lastSiteIndex] // last site
+                  timelines.push(createTimeline(siteToStartAt, siteToEndAt, `${day.label} ${month.label} ${year.label}`, colors[colorIndex++]))
+                  if (colorIndex >= colors.length) { colorIndex = 0 }
+                }
+            }
         }
-      }
     }
     // refresh timelines 
     refreshTimelines(sites, timelines, map)
@@ -402,14 +402,9 @@ export function useTimelinesLibrary() {
     _map = map
 
     const sites = getSortedSites(allSites)
-    const siteIds = sites.map(site => site.id)
     if (timelines && timelines.length > 0) {
-      for (const timeline of getSortedTimelines(timelines)) {
-        // TODO find site in array of sites properly - this does not work!
-        const startIndex = siteIds.indexOf(timeline.startSiteId)
-        const endIndex = siteIds.indexOf(timeline.endSiteId)
-        console.log(`${timeline.label} ${startIndex} - ${endIndex}`)
-        const { polyline, timelineDecorator } = drawTimeline(timeline, sites.slice(startIndex === -1 ? 0 : startIndex, endIndex === -1 ? sites.length : endIndex + 1), map)
+      for (const timeline of getSortedTimelines(timelines)) { const sitesForTimeline =  getSortedSitesInTimeline (timeline, allSites)
+        const { polyline, timelineDecorator } = drawTimeline(timeline, sitesForTimeline, map)
         polyline.timeline = timeline
         drawnTimelines.push(polyline)
         drawnTimelineDecorators.push(timelineDecorator)
