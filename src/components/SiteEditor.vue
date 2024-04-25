@@ -20,47 +20,98 @@
             </v-expansion-panel>
             <v-expansion-panel title="Time" collapse-icon="mdi-clock" expand-icon="mdi-clock">
               <v-expansion-panel-text>
-                <v-text-field label="Date" type="date" v-model="modelSite.datePart"
-                  v-if="modelSite.timeGrain < 8"></v-text-field>
-                <v-text-field label="Time" type="time" v-model="modelSite.timePart"
-                  v-if="modelSite.timeGrain < 2"></v-text-field>
-                <v-select :items="months" item-title="name" item-value="id" label="Select Month" outlined
-                  v-model="month" v-if="modelSite.timeGrain == 8"></v-select>
+                <v-container class="mb-0 mt-1">
+                  <v-row v-if="modelSite.timeGrain < 8" class="mb-0 mt-2">
+                    <v-col cols="5">
+                      <v-text-field label="Date" type="date" v-model="modelSite.datePart"
+                        v-if="modelSite.timeGrain < 8"></v-text-field>
+                    </v-col>
+                    <v-col cols="5">
+                      <v-text-field label="Time" type="time" v-model="modelSite.timePart"
+                        v-if="modelSite.timeGrain < 2"></v-text-field>
+                    </v-col>
+                  </v-row>
+                  <v-row v-if="(modelSite.timeGrain > 6 && modelSite.timeGrain < 13)">
+                    <v-col cols="7" v-if="modelSite.timeGrain == 8">
+                      <v-select :items="months" item-title="name" item-value="id" label="Select Month" outlined
+                        v-model="month" v-if="modelSite.timeGrain == 8"></v-select>
+                    </v-col>
+                    <v-col cols="5">
 
-                <v-text-field label="Year" type="number" v-model="year"
-                  v-if="(modelSite.timeGrain > 6 && modelSite.timeGrain < 13)" />
-                <v-select :items="utcTimezones" item-title="label" item-value="value" label="Select Timezone" outlined
-                  v-model="modelSite.timezoneOffset" v-if="modelSite.timeGrain < 8"></v-select>
-                <div class="text-caption" v-if="modelSite.timeGrain == 2">Set Hour
-                  <v-slider v-model="hours" v-if="modelSite.timeGrain == 2" min="0" max="23" step="1"
-                    thumb-label="always" thumb-size="15" :ticks="hourTickLabels" show-ticks="always"></v-slider>
-                </div>
-                <v-radio-group v-model="dayPart" v-if="modelSite.timeGrain == 4" label="Day Part" inline>
-                  <v-radio label="Night" :value="3"></v-radio>
-                  <v-radio label="Morning" :value="9"></v-radio>
-                  <v-radio label="Afternoon" :value="15"></v-radio>
-                  <v-radio label="Evening" :value="21"></v-radio>
-                </v-radio-group>
-                <v-radio-group v-model="season" v-if="modelSite.timeGrain == 10" label="Season" inline>
-                  <v-radio label="Winter" :value="0"></v-radio>
-                  <v-radio label="Spring" :value="1"></v-radio>
-                  <v-radio label="Summer" :value="2"></v-radio>
-                  <v-radio label="Fall" :value="3"></v-radio>
-                </v-radio-group>
-                <v-select v-model="modelSite.timeGrain" label="Time grain"
-                  hint="How exact or roundabout is the timestamp to be interpreted?"
-                  :items="timeGrainOptions"></v-select>
+                      <v-text-field label="Year" type="number" v-model="year"
+                        v-if="(modelSite.timeGrain > 6 && modelSite.timeGrain < 13)" />
+                    </v-col>
+                  </v-row>
+                  <v-row v-if="modelSite.timeGrain < 8" class="mb-0 mt-0">
+                    <v-col cols="12">
+                      <v-select :items="utcTimezones" item-title="label" item-value="value" label="Select Timezone"
+                        outlined v-model="modelSite.timezoneOffset" v-if="modelSite.timeGrain < 8"></v-select>
+                    </v-col>
+                  </v-row>
+                  <v-row v-if="modelSite.timeGrain == 2" class="mb-0 mt-0">
+                    <v-col cols="12">
+                      <div class="text-caption" v-if="modelSite.timeGrain == 2">Set Hour
+                        <v-slider v-model="hours" v-if="modelSite.timeGrain == 2" min="0" max="23" step="1"
+                          thumb-label="always" thumb-size="15" :ticks="hourTickLabels" show-ticks="always"></v-slider>
+                      </div>
+                    </v-col>
+                  </v-row>
+                  <v-row v-if="modelSite.timeGrain == 4 || modelSite.timeGrain == 10" class="mb-1 mt-1">
+                    <v-col cols="12">
+                      <v-radio-group v-model="dayPart" v-if="modelSite.timeGrain == 4" label="Day Part" inline>
+                        <v-radio label="Night" :value="3"></v-radio>
+                        <v-radio label="Morning" :value="9"></v-radio>
+                        <v-radio label="Afternoon" :value="15"></v-radio>
+                        <v-radio label="Evening" :value="21"></v-radio>
+                      </v-radio-group>
+                      <v-radio-group v-model="season" v-if="modelSite.timeGrain == 10" label="Season" inline>
+                        <v-radio label="Winter" :value="0"></v-radio>
+                        <v-radio label="Spring" :value="1"></v-radio>
+                        <v-radio label="Summer" :value="2"></v-radio>
+                        <v-radio label="Fall" :value="3"></v-radio>
+                      </v-radio-group>
+
+
+                    </v-col>
+                  </v-row>
+                  <v-row class="mb-0 mt-0">
+                    <v-col cols="12">
+                      <v-select v-model="modelSite.timeGrain" label="Time grain"
+                        hint="How exact or roundabout is the timestamp to be interpreted?"
+                        :items="timeGrainOptions"></v-select>
+                    </v-col>
+                  </v-row>
+
+                </v-container>
               </v-expansion-panel-text>
             </v-expansion-panel>
-            <v-expansion-panel title="Description & Tags" collapse-icon="mdi-pencil-box-outline"
+            <v-expansion-panel title="Duration" collapse-icon="mdi-timer-marker-outline" expand-icon="mdi-timer-marker-outline">
+              <v-expansion-panel-text>
+                <v-container>
+                  <v-row class="mb-0 mt-0">
+                    <v-col cols="2">
+                      <v-checkbox v-model="modelSite.hasDuration" label="Has duration?"></v-checkbox>
+
+                    </v-col>
+                    <v-col cols="10" v-if="modelSite.hasDuration">
+                      <v-text-field label="Minutes" type="number" v-model="durationMinutes" />
+                      <v-text-field label="Hours" type="number" v-model="durationHours" />
+                      <v-text-field label="Days" type="number" v-model="durationDays" />
+                      <v-text-field label="Months" type="number" v-model="durationMonths" />
+                      <v-text-field label="Years" type="number" v-model="durationYears" />
+                    </v-col>
+                  </v-row>
+                </v-container>
+              </v-expansion-panel-text>
+            </v-expansion-panel>            <v-expansion-panel title="Description & Tags" collapse-icon="mdi-pencil-box-outline"
               expand-icon="mdi-pencil-box-outline">
-              <v-expansion-panel-text >
+              <v-expansion-panel-text>
                 <v-sheet class="flex-1-1-100  ma-0 pa-0">
                   <QuillEditor theme="snow" toolbar="essential" v-model:content="description" contentType="delta" />
                 </v-sheet>
                 <v-combobox v-model="modelSite.tags" :items="storyTags" chips clearable deletable-chips multiple
                   label="Enter tags" append-icon="mdi-tag-plus" @change="handleTagChange"
-                  :menu-props="{ maxHeight: 'auto' }"  class="ma-0 mt-5"</v-combobox>
+                  :menu-props="{ maxHeight: 'auto' }" class="ma-0 mt-5" </v-combobox>
               </v-expansion-panel-text>
             </v-expansion-panel>
             <v-expansion-panel title="Image" collapse-icon="mdi-image" expand-icon="mdi-image">
@@ -73,17 +124,17 @@
               <v-expansion-panel-text>
 
                 '<v-data-table :headers="attachmentHeaders" :items="modelSite.attachments" item-key="label"
-                    class="elevation-1">
-                    <template v-slot:item.actions="{ item,index }">
-                      <v-icon small @click="editAttachment(item, index)">
-                        mdi-pencil
-                      </v-icon>
-                      <v-icon small @click="removeAttachment(item, index)">
-                        mdi-delete
-                      </v-icon>
-                    </template>
-                  </v-data-table>
-                
+                  class="elevation-1">
+                  <template v-slot:item.actions="{ item, index }">
+                    <v-icon small @click="editAttachment(item, index)">
+                      mdi-pencil
+                    </v-icon>
+                    <v-icon small @click="removeAttachment(item, index)">
+                      mdi-delete
+                    </v-icon>
+                  </template>
+                </v-data-table>
+
                 <v-btn prepend-icon="mdi-attachment-plus" @click="addAndEditAttachment()">Add Attachment</v-btn>
               </v-expansion-panel-text>
             </v-expansion-panel>
@@ -200,6 +251,12 @@ const selectedTimezone = ref(null); // offset in minute from UTC time
 const hours = ref(new Date().getHours());
 const year = ref(new Date().getFullYear());
 const month = ref(new Date().getMonth());
+const hasDuration = ref(false);
+const durationHours = ref(null);
+const durationMinutes = ref(null);
+const durationDays = ref(null);
+const durationMonths = ref(null);
+const durationYears = ref(null);
 
 const dayPart = ref(null);
 const season = ref(null);
@@ -259,7 +316,7 @@ const saveAttachment = () => {
   if (!modelSite.value.attachments) modelSite.value.attachments = []
   console.log(attachmentToEdit.value.description)
   if (newAttachment) {
-    modelSite.value.attachments.push(attachmentToEdit.value) 
+    modelSite.value.attachments.push(attachmentToEdit.value)
   }
   showAttachmentEditorPopup.value = false
 }
@@ -283,6 +340,15 @@ onMounted(() => {
   season.value = (_month == 2 ? 0 : (_month == 5 ? 1 : (_month == 8 ? 2 : 3)))
   dayPart.value = modelSite.value.timePart.substring(0, 2)
   dayPart.value = findClosestValue(dayPart.value, [3, 9, 15, 21]) // closest value from 3, 9, 15, 21
+
+  if (modelSite.value.duration) {
+    hasDuration.value = true
+    durationHours.value = modelSite.value.duration.hours
+    durationDays.value = modelSite.value.duration.days
+    durationMinutes.value = modelSite.value.duration.minutes
+    durationMonths.value = modelSite.value.duration.months
+    durationYears.value = modelSite.value.duration.years
+  }
 
 });
 
@@ -338,7 +404,12 @@ const saveSite = () => {
 
   }
 
-  modelSite.value.tags = []
+  // duration
+  const duration = {years: durationYears.value, months: durationMonths.value, days: durationDays.value, hours: durationHours.value, minutes: durationMinutes.value, seconds: 0}
+  modelSite.value.duration = duration
+
+
+  
   emit('saveSite', {})
 }
 
