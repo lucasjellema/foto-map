@@ -228,7 +228,7 @@ console.log(`selectedNode ID`, selectedNode.id)
   let siteIds = []
 
   if ((selectedNode.nodeType === 'year' || selectedNode.nodeType === 'month' || selectedNode.nodeType === 'day' || selectedNode.nodeType === 'tag')
-    || selectedNode.nodeType === 'country' || selectedNode.nodeType === 'city' || selectedNode.nodeType === 'tour'
+    || selectedNode.nodeType === 'country' || selectedNode.nodeType === 'city' || selectedNode.nodeType === 'timeline'|| selectedNode.nodeType === 'tour'
     && selectedNode.key) {
     const treeData = treeRef.value.value
     // find all sites under this key 
@@ -344,6 +344,13 @@ console.log(`selectedNode ID`, selectedNode.id)
       })
     }
   }
+  if (selectedNode.nodeType === 'timeline') {
+    contextMenuItems.value.push({
+      label: `Edit Timeline`, icon: 'mdi mdi-clock-edit-outline'
+      , command: () => { emit('siteAction', { action: 'editTimeline', payload:{ timelineId: selectedNode.key} }) }
+    })
+  }
+
   contextMenu.value.show(event); // Show the PrimeVue ContextMenu
 }
 

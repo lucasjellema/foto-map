@@ -332,8 +332,7 @@ const handleClickSite = ({ site }) => {
   handleSiteSelected([site.id])
 }
 
-const handleSitesInFocus = ({ sites }) => {
-  console.log(`sites in focus`, sites)
+const handleSitesInFocus = ({ sites }) => {  
   const siteIds = sites.map(s => s.id)
   focusOnSites(siteIds)
 }
@@ -473,6 +472,10 @@ const handleSiteAction = ({ siteId, siteIds, action, payload }) => {
       // showTimelineProfile(timeline)
       mapShowTimelines.value = true
 
+    }
+    if (action=='editTimeline') {
+      const timeline = currentStory.value.mapConfiguration.timelines.find(timeline => timeline.id == payload.timelineId)
+      editTimeline(timeline)
     }
 
   } else {
