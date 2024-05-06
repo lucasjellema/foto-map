@@ -99,7 +99,9 @@ function reverseGeocode(geoJsonFeature, site) {
         site.county = data.address.county
         site.city = (data.address.village || data.address.city || data.address.town)
         if (data.address.suburb) site.city = data.address.suburb+',' + site.city
-        site.label = site.label ||   data.tourism||data.amenity  || data.name 
+        if (!site.label || site.label=='To be geo-encoded') {
+        site.label = data.tourism||data.amenity  || data.name 
+        }
         if (!site.label) {site.label = site.street}
         // console.log(`sites ${JSON.stringify(currentStory.value.sites)}`)
       })

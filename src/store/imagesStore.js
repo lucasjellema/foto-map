@@ -182,7 +182,7 @@ export const useImagesStore = defineStore('imageData', () => {
 
                 //          const dateTimeOriginal = output.DateTimeOriginal;
                 // Mon Mar 12 2018 08:10:41 GMT+0100 (Central European Standard Time) {}
-                const dateTimeOriginal = output.DateTimeOriginal ? new Date(output.DateTimeOriginal) : null;
+                const dateTimeOriginal = output.DateTimeOriginal ;
 
                 const gpsInfo = {
                     GPSLatitude: output.GPSLatitude, // GPSLatitude is in degrees (N = +, S = -) :   (3) [47, 29, 55.37]

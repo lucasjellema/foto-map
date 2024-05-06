@@ -764,7 +764,7 @@ const editItem = (site) => {
   // 2024-04-16T05:12:00.000Z
   // substring from 11 to 16
 
-  editedSite.value.timePart = editedSite.value.timestamp.substring(11, 16)
+  editedSite.value.timePart = dateForTimestamp.toISOString().substring(11, 16)
   if (!editedSite.value.timeGrain) {
     editedSite.value.timeGrain = 0
   }
