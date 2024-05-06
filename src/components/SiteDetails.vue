@@ -1,8 +1,7 @@
 <template>
     <v-card-text>{{ formatDateByGrain(site?.timestamp,site?.timezoneOffset, site.timeGrain) }}
-      {{ site?.city }},{{ site?.country }}
+      {{ site?.street }},{{ site?.city }}{{ site?.county?', '+site.county:'' }}{{ site?.state?', '+site.state:'' }}{{ site?.country?', '+site.country:'' }}
       
-
       {{ site?.geoJSON?.features[0]?.geometry?.coordinates[2] ? ` (∆
       ${site?.geoJSON.features[0].geometry.coordinates[2].toFixed(0)}m)` : '' }}
       <div v-if="site?.attachments?.length > 0">

@@ -65,12 +65,6 @@
                 <v-col cols="auto">
                   <v-btn @click="refreshMap()">Refresh Map</v-btn>
                 </v-col>
-
-                <v-col cols="auto">
-                  <!-- an input element to set the consolidation radius in km -->
-                  <!-- <v-text-field v-model="consolidationRadius" label="Consolidation Radius (km)"
-                    type="number"></v-text-field> -->
-                </v-col>
               </v-row>
 
             </v-container>
@@ -332,7 +326,7 @@ const handleClickSite = ({ site }) => {
   handleSiteSelected([site.id])
 }
 
-const handleSitesInFocus = ({ sites }) => {  
+const handleSitesInFocus = ({ sites }) => {
   const siteIds = sites.map(s => s.id)
   focusOnSites(siteIds)
 }
@@ -473,7 +467,7 @@ const handleSiteAction = ({ siteId, siteIds, action, payload }) => {
       mapShowTimelines.value = true
 
     }
-    if (action=='editTimeline') {
+    if (action == 'editTimeline') {
       const timeline = currentStory.value.mapConfiguration.timelines.find(timeline => timeline.id == payload.timelineId)
       editTimeline(timeline)
     }
@@ -1236,15 +1230,26 @@ const consolidateSite = (targetSite) => {
   // add their pictures in additional attachments for the site?
   // todo find sites within consolidation range?
   let nearbySites = findSitesWithinConsolidationRadius(targetSite);
+// if a consolidation period was specified, then remove all sites that are not within the time range
+  if (currentStory.value.mapConfiguration.consolidationPeriod) {
+    const ONE_HOUR = 60 * 60 * 1000
+    const MAX_TIME_DELTA = currentStory.value.mapConfiguration.consolidationPeriod * ONE_HOUR
+    const TARGET_SITE_TIME = new Date(targetSite.timestamp).getTime()
+    nearbySites = nearbySites.filter((site) => {
+      return ( Math.abs(new Date(site.timestamp).getTime() - TARGET_SITE_TIME) <= MAX_TIME_DELTA)
+    })
+  }
+
   return consolidateSitesToTargetSite(targetSite, nearbySites)
 }
 
 
 const consolidateAllSites = () => {
-  // loop over all markers/sites and consolidate each  
+  // loop over all currently visible markers/sites and consolidate each  
   // note: after a consolidation, sites may have been removed from the layer
   const recentlyRemovedSites = []
-  for (const site of currentStory.value.sites) {
+  const currentlyVisibleSites = getSitesInFocus(map.value.getBounds())
+  for (const site of currentlyVisibleSites) { // currentStory.value.sites) {
     if (!recentlyRemovedSites.includes(site)) {
       const consolidatedSites = consolidateSite(site)
       recentlyRemovedSites.push(...consolidatedSites)
@@ -1362,7 +1367,7 @@ const drawMap = () => {
     text: 'Image to Clipboard',
     callback: mapImageToClipboard
   }, {
-    text: 'Consolidate All Sites',
+    text: 'Consolidate Visible Sites',
     callback: consolidateAllSites
   }, {
     text: 'Show Filters',
@@ -1435,10 +1440,11 @@ const drawMap = () => {
     const bounds = e.boxZoomBounds;
     var markersWithinRectangle = [];
 
-    // Check each marker to see if it's within the bounds
+
     const sitesInFocus = []
 
     getAllMarkers().forEach(function (marker) {
+      // Check each marker to see if it's within the bounds
       if (bounds.contains(marker.getLatLng())) {
         markersWithinRectangle.push(marker);
         selectMarker(marker, true)
@@ -1456,7 +1462,18 @@ const drawMap = () => {
 
 }
 
+const getSitesInFocus = (bounds) => {
+  const sitesInFocus = []
 
+  getAllMarkers().forEach(function (marker) {
+    // Check each marker to see if it's within the bounds
+    if (bounds.contains(marker.getLatLng())) {
+      sitesInFocus.push(marker.site)
+    }
+  });
+  return sitesInFocus
+
+}
 
 const getAllMarkers = () => {
   const allMarkers = [];

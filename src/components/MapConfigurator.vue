@@ -11,6 +11,8 @@
         <v-expansion-panel title="Settings" collapse-icon="mdi-cog" expand-icon="mdi-cog">
           <v-expansion-panel-text>
             <v-text-field v-model="modelMap.consolidationRadius" label="Consolidation Radius (km)"
+                    type="number"></v-text-field>            
+            <v-text-field v-model="modelMap.consolidationPeriod" label="Consolidation Period (hours)" 
                     type="number"></v-text-field>
             Reset Story (remove all sites)
             <v-btn @click="emit('resetStory')" icon="mdi-close-circle"></v-btn>
