@@ -11,7 +11,10 @@
             <v-expansion-panel title="Place" collapse-icon="mdi-map-marker" expand-icon="mdi-map-marker">
               <v-expansion-panel-text>
                 <v-text-field v-model="modelSite.address" label="Address"></v-text-field>
+                <v-text-field v-model="modelSite.street" label="Street"></v-text-field>
                 <v-text-field v-model="modelSite.city" label="City"></v-text-field>
+                <v-text-field v-model="modelSite.county" label="County"></v-text-field>
+                <v-text-field v-model="modelSite.state" label="State"></v-text-field>
                 <v-text-field v-model="modelSite.country" label="Country"></v-text-field>
                 <v-select v-model="modelSite.resolution" label="Resolution"
                   hint="How exact or roundabout is this location to be interpreted?"
