@@ -92,9 +92,13 @@ function reverseGeocode(geoJsonFeature, site) {
         geoJsonFeature.properties.name = data.tourism || data.name || data.address.city || data.address.town
         geoJsonFeature.properties.city = data.address.village || data.address.city || data.address.town
         geoJsonFeature.properties.country = data.address.country
-        site.label = data.tourism || data.name || data.address.city || data.address.town
         site.country = data.address.country
+        site.street = data.address.street
+        site.state = data.address.state
+        site.county = data.address.county
         site.city = data.address.village || data.address.city || data.address.town
+        site.label = data.tourism || data.name 
+        if (site.label) {site.label = site.street}
         // console.log(`sites ${JSON.stringify(currentStory.value.sites)}`)
       })
       .catch(error => console.error('Error:', error));
