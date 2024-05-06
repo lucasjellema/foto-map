@@ -10,15 +10,46 @@
           <v-expansion-panels :multiple="true">
             <v-expansion-panel title="Place" collapse-icon="mdi-map-marker" expand-icon="mdi-map-marker">
               <v-expansion-panel-text>
-                <v-text-field v-model="modelSite.address" label="Address"></v-text-field>
-                <v-text-field v-model="modelSite.street" label="Street"></v-text-field>
-                <v-text-field v-model="modelSite.city" label="City"></v-text-field>
-                <v-text-field v-model="modelSite.county" label="County"></v-text-field>
-                <v-text-field v-model="modelSite.state" label="State"></v-text-field>
-                <v-text-field v-model="modelSite.country" label="Country"></v-text-field>
-                <v-select v-model="modelSite.resolution" label="Resolution"
-                  hint="How exact or roundabout is this location to be interpreted?"
-                  :items="resolutionOptions"></v-select>
+                <v-container>
+                  <v-row>
+                    <v-col cols="12">
+                      <v-text-field v-model="modelSite.address" label="Address"></v-text-field>
+                    </v-col>
+                  </v-row>
+                  <v-row>
+                    <v-col cols="6">
+                      <v-text-field v-model="modelSite.street" label="Street"></v-text-field>
+                    </v-col>
+                    <v-col cols="6">
+
+                      <v-text-field v-model="modelSite.city" label="City"></v-text-field>
+                    </v-col>
+                  </v-row>
+                  <v-row>
+                    <v-col cols="4">
+                      <v-text-field v-model="modelSite.county" label="County"></v-text-field>
+
+                    </v-col>
+                    <v-col cols="4">
+                      <v-text-field v-model="modelSite.state" label="State"></v-text-field>
+                    </v-col>
+                    <v-col cols="4">
+                      <v-text-field v-model="modelSite.country" label="Country"></v-text-field>
+                    </v-col>
+                  </v-row>
+                  <v-row>
+                    <v-col cols="12">
+                      <v-select v-model="modelSite.resolution" label="Resolution"
+                        hint="How exact or roundabout is this location to be interpreted?" :items="resolutionOptions"></v-select></v-col>
+                  </v-row>
+                  <v-row>
+                    <v-col cols="12">
+                      
+                      Refresh through geocoding coordinates  <v-btn @click="refreshLocationDetailsThroughGeocoder(modelSite)"
+                        icon="mdi-map-marker-down"></v-btn>
+                    </v-col>
+                  </v-row>
+                </v-container>
               </v-expansion-panel-text>
             </v-expansion-panel>
             <v-expansion-panel title="Time" collapse-icon="mdi-clock" expand-icon="mdi-clock">
@@ -88,7 +119,8 @@
                 </v-container>
               </v-expansion-panel-text>
             </v-expansion-panel>
-            <v-expansion-panel title="Duration" collapse-icon="mdi-timer-marker-outline" expand-icon="mdi-timer-marker-outline">
+            <v-expansion-panel title="Duration" collapse-icon="mdi-timer-marker-outline"
+              expand-icon="mdi-timer-marker-outline">
               <v-expansion-panel-text>
                 <v-container>
                   <v-row class="mb-0 mt-0">
@@ -106,7 +138,7 @@
                   </v-row>
                 </v-container>
               </v-expansion-panel-text>
-            </v-expansion-panel>            <v-expansion-panel title="Description & Tags" collapse-icon="mdi-pencil-box-outline"
+            </v-expansion-panel> <v-expansion-panel title="Description & Tags" collapse-icon="mdi-pencil-box-outline"
               expand-icon="mdi-pencil-box-outline">
               <v-expansion-panel-text>
                 <v-sheet class="flex-1-1-100  ma-0 pa-0">
@@ -298,6 +330,12 @@ const hourTickLabels = {
 }
 
 
+const refreshLocationDetailsThroughGeocoder = (site) => {
+  console.log('refreshLocationDetailsThroughGeocoder'+site.id + site.geo)
+
+  reverseGeocode(site.geoJSON.features[0], site);
+}
+
 const addAndEditAttachment = () => {
   attachmentToEdit.value = { label: 'new attachment', description: null, imageUrl: null, imageId: null }
   newAttachment = true
@@ -408,11 +446,11 @@ const saveSite = () => {
   }
 
   // duration
-  const duration = {years: durationYears.value, months: durationMonths.value, days: durationDays.value, hours: durationHours.value, minutes: durationMinutes.value, seconds: 0}
+  const duration = { years: durationYears.value, months: durationMonths.value, days: durationDays.value, hours: durationHours.value, minutes: durationMinutes.value, seconds: 0 }
   modelSite.value.duration = duration
 
 
-  
+
   emit('saveSite', {})
 }
 

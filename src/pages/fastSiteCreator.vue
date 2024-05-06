@@ -639,15 +639,6 @@ const closeMapConfigurationDialog = () => {
 
 
 const saveItem = () => {
-  // no JSONTEXT in this page editedSite.value.geoJSON =JSON.parse(editedSite.value.geoJSONText)
-  // editedSite.value.geoJSON.features[0].properties.name = editedSite.value.label
-  // editedSite.value.geoJSON.features[0].properties.description = editedSite.value.description
-  // editedSite.value.geoJSON.features[0].properties.city = editedSite.value.city
-  // editedSite.value.geoJSON.features[0].properties.country = editedSite.value.country
-  // editedSite.value.geoJSON.features[0].properties.timestamp = editedSite.value.timestamp
-  // editedSite.value.geoJSON.features[0].properties.imageId = editedSite.value.imageId
-
-
   const [year, month, day] = editedSite.value.datePart.split('-');
   const [hours, minutes] = editedSite.value.timePart.split(':');
   //2024-04-16T05:12:00.000Z
@@ -727,7 +718,7 @@ const customSort = (items, sortBy, sortDesc) => {
 
 let editedSite = ref({
   label: '',
-  description: '',
+  //description: '', // TODO delta document!
   address: '',
   city: '',
   country: 'nl',
@@ -1195,7 +1186,7 @@ const consolidateSitesToTargetSite = (targetSite, sitesToConsolidate) => {
       if (siteToRemove.imageId || siteToRemove.description) {
 
         const delta = new Delta([
-          { insert: `${siteToRemove.city}, ${siteToRemove.country}\n`, attributes: { bold: true } },
+          { insert: `${siteToRemove.label}, ${siteToRemove.city}, ${siteToRemove.country}\n`, attributes: { bold: true } },
           { insert: `${formatDateByGrain(siteToRemove.timestamp, siteToRemove.timezoneOffset, siteToRemove.timeGrain)}`, attributes: { color: '#ccc' } }
         ]);
 

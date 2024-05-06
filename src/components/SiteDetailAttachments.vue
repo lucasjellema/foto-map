@@ -37,7 +37,8 @@
                   <div>
                     <h2>{{ attachment.label }}</h2>
                     <v-spacer></v-spacer>
-                    <QuillEditor theme="bubble" :toolbar="[]" v-model:content="attachment.description" contentType="delta" :readOnly="true" v-if="attachment?.description"/>
+                    <!-- TODO make sure description is a proper delta document -->
+                    <QuillEditor theme="bubble" :toolbar="[]" v-model:content="attachment.description" contentType="delta" :readOnly="true" v-if="false && attachment?.description"/>
 
                   </div>
                 </v-col>
