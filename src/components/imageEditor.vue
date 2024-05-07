@@ -74,28 +74,29 @@ const displayImageFromDB = async (imageId) => {
     imageSrc.value = url
 }
 
-const handleNewImage = async (file) => {                imagesStore.resizeImage(file, imageWidth.value, imageHeight.value, async (resizedBlob) => {
-                    // Now you have a resized image as a Blob, you can store it in IndexedDB
-                    const newImageId = await imagesStore.saveImage(resizedBlob);
-                    //   editedStory.value.imageId = imageId;
-                    console.log('Image stored in IndexedDB with ID:', newImageId);
-                    if (!isFastSiteCreator.value) {
-                        resetImage() // if a prior image was defined, remove it now
-                        // resetImage should not be done in the fastSiteCreator
-                    }
-                    imageId.value = newImageId
-                    imageUrl.value = null
-                    emitImageChange()
-                    imagesStore.extractEXIFData(file).then(({ dateTimeOriginal, gpsInfo }) => {
-                        console.log('Timestamp:', dateTimeOriginal);
-                        console.log('GPS Info:', gpsInfo);
-                        // Process the EXIF data as needed
-                        emitGPSData({ dateTimeOriginal, gpsInfo, imageId: newImageId })
-                    }).catch(error => {
-                        console.error('Error extracting EXIF data:', error);
-                    });
-                    displayImageFromDB(newImageId)
-                });
+const handleNewImage = async (file) => {
+    imagesStore.resizeImage(file, imageWidth.value, imageHeight.value, async (resizedBlob) => {
+        // Now you have a resized image as a Blob, you can store it in IndexedDB
+        const newImageId = await imagesStore.saveImage(resizedBlob);
+        //   editedStory.value.imageId = imageId;
+        console.log('Image stored in IndexedDB with ID:', newImageId);
+        if (!isFastSiteCreator.value) {
+            resetImage() // if a prior image was defined, remove it now
+            // resetImage should not be done in the fastSiteCreator
+        }
+        imageId.value = newImageId
+        imageUrl.value = null
+        emitImageChange()
+        imagesStore.extractEXIFData(file).then(({ dateTimeOriginal, gpsInfo }) => {
+            console.log('Timestamp:', dateTimeOriginal);
+            console.log('GPS Info:', gpsInfo);
+            // Process the EXIF data as needed
+            emitGPSData({ dateTimeOriginal, gpsInfo, imageId: newImageId })
+        }).catch(error => {
+            console.error('Error extracting EXIF data:', error);
+        });
+        displayImageFromDB(newImageId)
+    });
 }
 
 const throttledHandleNewImageCall = throttle(handleNewImage, 500);
