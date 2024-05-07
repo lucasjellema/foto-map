@@ -7,7 +7,7 @@
                 <v-text-field v-model="model.label" label="Label"></v-text-field>
                 <!-- <v-text-field v-model="model.description" label="Description"></v-text-field> -->
                 <v-sheet class="flex-1-1-100  ma-0 pa-0 mb-3">
-                  <QuillEditor theme="snow" toolbar="essential" v-model:content="model.description" contentType="delta" v-if="false && model.description"/>
+                  <QuillEditor theme="snow" toolbar="essential" v-model:content="model.description" contentType="delta" v-if="model.description"/>
                 </v-sheet>
                 <image-editor :image-url="model.imageUrl" :image-id="model.imageId" ref="imageEditorRef"
                     image-height=400 image-width=800 @image-change="handleImageChange" ></image-editor>

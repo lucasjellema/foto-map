@@ -785,7 +785,13 @@ const handleGPSData = (event) => {
         , "geometry": { "coordinates": [event.gpsInfo.longitude, event.gpsInfo.latitude, event.gpsInfo.altitude], "type": "Point" }
       }]
     }
-    createSiteFromGeoJSON(newGeoJsonData, event.imageId, event.dateTimeOriginal);
+// if event.dateTimeOriginal is a Date object then create a string from it
+let dateTime = event.dateTimeOriginal
+    if (dateTime instanceof Date) {
+      dateTime = event.dateTimeOriginal.toISOString();
+    }
+
+    createSiteFromGeoJSON(newGeoJsonData, event.imageId, dateTime);
   }
 }
 
@@ -1183,15 +1189,25 @@ const consolidateSitesToTargetSite = (targetSite, sitesToConsolidate) => {
 
       //      const siteToRemove = storiesStore.getSite(feature.feature.properties.id)
       // add to targetSite.attachments an object with description (consisting of label, timestamp, description) and imageID
+
+      // TODO update duration of target set based on on earliest and latest timestamp (and duration?) on all consolidated sites
+      // create an attachment for any site that has an image or a description 
       if (siteToRemove.imageId || siteToRemove.description) {
 
-        const delta = new Delta([
-          { insert: `${siteToRemove.label}, ${siteToRemove.city}, ${siteToRemove.country}\n`, attributes: { bold: true } },
+        const deltaX = new Delta([
+          { insert: `${siteToRemove.label}, ${siteToRemove.city}, ${siteToRemove.country}`, attributes: { bold: true } },
           { insert: `${formatDateByGrain(siteToRemove.timestamp, siteToRemove.timezoneOffset, siteToRemove.timeGrain)}`, attributes: { color: '#ccc' } }
         ]);
 
+        const delta = new Delta({ "ops": [ { "attributes": { "bold": true }, "insert":`${siteToRemove.label}, ${siteToRemove.city}, ${siteToRemove.country}`}
+        , { "insert": "\n" } 
+        , { "insert": `${formatDateByGrain(siteToRemove.timestamp, siteToRemove.timezoneOffset, siteToRemove.timeGrain)}`}] 
+      })
+console.log(`delta ${delta}`)
+const description = siteToRemove.description ? siteToRemove.description : delta
+console.log(`description ${JSON.stringify( description)}`)
         targetSite.attachments.push({
-          description: siteToRemove.description ? siteToRemove.description : delta
+          description: description
           , label: siteToRemove.label
           , imageId: siteToRemove.imageId
         })
@@ -1698,7 +1714,7 @@ const attachMapListeners = () => {
         {
           "type": "FeatureCollection", "features": [
             {
-              "type": "Feature", "properties": { name: "Pasted coordinates", timestamp: new Date() }
+              "type": "Feature", "properties": { name: "Pasted coordinates", timestamp: new Date().toISOString() }
               , "geometry": { "coordinates": [lng, lat], "type": "Point" }
             }
           ]
@@ -1812,7 +1828,7 @@ const handlePastedText = (text) => {
     const newGeoJsonData =
     {
       "type": "FeatureCollection", "features": [{
-        "type": "Feature", "properties": { name: "Pasted coordinates", timestamp: new Date() }
+        "type": "Feature", "properties": { name: "Pasted coordinates", timestamp: new Date().toISOString() }
         , "geometry": { "coordinates": [longitude, latitude], "type": "Point" }
       }]
     }
