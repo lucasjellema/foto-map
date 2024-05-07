@@ -162,7 +162,7 @@
                   class="elevation-1">
                   <template v-slot:item.thumbnail="{ item, index }">
                     
-                    <v-img width="80" :src="attachmentImageURLs[index]"></v-img>
+                    <v-img width="80" :src="attachmentImageURLs[index]" class="thumbnail"></v-img>
                   </template>
                   <template v-slot:item.actions="{ item, index }">
                     <v-icon small @click="editAttachment(item, index)">
@@ -512,3 +512,11 @@ const handleImageChange = (event) => {
 
 
 </script>
+<style>
+/*change the number below to scale to the appropriate size*/ 
+.thumbnail:hover { 
+transform: scale(3); 
+z-index: 900;
+
+}
+</style>
