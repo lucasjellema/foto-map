@@ -160,6 +160,10 @@
 
                 '<v-data-table :headers="attachmentHeaders" :items="modelSite.attachments" item-key="label"
                   class="elevation-1">
+                  <template v-slot:item.thumbnail="{ item, index }">
+                    
+                    <v-img width="80" :src="attachmentImageURLs[index]"></v-img>
+                  </template>
                   <template v-slot:item.actions="{ item, index }">
                     <v-icon small @click="editAttachment(item, index)">
                       mdi-pencil
@@ -304,7 +308,8 @@ import TooltipDirectionSelector from '@/components/TooltipDirectionSelector.vue'
 import IconSelector from '@/components/IconSelector.vue'
 import AttachmentEditor from '@/components/AttachmentEditor.vue'
 const attachmentHeaders = ref([
-  { title: 'Label', value: 'label' },
+{ title: 'Label', value: 'label' },
+{ title: 'Thumbnail', value: 'thumbnail' },
   { title: 'Actions', value: 'actions' },
 ])
 const { mapZoomToResolution, isValidCoordinateFormat, isValidGeoJSON, reverseGeocode, createSiteFromGeoJSON } = useLocationLibrary();
@@ -317,6 +322,20 @@ const imageEditorRef = ref(null)
 const attachmentToEdit = ref(null)
 let newAttachment = false
 const showAttachmentEditorPopup = ref(false)
+
+const attachmentImageURLs = ref({})
+  
+const initializeAttachmentImageURLs = () => {
+  modelSite.value.attachments.forEach(async (attachment, index) =>  {
+    let imageUrl = null
+    if (attachment.imageId) {
+      imageUrl = await imagesStore.getUrlForIndexedDBImage(attachment.imageId)
+    } else if (attachment.imageUrl) {
+      imageUrl = attachment.imageUrl
+    }
+    attachmentImageURLs.value[index]= imageUrl 
+  })
+}
 
 const hourTickLabels = {
   0: '0',
@@ -351,6 +370,7 @@ const editAttachment = (item, index) => {
 const removeAttachment = (item, index) => {
   console.log(`remove attachment ${index} ${item.label}`)
   modelSite.value.attachments.splice(index, 1)
+  initializeAttachmentImageURLs()
 }
 
 const saveAttachment = () => {
@@ -360,6 +380,7 @@ const saveAttachment = () => {
     modelSite.value.attachments.push(attachmentToEdit.value)
   }
   showAttachmentEditorPopup.value = false
+  initializeAttachmentImageURLs()
 }
 const handleTagChange = (newValue) => {
   // Handle the change event
@@ -390,6 +411,7 @@ onMounted(() => {
     durationMonths.value = modelSite.value.duration.months
     durationYears.value = modelSite.value.duration.years
   }
+  initializeAttachmentImageURLs()
 
 });
 
