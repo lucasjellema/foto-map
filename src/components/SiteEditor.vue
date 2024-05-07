@@ -326,6 +326,7 @@ const showAttachmentEditorPopup = ref(false)
 const attachmentImageURLs = ref({})
   
 const initializeAttachmentImageURLs = () => {
+  if (modelSite.value.attachments)
   modelSite.value.attachments.forEach(async (attachment, index) =>  {
     let imageUrl = null
     if (attachment.imageId) {
