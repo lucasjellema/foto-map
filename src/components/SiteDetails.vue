@@ -10,8 +10,7 @@
       </div>
       <div>
         <v-img width="500" cover :src="site?.imageURL" content-class="hover-zoom"></v-img>    
-        {{ site?.description }}    
-        <QuillEditor theme="bubble" :toolbar="[]" v-model:content="site.description" contentType="delta" :readOnly="true" v-if="site?.description"/>
+        <QuillEditor theme="bubble" :toolbar="[]" v-model:content="siteDescription" contentType="delta" :readOnly="true" v-if="site?.description"/>
       </div>
 
       <div v-if="site?.tags?.length > 0">
@@ -34,11 +33,15 @@
   </v-dialog>
 </template>
 <script setup>
-import { QuillEditor } from '@vueup/vue-quill'
+import { QuillEditor, Delta } from '@vueup/vue-quill'
 import '@vueup/vue-quill/dist/vue-quill.snow.css';
 const site = defineModel('site');
 const emit = defineEmits(['closeDialog']);
 const showSiteDetailAttachmentsPopup = ref(false);
+const siteDescription = computed(() => {
+  if (site.value?.description instanceof Delta)  return site.value?.description
+  return new Delta(site.value?.description)
+})
 
 
 import Carousel from 'primevue/carousel';
