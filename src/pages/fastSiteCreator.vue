@@ -361,12 +361,15 @@ const handleImportedStory = (story, imageFile2NewImageIdMap, replaceCurrentStory
       if (existingSite.imageId) {
         imagesStore.removeImage(existingSite.imageId)
       }
+      if (existingSite.description && !(existingSite.description instanceof Delta))  existingSite.description = new Delta(existingSite.description)
 
       existingSite.imageId = imageFile2NewImageIdMap[`images\/${site.imageId}`]
       existingSite.attachments?.forEach(attachment => {
         if (attachment.imageId) {
           attachment.imageId = imageFile2NewImageIdMap[`images\/${attachment.imageId}`]
         }
+        if (attachment.description && !(attachment.description instanceof Delta))  attachment.description = new Delta(attachment.description)
+            
       })
       storiesStore.updateSite(existingSite)
 
@@ -375,10 +378,14 @@ const handleImportedStory = (story, imageFile2NewImageIdMap, replaceCurrentStory
 
       const newSite = { ...site }
       newSite.imageId = imageFile2NewImageIdMap[`images\/${site.imageId}`]
+      if (newSite.description && !(newSite.description instanceof Delta))  newSite.description = new Delta(newSite.description)
+            
       newSite.attachments?.forEach(attachment => {
         if (attachment.imageId) {
           attachment.imageId = imageFile2NewImageIdMap[`images\/${attachment.imageId}`]
         }
+        if (attachment.description && !(attachment.description instanceof Delta))  attachment.description = new Delta(attachment.description)
+            
       })
 
       storiesStore.addSite(newSite)
