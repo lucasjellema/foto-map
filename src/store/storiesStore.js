@@ -3,6 +3,8 @@ import { defineStore } from 'pinia';
 import { useLocalStorage } from "@vueuse/core"
 import { v4 as uuidv4 } from 'uuid';
 import { useImagesStore } from "../store/imagesStore";
+
+import { Delta } from '@vueup/vue-quill'
 //import { useImportExportLibrary } from '@/composables/useImportExportLibrary';
 
 import storyCodeDataFileMap from './storyCodeDataFileMap.json'
@@ -25,7 +27,9 @@ export const useStorieStore = defineStore('storyData', () => {
             if (site.imageId) {
                 site.imageId = imageFile2NewImageIdMap[`images\/${site.imageId}`]
             }
+            if (site.description && !(site.description instanceof Delta))  site.description = new Delta(site.description)
             site.attachments?.forEach(attachment => {
+                if (attachment.description && !(attachment.description instanceof Delta))  attachment.description = new Delta(attachment.description)
                 if (attachment.imageId) {
                     attachment.imageId = imageFile2NewImageIdMap[`images\/${attachment.imageId}`]
                 }
@@ -118,6 +122,14 @@ export const useStorieStore = defineStore('storyData', () => {
             stories.value.push({ id: uuidv4(), name: 'New Story', sites: [], tags: [], mapConfiguration: { customTileLayers: [], showTooltips: true, showTooltipsMode: 'hover', timelines: [] } })
 
         } else {
+            // prepare delta for description
+            currentStory.value.sites.forEach(site => {
+                if (site.description && !(site.description instanceof Delta))  site.description = new Delta(site.description)
+                site.attachments?.forEach(attachment => {
+                    if (attachment.description && !(attachment.description instanceof Delta))  attachment.description = new Delta(attachment.description)
+                })            
+            })
+    
             if (!currentStory.value.mapConfiguration) {
                 currentStory.value.mapConfiguration = { customTileLayers: [], showTooltips: false, showTooltipsMode: 'hover', timelines: [] }
             }
