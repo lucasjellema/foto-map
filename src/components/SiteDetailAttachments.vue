@@ -31,7 +31,7 @@
             <v-container>
               <v-row>
                 <v-col cols="7" offset="1">
-                  <v-img width="400" cover :src="attachment.imageURL"></v-img>
+                  <v-img width="400" cover :src="attachmentImageURLs[index]"></v-img>
                 </v-col>
                 <v-col cols="4">
                   <div>
@@ -59,14 +59,35 @@
 <script setup>
 import { QuillEditor } from '@vueup/vue-quill'
 import '@vueup/vue-quill/dist/vue-quill.snow.css';
+
+
+import { useImagesStore } from "../store/imagesStore";
+const imagesStore = useImagesStore()
+
 const modelSite = defineModel('site');
 const emit = defineEmits(['closeDialog']);
 
 
 import Carousel from 'primevue/carousel';
 
+const attachmentImageURLs = ref({})
+
+const initializeAttachmentImageURLs = () => {
+  if (modelSite.value.attachments)
+  modelSite.value.attachments.forEach(async (attachment, index) =>  {
+    let imageUrl = null
+    if (attachment.imageId) {
+      imageUrl = await imagesStore.getUrlForIndexedDBImage(attachment.imageId)
+    } else if (attachment.imageUrl) {
+      imageUrl = attachment.imageUrl
+    }
+    attachmentImageURLs.value[index]= imageUrl 
+  })
+}
+
 
 onMounted(() => {
+  initializeAttachmentImageURLs()
 });
 
 
