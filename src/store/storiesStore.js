@@ -8,7 +8,7 @@ import { Delta } from '@vueup/vue-quill'
 //import { useImportExportLibrary } from '@/composables/useImportExportLibrary';
 import { usePARLibrary } from '@/composables/usePARLibrary';
 
-const { saveFile, getJSONFile, getListOfFiles, setPAR, getPAR} = usePARLibrary();
+const { saveFile, getJSONFile, getListOfFiles, setPAR, getPAR } = usePARLibrary();
 
 import storyCodeDataFileMap from './storyCodeDataFileMap.json'
 
@@ -22,6 +22,7 @@ export const useStorieStore = defineStore('storyData', () => {
     const stories = ref(useLocalStorage('fotomap-stories', []))
 
     const currentStory = ref(stories.value[0])
+    const storyUpdateIndicator = ref(0) // every time the story is updated, this is incremented; this can be watched to trigger a re-render
 
 
 
@@ -33,10 +34,10 @@ export const useStorieStore = defineStore('storyData', () => {
                 if (imageFile2NewImageIdMap[`images\/${site.imageId}`].imageId) {
                     site.imageId = imageFile2NewImageIdMap[`images\/${site.imageId}`]
                     site.imageUrl = null
-                  } else if (imageFile2NewImageIdMap[`images\/${site.imageId}`].url) {
+                } else if (imageFile2NewImageIdMap[`images\/${site.imageId}`].url) {
                     site.imageUrl = imageFile2NewImageIdMap[`images\/${site.imageId}`].url
                     site.imageId = null
-                  }
+                }
 
 
                 //site.imageId = imageFile2NewImageIdMap[`images\/${site.imageId}`]
@@ -47,14 +48,14 @@ export const useStorieStore = defineStore('storyData', () => {
                 if (attachment.imageId) {
                     if (imageFile2NewImageIdMap[`images\/${attachment.imageId}`].imageId) {
                         attachment.imageId = imageFile2NewImageIdMap[`images\/${attachment.imageId}`].imageId
-                      } else if (imageFile2NewImageIdMap[`images\/${attachment.imageId}`].url) {
+                    } else if (imageFile2NewImageIdMap[`images\/${attachment.imageId}`].url) {
                         attachment.imageUrl = imageFile2NewImageIdMap[`images\/${attachment.imageId}`].url
                         attachment.imageId = null
-                      }
-            
+                    }
 
-    
-                    
+
+
+
                 }
             })
         })
@@ -80,8 +81,8 @@ export const useStorieStore = defineStore('storyData', () => {
             if (imgFileRegex.test(file.name)) {
                 const blob = await zip.file(file.name).async('blob') // .then(async (content) => {
 
-                    const imageSaveResult = await imagesStore.saveImage(blob);
-//                const imageId = await imagesStore.saveImage(blob)
+                const imageSaveResult = await imagesStore.saveImage(blob);
+                //                const imageId = await imagesStore.saveImage(blob)
                 imageFile2NewImageId[file.name] = imageSaveResult // either {imageId:} or {url:}
             }
         }
@@ -93,10 +94,11 @@ export const useStorieStore = defineStore('storyData', () => {
     }
 
 
-   // const preAuthenticatedRequestURL = ref(null)
+    // const preAuthenticatedRequestURL = ref(null)
     const DELTA_DIRECTORY = 'story-deltas'
-    
+
     const STORIES_FILE = 'stories-file.json'
+    const CONSOLIDATION_MARKER_FILE = 'lastDeltaConsolidated.json'
 
 
     const loadDeltaFiles = async () => {
@@ -105,15 +107,24 @@ export const useStorieStore = defineStore('storyData', () => {
         const files = await getListOfFiles()
         if (!files || !files.objects || files.objects.length == 0) return
         const deltaFiles = files.objects.filter(file => file.name.startsWith(DELTA_DIRECTORY + '/')).sort((a, b) => a.name.localeCompare(b.name))
+        if (!deltaFiles || deltaFiles.length == 0) return
+        const lastConsolidation = await getJSONFile(CONSOLIDATION_MARKER_FILE)
+        let deltaToProcess = deltaFiles
+        if (lastConsolidation != 1) {
 
+            //        saveFile(JSON.stringify(lastConsolidation), CONSOLIDATION_MARKER_FILE)
+            console.log('last consolidation', lastConsolidation)
+            console.log('remove from delta files any file less than or equal to ', DELTA_DIRECTORY + '/' + lastConsolidation.lastDeltaTimestamp + '.json')
+
+            deltaToProcess = deltaFiles.filter(file => file.name > DELTA_DIRECTORY + '/' + lastConsolidation.lastDeltaTimestamp + '.json')
+            
+        }
         // for each file, load it and merge it into the story
-        console.log('delta files', deltaFiles)
-        for (const file of deltaFiles) {
+        console.log('delta files to process', deltaToProcess)
+        for (const file of deltaToProcess) {
             const delta = await getJSONFile(file.name)
             if (delta) {
                 console.log('processing delta', delta.type, file.name)
-                // if delta is site, merge it with story
-                // TODO handle delete site
                 if (delta.type == 'site') {
                     try {
                         updateSite(delta.site, false, true)
@@ -139,7 +150,7 @@ export const useStorieStore = defineStore('storyData', () => {
                         currentStory.value.mapConfiguration = delta.mapConfiguration
                     }
                     catch (error) {
-                        console.log("failed loading delta mapConfig " , error)
+                        console.log("failed loading delta mapConfig ", error)
                     }
                 }
             }
@@ -219,7 +230,8 @@ export const useStorieStore = defineStore('storyData', () => {
 
             } else {
                 stories.value = storyJSON
-                loadDeltaFiles()
+                await loadDeltaFiles()
+                storyUpdateIndicator.value++
             }
         }
 
@@ -333,11 +345,11 @@ export const useStorieStore = defineStore('storyData', () => {
         console.log('updateMapConfiguration')
         // TODO save delta for the map config
 
-        if (getPAR()){
-                const filename = DELTA_DIRECTORY + '/' + new Date().getTime() + '.json'
-                saveFile(JSON.stringify({ type: 'map-config',mapConfiguration: currentStory.value.mapConfiguration }), filename)
+        if (getPAR()) {
+            const filename = DELTA_DIRECTORY + '/' + new Date().getTime() + '.json'
+            saveFile(JSON.stringify({ type: 'map-config', mapConfiguration: currentStory.value.mapConfiguration }), filename)
         }
-     }
+    }
 
     const updateSite = (site, saveDelta = true, addIfNotFound = false) => {
         const theIndex = currentStory.value.sites.findIndex(l => l.id === site.id);
@@ -395,25 +407,31 @@ export const useStorieStore = defineStore('storyData', () => {
         currentStory.value = { id: uuidv4(), name: 'New Story', sites: [], tags: [], mapConfiguration: { customTileLayers: [], showTooltips: true, showTooltipsMode: 'hover', timelines: [] } }
     }
 
-const consolidateDeltas = async () => {
-    // TODO
-    console.log('consolidate deltas into a single stories.json' )
+    const consolidateDeltas = async () => {
+        // TODO
+        console.log('consolidate deltas into a single stories.json')
 
-    const storyJSON = await getJSONFile(STORIES_FILE)
-    stories.value = storyJSON
-    const deltaFiles = await loadDeltaFiles()
-    const sit = currentStory.value.sites
-    
-    const _ = await saveFile(`[${JSON.stringify(currentStory.value)}]`, STORIES_FILE)
-    
-    // write lastDeltaConsolidated.json with fileid/timestamp of most recent delta that was processed
-    // optionally overwrite earlier deltas with {} or {type:'X'} to indicate they can be discarded/deleted
+        const storyJSON = await getJSONFile(STORIES_FILE)
+        stories.value = storyJSON
+        const deltaFiles = await loadDeltaFiles()
+        const sit = currentStory.value.sites
 
-    // change loadDeltas function to start after whatever value is in lastDeltaConsolidated.json 
-}
+        const _ = await saveFile(`[${JSON.stringify(currentStory.value)}]`, STORIES_FILE)
+
+        // write lastDeltaConsolidated.json with fileid/timestamp of most recent delta that was processed
+        const lastDeltaFileProcessed = deltaFiles[deltaFiles.length - 1]
+        // timestamp = lastDeltaFile  story-deltas/timestamp.json  - 
+        const timestamp = lastDeltaFileProcessed.name.substring(0, lastDeltaFileProcessed.name.length - 5).substring(13)
+        const lastConsolidation = { consolidationTimestamp: new Date().getTime(), lastDeltaTimestamp: timestamp }
+        currentStory.value.lastConsolidation = lastConsolidation
+        saveFile(JSON.stringify(lastConsolidation), CONSOLIDATION_MARKER_FILE)
+        // optionally overwrite earlier deltas with {} or {type:'X'} to indicate they can be discarded/deleted
+
+        // change loadDeltas function to start after whatever value is in lastDeltaConsolidated.json 
+    }
 
     return {
-        stories, currentStory, addStory, updateStory, removeStory, resetStory, setCurrentStory, addSite, removeSite, updateSite, getSite, getStoryTags, setPAR, updateMapConfiguration, consolidateDeltas
+        stories, currentStory, addStory, updateStory, removeStory, resetStory, setCurrentStory, addSite, removeSite, updateSite, getSite, getStoryTags, setPAR, updateMapConfiguration, consolidateDeltas, storyUpdateIndicator
     };
 });
 
