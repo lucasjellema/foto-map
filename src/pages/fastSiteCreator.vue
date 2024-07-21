@@ -115,7 +115,7 @@
             <span class="headline">Map Configuration</span>
           </v-card-title>
           <v-card-text>
-            <MapConfigurator v-model:map="currentStory.mapConfiguration" @resetStory="handleResetStory()">
+            <MapConfigurator v-model:map="currentStory.mapConfiguration" @resetStory="handleResetStory()" @consolidateDeltas="handleConsolidateDeltas()">
             </MapConfigurator>
             <v-container>
 
@@ -1927,6 +1927,9 @@ const fetchGoogleMapsCoordinatesFromClipboard = () => {
   })
 }
 
+const handleConsolidateDeltas= () => {
+  storiesStore.consolidateDeltas()
+}
 
 </script>
 

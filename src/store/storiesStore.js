@@ -97,61 +97,7 @@ export const useStorieStore = defineStore('storyData', () => {
     const DELTA_DIRECTORY = 'story-deltas'
     
     const STORIES_FILE = 'stories-file.json'
-    // TODO create a library for file operations
-    // const getJSONFile = (filename) => {
-    //     return new Promise((resolve, reject) => {
-    //         const targetURL = preAuthenticatedRequestURL.value + filename
-    //         fetch(targetURL, { method: 'GET' })
-    //             .then(response => {
-    //                 if (!response.ok) {
-    //                     throw new Error('Network response was not ok ' + response.statusText);
-    //                 }
-    //                 resolve(response.json())
-    //             })
-    //             .catch(err =>
-    //                 resolve(1)
-    //             );
-    //     })
-    // }
 
-    // const getListOfFiles = () => {
-    //     return new Promise((resolve, reject) => {
-    //         const targetURL = preAuthenticatedRequestURL.value
-    //         fetch(targetURL, { method: 'GET' })
-    //             .then(response => {
-    //                 if (!response.ok) {
-    //                     throw new Error('Network response was not ok ' + response.statusText);
-    //                 }
-    //                 resolve(response.json()) // should be a list of all files that needs to be filtered by prefix directory+'/'
-    //             })
-    //             .catch(err =>
-    //                 resolve(1)
-    //             );
-    //     })
-    // }
-
-
-    // const saveFile = async (blob, filename) => {
-    //     const fetchOptions = {
-    //         method: 'PUT',
-    //         body: blob,
-    //     };
-
-    //     const targetURL = preAuthenticatedRequestURL.value + filename
-    //     fetch(targetURL, fetchOptions)
-    //         .then(response => {
-    //             if (!response.ok) {
-    //                 throw new Error('Network response was not ok ' + response.statusText);
-    //             }
-    //             return response.status;
-    //         })
-    //         .then(data => {
-    //             return 0
-    //         })
-    //         .catch(error => {
-    //             return 1
-    //         });
-    // }
 
     const loadDeltaFiles = async () => {
         // get list of files in delta directory
@@ -198,13 +144,10 @@ export const useStorieStore = defineStore('storyData', () => {
                 }
             }
         }
+        return deltaFiles
     }
 
 
-    // const setPAR = (par) => {
-    //     preAuthenticatedRequestURL.value = par
-
-    // }
     const initializeCurrentStory = async () => {
 
         // check if a URL param is provided - that should suggest loading data from a file
@@ -261,7 +204,6 @@ export const useStorieStore = defineStore('storyData', () => {
             console.log(`initialize story from PAR: ${bucketPAR}`)
 
             const storyJSON = await getJSONFile(STORIES_FILE)
-            console.log(storyJSON)
             // if not found, create it
             if (storyJSON == 1) {
 
@@ -453,8 +395,25 @@ export const useStorieStore = defineStore('storyData', () => {
         currentStory.value = { id: uuidv4(), name: 'New Story', sites: [], tags: [], mapConfiguration: { customTileLayers: [], showTooltips: true, showTooltipsMode: 'hover', timelines: [] } }
     }
 
+const consolidateDeltas = async () => {
+    // TODO
+    console.log('consolidate deltas into a single stories.json' )
+
+    const storyJSON = await getJSONFile(STORIES_FILE)
+    stories.value = storyJSON
+    const deltaFiles = await loadDeltaFiles()
+    const sit = currentStory.value.sites
+    
+    const _ = await saveFile(`[${JSON.stringify(currentStory.value)}]`, STORIES_FILE)
+    
+    // write lastDeltaConsolidated.json with fileid/timestamp of most recent delta that was processed
+    // optionally overwrite earlier deltas with {} or {type:'X'} to indicate they can be discarded/deleted
+
+    // change loadDeltas function to start after whatever value is in lastDeltaConsolidated.json 
+}
+
     return {
-        stories, currentStory, addStory, updateStory, removeStory, resetStory, setCurrentStory, addSite, removeSite, updateSite, getSite, getStoryTags, setPAR, updateMapConfiguration
+        stories, currentStory, addStory, updateStory, removeStory, resetStory, setCurrentStory, addSite, removeSite, updateSite, getSite, getStoryTags, setPAR, updateMapConfiguration, consolidateDeltas
     };
 });
 
