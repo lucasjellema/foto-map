@@ -21,6 +21,7 @@
       </v-tab> -->
             </v-tabs>
             <div v-if="tab == 'tab-1'">
+              <v-btn @click="refreshMap()" size="x-small">Refresh Map</v-btn>
               <SiteTree @site-selected="handleSiteSelected" @site-action="handleSiteAction"
                 :storyReadOnly="storyReadOnly"></SiteTree>
             </div>
@@ -1401,7 +1402,17 @@ const drawMap = () => {
       }
     )
   }
-
+  if (true) {
+    contextmenuItems.push(
+      {
+        text: 'Paste Coordinates from Google Maps',
+        callback: () => {
+          
+          fetchGoogleMapsCoordinatesFromClipboard()
+        }
+      }
+    )
+  }
   map.value = L.map('mapid', {
     contextmenu: true,
     contextmenuWidth: 160,
@@ -1874,6 +1885,12 @@ function findClosestSegment(polyline, clickLatLng) {
   return closestSegment;
 }
 
+const fetchGoogleMapsCoordinatesFromClipboard= () => {
+  console.log(`fetch from clipboard`)
+  navigator.clipboard.readText().then((text) => {
+    handlePastedText(text)
+  })
+}
 
 
 </script>
