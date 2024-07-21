@@ -111,12 +111,14 @@ export const useStorieStore = defineStore('storyData', () => {
         const lastConsolidation = await getJSONFile(CONSOLIDATION_MARKER_FILE)
         let deltaToProcess = deltaFiles
         if (lastConsolidation != 1) {
-
-            //        saveFile(JSON.stringify(lastConsolidation), CONSOLIDATION_MARKER_FILE)
-            console.log('last consolidation', lastConsolidation)
-            console.log('remove from delta files any file less than or equal to ', DELTA_DIRECTORY + '/' + lastConsolidation.lastDeltaTimestamp + '.json')
-
+            console.log('DEBUG last consolidation log read from file ', lastConsolidation)
+            console.log('DEBUG remove from delta files any file less than or equal to ', DELTA_DIRECTORY + '/' + lastConsolidation.lastDeltaTimestamp + '.json')
+            try {
             deltaToProcess = deltaFiles.filter(file => file.name > DELTA_DIRECTORY + '/' + lastConsolidation.lastDeltaTimestamp + '.json')
+            } catch (error) {
+                console.log('ERROR in filtering delta files to deltaToProcess', error)
+            }
+            
             
         }
         // for each file, load it and merge it into the story
@@ -414,20 +416,20 @@ export const useStorieStore = defineStore('storyData', () => {
         const storyJSON = await getJSONFile(STORIES_FILE)
         stories.value = storyJSON
         const deltaFiles = await loadDeltaFiles()
-        const sit = currentStory.value.sites
-
-        const _ = await saveFile(`[${JSON.stringify(currentStory.value)}]`, STORIES_FILE)
+        
 
         // write lastDeltaConsolidated.json with fileid/timestamp of most recent delta that was processed
         const lastDeltaFileProcessed = deltaFiles[deltaFiles.length - 1]
-        // timestamp = lastDeltaFile  story-deltas/timestamp.json  - 
         const timestamp = lastDeltaFileProcessed.name.substring(0, lastDeltaFileProcessed.name.length - 5).substring(13)
         const lastConsolidation = { consolidationTimestamp: new Date().getTime(), lastDeltaTimestamp: timestamp }
         currentStory.value.lastConsolidation = lastConsolidation
+        const _ = await saveFile(`[${JSON.stringify(currentStory.value)}]`, STORIES_FILE)
+
+
         saveFile(JSON.stringify(lastConsolidation), CONSOLIDATION_MARKER_FILE)
         // optionally overwrite earlier deltas with {} or {type:'X'} to indicate they can be discarded/deleted
 
-        // change loadDeltas function to start after whatever value is in lastDeltaConsolidated.json 
+        
     }
 
     return {
