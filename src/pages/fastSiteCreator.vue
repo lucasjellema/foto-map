@@ -362,15 +362,32 @@ const handleImportedStory = (story, imageFile2NewImageIdMap, replaceCurrentStory
       if (existingSite.imageId) {
         imagesStore.removeImage(existingSite.imageId)
       }
-      if (existingSite.description && !(existingSite.description instanceof Delta))  existingSite.description = new Delta(existingSite.description)
+      if (existingSite.description && !(existingSite.description instanceof Delta)) existingSite.description = new Delta(existingSite.description)
 
-      existingSite.imageId = imageFile2NewImageIdMap[`images\/${site.imageId}`]
+      if (imageFile2NewImageIdMap[`images\/${site.imageId}`].imageId) {
+        existingSite.imageId = imageFile2NewImageIdMap[`images\/${site.imageId}`]
+        existingSite.imageURL = null
+      } else if (imageFile2NewImageIdMap[`images\/${site.imageId}`].url) {
+        existingSite.imageURL = imageFile2NewImageIdMap[`images\/${site.imageId}`].url
+        existingSite.imageId = null
+      }
+
       existingSite.attachments?.forEach(attachment => {
         if (attachment.imageId) {
-          attachment.imageId = imageFile2NewImageIdMap[`images\/${attachment.imageId}`]
+          if (imageFile2NewImageIdMap[`images\/${attachment.imageId}`].imageId) {
+            attachment.imageId = imageFile2NewImageIdMap[`images\/${attachment.imageId}`].imageId
+            attachment.imageURL = null
+          } else if (imageFile2NewImageIdMap[`images\/${attachment.imageId}`].url) {
+            attachment.imageURL = imageFile2NewImageIdMap[`images\/${attachment.imageId}`].url
+            attachment.imageId = null
+          }
+
+
+
+
         }
-        if (attachment.description && !(attachment.description instanceof Delta))  attachment.description = new Delta(attachment.description)
-            
+        if (attachment.description && !(attachment.description instanceof Delta)) attachment.description = new Delta(attachment.description)
+
       })
       storiesStore.updateSite(existingSite)
 
@@ -378,15 +395,27 @@ const handleImportedStory = (story, imageFile2NewImageIdMap, replaceCurrentStory
     else {
 
       const newSite = { ...site }
-      newSite.imageId = imageFile2NewImageIdMap[`images\/${site.imageId}`]
-      if (newSite.description && !(newSite.description instanceof Delta))  newSite.description = new Delta(newSite.description)
-            
+      try {
+      if (imageFile2NewImageIdMap[`images\/${site.imageId}`].imageId) {
+        newSite.imageId = imageFile2NewImageIdMap[`images\/${site.imageId}`]
+        
+      } else if (imageFile2NewImageIdMap[`images\/${site.imageId}`].url) {
+        newSite.imageURL = imageFile2NewImageIdMap[`images\/${site.imageId}`].url
+        
+      }
+    } catch (error) {
+      console.log(`error`, error)
+    }
+
+
+      if (newSite.description && !(newSite.description instanceof Delta)) newSite.description = new Delta(newSite.description)
+
       newSite.attachments?.forEach(attachment => {
         if (attachment.imageId) {
           attachment.imageId = imageFile2NewImageIdMap[`images\/${attachment.imageId}`]
         }
-        if (attachment.description && !(attachment.description instanceof Delta))  attachment.description = new Delta(attachment.description)
-            
+        if (attachment.description && !(attachment.description instanceof Delta)) attachment.description = new Delta(attachment.description)
+
       })
 
       storiesStore.addSite(newSite)
@@ -793,13 +822,13 @@ const handleGPSData = (event) => {
         , "geometry": { "coordinates": [event.gpsInfo.longitude, event.gpsInfo.latitude, event.gpsInfo.altitude], "type": "Point" }
       }]
     }
-// if event.dateTimeOriginal is a Date object then create a string from it
-let dateTime = event.dateTimeOriginal
+    // if event.dateTimeOriginal is a Date object then create a string from it
+    let dateTime = event.dateTimeOriginal
     if (dateTime instanceof Date) {
       dateTime = event.dateTimeOriginal.toISOString();
     }
 
-    createSiteFromGeoJSON(newGeoJsonData, event.imageId, dateTime);
+    createSiteFromGeoJSON(newGeoJsonData, event.imageId, dateTime, true, event.imageUrl);
   }
 }
 
@@ -1207,13 +1236,14 @@ const consolidateSitesToTargetSite = (targetSite, sitesToConsolidate) => {
           { insert: `${formatDateByGrain(siteToRemove.timestamp, siteToRemove.timezoneOffset, siteToRemove.timeGrain)}`, attributes: { color: '#ccc' } }
         ]);
 
-        const delta = new Delta({ "ops": [ { "attributes": { "bold": true }, "insert":`${siteToRemove.label}, ${siteToRemove.city}, ${siteToRemove.country}`}
-        , { "insert": "\n" } 
-        , { "insert": `${formatDateByGrain(siteToRemove.timestamp, siteToRemove.timezoneOffset, siteToRemove.timeGrain)}`}] 
-      })
-console.log(`delta ${delta}`)
-const description = siteToRemove.description ? siteToRemove.description : delta
-console.log(`description ${JSON.stringify( description)}`)
+        const delta = new Delta({
+          "ops": [{ "attributes": { "bold": true }, "insert": `${siteToRemove.label}, ${siteToRemove.city}, ${siteToRemove.country}` }
+            , { "insert": "\n" }
+            , { "insert": `${formatDateByGrain(siteToRemove.timestamp, siteToRemove.timezoneOffset, siteToRemove.timeGrain)}` }]
+        })
+        console.log(`delta ${delta}`)
+        const description = siteToRemove.description ? siteToRemove.description : delta
+        console.log(`description ${JSON.stringify(description)}`)
         targetSite.attachments.push({
           description: description
           , label: siteToRemove.label
@@ -1245,13 +1275,13 @@ const consolidateSite = (targetSite) => {
   // add their pictures in additional attachments for the site?
   // todo find sites within consolidation range?
   let nearbySites = findSitesWithinConsolidationRadius(targetSite);
-// if a consolidation period was specified, then remove all sites that are not within the time range
+  // if a consolidation period was specified, then remove all sites that are not within the time range
   if (currentStory.value.mapConfiguration.consolidationPeriod) {
     const ONE_HOUR = 60 * 60 * 1000
     const MAX_TIME_DELTA = currentStory.value.mapConfiguration.consolidationPeriod * ONE_HOUR
     const TARGET_SITE_TIME = new Date(targetSite.timestamp).getTime()
     nearbySites = nearbySites.filter((site) => {
-      return ( Math.abs(new Date(site.timestamp).getTime() - TARGET_SITE_TIME) <= MAX_TIME_DELTA)
+      return (Math.abs(new Date(site.timestamp).getTime() - TARGET_SITE_TIME) <= MAX_TIME_DELTA)
     })
   }
 
@@ -1407,7 +1437,7 @@ const drawMap = () => {
       {
         text: 'Paste Coordinates from Google Maps',
         callback: () => {
-          
+
           fetchGoogleMapsCoordinatesFromClipboard()
         }
       }
@@ -1794,10 +1824,11 @@ const addSitesToLayer = (layer, sites) => {
   } catch (e) { console.warn(`map.value.fitBounds(layer.getBounds() failed`); }
 }
 
-function createSiteFromGeoJSON(newGeoJsonData, imageId, dateTimeOriginal, rezoom) {
+function createSiteFromGeoJSON(newGeoJsonData, imageId, dateTimeOriginal, rezoom, imageURL) {
   const site = {
     label: "To be geo-encoded",
     imageId: imageId,
+    imageURL: imageURL,
     timestamp: dateTimeOriginal,
     geoJSON: newGeoJsonData,
     resolution: mapZoomToResolution(map.value.getZoom()),
@@ -1885,7 +1916,7 @@ function findClosestSegment(polyline, clickLatLng) {
   return closestSegment;
 }
 
-const fetchGoogleMapsCoordinatesFromClipboard= () => {
+const fetchGoogleMapsCoordinatesFromClipboard = () => {
   console.log(`fetch from clipboard`)
   navigator.clipboard.readText().then((text) => {
     handlePastedText(text)

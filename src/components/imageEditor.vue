@@ -77,25 +77,35 @@ const displayImageFromDB = async (imageId) => {
 const handleNewImage = async (file) => {
     imagesStore.resizeImage(file, imageWidth.value, imageHeight.value, async (resizedBlob) => {
         // Now you have a resized image as a Blob, you can store it in IndexedDB
-        const newImageId = await imagesStore.saveImage(resizedBlob);
+        const imageSaveResult = await imagesStore.saveImage(resizedBlob);
+        //const newImageId = await imagesStore.saveImage(resizedBlob);
         //   editedStory.value.imageId = imageId;
-        console.log('Image stored in IndexedDB with ID:', newImageId);
+        if (imageSaveResult.imageId) {
+            imageId.value = imageSaveResult.imageId
+            imageUrl.value = null
+            displayImageFromDB(imageId.value)
+            console.log('Image stored in IndexedDB with ID:', imageId.value);
+            
+        }
+        if (imageSaveResult.url) {
+            imageId.value = null
+            imageUrl.value = imageSaveResult.url
+            console.log('Image stored in bucket with URL:', imageUrl.value);
+            
+        }
         if (!isFastSiteCreator.value) {
             resetImage() // if a prior image was defined, remove it now
             // resetImage should not be done in the fastSiteCreator
         }
-        imageId.value = newImageId
-        imageUrl.value = null
         emitImageChange()
         imagesStore.extractEXIFData(file).then(({ dateTimeOriginal, gpsInfo }) => {
             console.log('Timestamp:', dateTimeOriginal);
             console.log('GPS Info:', gpsInfo);
             // Process the EXIF data as needed
-            emitGPSData({ dateTimeOriginal, gpsInfo, imageId: newImageId })
+            emitGPSData({ dateTimeOriginal, gpsInfo, imageId: imageId.value , imageUrl: imageUrl.value })
         }).catch(error => {
             console.error('Error extracting EXIF data:', error);
         });
-        displayImageFromDB(newImageId)
     });
 }
 

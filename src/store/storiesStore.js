@@ -6,6 +6,9 @@ import { useImagesStore } from "../store/imagesStore";
 
 import { Delta } from '@vueup/vue-quill'
 //import { useImportExportLibrary } from '@/composables/useImportExportLibrary';
+import { usePARLibrary } from '@/composables/usePARLibrary';
+
+const { saveFile, getJSONFile, getListOfFiles, setPAR, getPAR} = usePARLibrary();
 
 import storyCodeDataFileMap from './storyCodeDataFileMap.json'
 
@@ -25,15 +28,33 @@ export const useStorieStore = defineStore('storyData', () => {
         // invoked for a story that was imported from a zip file
         story.sites.forEach(site => {
             if (site.imageId) {
-                site.imageId = imageFile2NewImageIdMap[`images\/${site.imageId}`]
+                if (imageFile2NewImageIdMap[`images\/${site.imageId}`].imageId) {
+                    site.imageId = imageFile2NewImageIdMap[`images\/${site.imageId}`]
+                    site.imageURL = null
+                  } else if (imageFile2NewImageIdMap[`images\/${site.imageId}`].url) {
+                    site.imageURL = imageFile2NewImageIdMap[`images\/${site.imageId}`].url
+                    site.imageId = null
+                  }
+
+
+                //site.imageId = imageFile2NewImageIdMap[`images\/${site.imageId}`]
             }
-            if (site.description && !(site.description instanceof Delta))  site.description = new Delta(site.description)
+            if (site.description && !(site.description instanceof Delta)) site.description = new Delta(site.description)
             site.attachments?.forEach(attachment => {
-                if (attachment.description && !(attachment.description instanceof Delta))  attachment.description = new Delta(attachment.description)
+                if (attachment.description && !(attachment.description instanceof Delta)) attachment.description = new Delta(attachment.description)
                 if (attachment.imageId) {
-                    attachment.imageId = imageFile2NewImageIdMap[`images\/${attachment.imageId}`]
+                    if (imageFile2NewImageIdMap[`images\/${attachment.imageId}`].imageId) {
+                        attachment.imageId = imageFile2NewImageIdMap[`images\/${attachment.imageId}`].imageId
+                      } else if (imageFile2NewImageIdMap[`images\/${attachment.imageId}`].url) {
+                        attachment.imageURL = imageFile2NewImageIdMap[`images\/${attachment.imageId}`].url
+                        attachment.imageId = null
+                      }
+            
+
+    
+                    
                 }
-            })            
+            })
         })
         stories.value.push(story)
         if (stories.value.length == 2) {
@@ -56,18 +77,125 @@ export const useStorieStore = defineStore('storyData', () => {
             // store file as image in indexedDB, retrieve newly assigned imageId, return map with original image id and new image id 
             if (imgFileRegex.test(file.name)) {
                 const blob = await zip.file(file.name).async('blob') // .then(async (content) => {
-                const imageId = await imagesStore.saveImage(blob)
-                imageFile2NewImageId[file.name] = imageId
+
+                    const imageSaveResult = await imagesStore.saveImage(blob);
+//                const imageId = await imagesStore.saveImage(blob)
+                imageFile2NewImageId[file.name] = imageSaveResult // either {imageId:} or {url:}
             }
         }
         const data = await contents.file("story.json").async("string");
         const story = JSON.parse(data);
-        
+
         // invoke callback function to handle the imported content 
         handleImportedStory(story, imageFile2NewImageId)
     }
 
-    const initializeCurrentStory = () => {
+
+   // const preAuthenticatedRequestURL = ref(null)
+    const DELTA_DIRECTORY = 'story-deltas'
+    
+    const STORIES_FILE = 'stories-file.json'
+    // TODO create a library for file operations
+    // const getJSONFile = (filename) => {
+    //     return new Promise((resolve, reject) => {
+    //         const targetURL = preAuthenticatedRequestURL.value + filename
+    //         fetch(targetURL, { method: 'GET' })
+    //             .then(response => {
+    //                 if (!response.ok) {
+    //                     throw new Error('Network response was not ok ' + response.statusText);
+    //                 }
+    //                 resolve(response.json())
+    //             })
+    //             .catch(err =>
+    //                 resolve(1)
+    //             );
+    //     })
+    // }
+
+    // const getListOfFiles = () => {
+    //     return new Promise((resolve, reject) => {
+    //         const targetURL = preAuthenticatedRequestURL.value
+    //         fetch(targetURL, { method: 'GET' })
+    //             .then(response => {
+    //                 if (!response.ok) {
+    //                     throw new Error('Network response was not ok ' + response.statusText);
+    //                 }
+    //                 resolve(response.json()) // should be a list of all files that needs to be filtered by prefix directory+'/'
+    //             })
+    //             .catch(err =>
+    //                 resolve(1)
+    //             );
+    //     })
+    // }
+
+
+    // const saveFile = async (blob, filename) => {
+    //     const fetchOptions = {
+    //         method: 'PUT',
+    //         body: blob,
+    //     };
+
+    //     const targetURL = preAuthenticatedRequestURL.value + filename
+    //     fetch(targetURL, fetchOptions)
+    //         .then(response => {
+    //             if (!response.ok) {
+    //                 throw new Error('Network response was not ok ' + response.statusText);
+    //             }
+    //             return response.status;
+    //         })
+    //         .then(data => {
+    //             return 0
+    //         })
+    //         .catch(error => {
+    //             return 1
+    //         });
+    // }
+
+    const loadDeltaFiles = async () => {
+        // get list of files in delta directory
+
+        const files = await getListOfFiles()
+        if (!files || !files.objects || files.objects.length == 0) return
+        const deltaFiles = files.objects.filter(file => file.name.startsWith(DELTA_DIRECTORY + '/')).sort((a, b) => a.name.localeCompare(b.name))
+
+        // for each file, load it and merge it into the story
+        console.log('delta files', deltaFiles)
+        for (const file of deltaFiles) {
+            const delta = await getJSONFile(file.name)
+            if (delta) {
+                console.log('processing delta', delta.type, file.name)
+                // if delta is site, merge it with story
+                // TODO handle delete site
+                if (delta.type == 'site') {
+                    try {
+                        updateSite(delta.site, false, true)
+                    }
+                    catch (error) {
+                        console.log("failed loading delta " + file.name, error)
+                    }
+                }
+                if (delta.type == 'delete-site') {
+                    try {
+                        // get site for delta id
+                        const site = currentStory.value.sites.find(site => site.id == delta.id)
+                        // then remove site
+                        if (site)
+                            removeSite(site, false)
+                    }
+                    catch (error) {
+                        console.log("failed loading delta remove site " + file.name, error)
+                    }
+                }
+            }
+        }
+    }
+
+
+    // const setPAR = (par) => {
+    //     preAuthenticatedRequestURL.value = par
+
+    // }
+    const initializeCurrentStory = async () => {
 
         // check if a URL param is provided - that should suggest loading data from a file
         const urlParams = new URLSearchParams(window.location.search);
@@ -96,13 +224,13 @@ export const useStorieStore = defineStore('storyData', () => {
                 // to download a zip file from GitHub https://docs.github.com/en/rest/repos/contents?apiVersion=2022-11-28
                 console.log(`storyToFetch: ${storyUrlToFetch}`)
                 const storyURL = storyUrlToFetch
-                fetch(storyURL 
-                //     ,{
-                //     headers: {
-                //         'Accept': 'application/vnd.github.v3+json'
-                //     }
-                // }
-            )
+                fetch(storyURL
+                    //     ,{
+                    //     headers: {
+                    //         'Accept': 'application/vnd.github.v3+json'
+                    //     }
+                    // }
+                )
                     .then(response => response.blob())
                     .then(blob => {
                         console.log('Fetch Zip File has Blob size:', blob.size);
@@ -116,7 +244,32 @@ export const useStorieStore = defineStore('storyData', () => {
             }
         }
 
+        if (urlParams.has('par')) {
+            // http://<host:port/apppath>/?par=https://objectstorage.us-ashburn-1.oraclecloud.com/p/3ZvD2n18VN6y/n/idtwlqf2hanz/b/website/o/
+            const bucketPAR = urlParams.get('par')
+            setPAR(bucketPAR)
+            console.log(`initialize story from PAR: ${bucketPAR}`)
 
+            const storyJSON = await getJSONFile(STORIES_FILE)
+            console.log(storyJSON)
+            // if not found, create it
+            if (storyJSON == 1) {
+
+                stories.value.push({ id: uuidv4(), name: 'New Story', sites: [], tags: [], mapConfiguration: { customTileLayers: [], showTooltips: true, showTooltipsMode: 'hover', timelines: [] } })
+
+                if (stories.value.length == 2) {
+                    // remove the first story
+                    stories.value.shift()
+                }
+                setCurrentStory(story)
+                // save it
+                saveFile(JSON.stringify(stories.value), STORIES_FILE)
+
+            } else {
+                stories.value = storyJSON
+                loadDeltaFiles()
+            }
+        }
 
         if (stories.value.length == 0) {
             stories.value.push({ id: uuidv4(), name: 'New Story', sites: [], tags: [], mapConfiguration: { customTileLayers: [], showTooltips: true, showTooltipsMode: 'hover', timelines: [] } })
@@ -124,12 +277,12 @@ export const useStorieStore = defineStore('storyData', () => {
         } else {
             // prepare delta for description
             currentStory.value.sites.forEach(site => {
-                if (site.description && !(site.description instanceof Delta))  site.description = new Delta(site.description)
+                if (site.description && !(site.description instanceof Delta)) site.description = new Delta(site.description)
                 site.attachments?.forEach(attachment => {
-                    if (attachment.description && !(attachment.description instanceof Delta))  attachment.description = new Delta(attachment.description)
-                })            
+                    if (attachment.description && !(attachment.description instanceof Delta)) attachment.description = new Delta(attachment.description)
+                })
             })
-    
+
             if (!currentStory.value.mapConfiguration) {
                 currentStory.value.mapConfiguration = { customTileLayers: [], showTooltips: false, showTooltipsMode: 'hover', timelines: [] }
             }
@@ -199,7 +352,9 @@ export const useStorieStore = defineStore('storyData', () => {
 
     }
 
-    const addSite = (site) => {
+
+
+    const addSite = (site, saveDelta = true) => {
         if (!currentStory.value.sites) {
             currentStory.value.sites = [];
         }
@@ -208,14 +363,35 @@ export const useStorieStore = defineStore('storyData', () => {
         }
         site.geoJSON.features[0].properties.id = site.id; // to allow the site to be found from the feature - as in the map only the feature will be available
         currentStory.value.sites.push(site)
+        console.log('adding site, ', site)
+
         if (site.tags) mergeTags(site.tags)
+        if (getPAR() && saveDelta)
+            setTimeout(() => {
+
+                const filename = DELTA_DIRECTORY + '/' + new Date().getTime() + '.json'
+                // do not save site (has captured in the closure) but the site state as it currently stands
+                const theIndex = currentStory.value.sites.findIndex(l => l.id === site.id);
+                const currentSiteState = currentStory.value.sites[theIndex]
+                saveFile(JSON.stringify({ type: 'site', site: currentSiteState }), filename)
+            }, 5000)
     }
 
-    const updateSite = (site) => {
+
+    const updateSite = (site, saveDelta = true, addIfNotFound = false) => {
         const theIndex = currentStory.value.sites.findIndex(l => l.id === site.id);
         if (theIndex !== -1) {
             currentStory.value.sites[theIndex] = site;
+            if (getPAR() && saveDelta) {
+                // TODO if PAR is set, then save site to delta/ 
+                const filename = DELTA_DIRECTORY + '/' + new Date().getTime() + '.json'
+                saveFile(JSON.stringify({ type: 'site', site: site }), filename)
+            }
             if (site.tags) mergeTags(site.tags)
+        } else {
+            if (addIfNotFound) {
+                addSite(site, saveDelta)
+            }
         }
     }
 
@@ -232,14 +408,21 @@ export const useStorieStore = defineStore('storyData', () => {
             });
         }
     }
-    const removeSite = (site) => {
+    const removeSite = (site, saveDelta = true) => {
         stripSite(site);
-            
+
         const theIndex = currentStory.value.sites.findIndex(l => l.id === site.id);
         if (theIndex !== -1) {
-            
+
             currentStory.value.sites.splice(theIndex, 1);
         }
+        if (getPAR() && saveDelta) {
+
+            // TODO if PAR is set, then save the site deletion to delta/ 
+            const filename = DELTA_DIRECTORY + '/' + new Date().getTime() + '.json'
+            saveFile(JSON.stringify({ type: 'delete-site', id: site.id }), filename)
+        }
+
     }
 
     const resetStory = () => {
@@ -252,7 +435,7 @@ export const useStorieStore = defineStore('storyData', () => {
     }
 
     return {
-        stories, currentStory, addStory, updateStory, removeStory, resetStory, setCurrentStory, addSite, removeSite, updateSite, getSite, getStoryTags
+        stories, currentStory, addStory, updateStory, removeStory, resetStory, setCurrentStory, addSite, removeSite, updateSite, getSite, getStoryTags, setPAR
     };
 });
 

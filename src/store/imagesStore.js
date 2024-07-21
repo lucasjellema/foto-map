@@ -1,15 +1,19 @@
 import { defineStore } from 'pinia';
 
 import exifr from 'exifr';
+import { usePARLibrary } from '@/composables/usePARLibrary';
+
+const { saveFile, getJSONFile, getListOfFiles, setPAR, getPAR } = usePARLibrary();
 
 
 
 import { v4 as uuidv4 } from 'uuid';
 
 
+
 export const useImagesStore = defineStore('imageData', () => {
 
-
+    const IMAGE_DIRECTORY = 'story-images'
     const fotomap_IMAGES_DATABASE = 'fotomap-ImagesDatabase'
     const openDatabase = () => {
         return new Promise((resolve, reject) => {
@@ -34,31 +38,31 @@ export const useImagesStore = defineStore('imageData', () => {
         });
     }
 
-      
 
-    const  getImagesFromIndexedDB = async ()=> {
+
+    const getImagesFromIndexedDB = async () => {
         // Open your IndexedDB database and read the images
         // This example assumes you know how to work with IndexedDB
         const db = await openDatabase(); // Implement this function based on your IndexedDB setup
         const transaction = db.transaction(['images'], 'readonly');
         const store = transaction.objectStore('images');
         const images = [];
-      
+
         // This will depend on your database structure. Here we iterate over all stored images
         store.openCursor().onsuccess = (event) => {
-          const cursor = event.target.result;
-          if (cursor) {
-            images.push(cursor.value); // Assuming cursor.value is the image Blob or base64 string
-            cursor.continue();
-          }
+            const cursor = event.target.result;
+            if (cursor) {
+                images.push(cursor.value); // Assuming cursor.value is the image Blob or base64 string
+                cursor.continue();
+            }
         };
-      
+
         // Wait for the transaction to complete
         await transaction.complete;
         db.close();
-      
+
         return images;
-      }
+    }
 
     const imageUrlCache = {} // contains all URLs handed out for imagedIds in the currentr session
 
@@ -95,22 +99,33 @@ export const useImagesStore = defineStore('imageData', () => {
 
     const saveImage = async (file) => {
         return new Promise((resolve, reject) => {
-            openDatabase().then((db) => {
-                const transaction = db.transaction(['images'], 'readwrite');
-                const store = transaction.objectStore('images');
-                const request = store.add({ image: file });
-                request.onsuccess = (event) => {
-                    console.log('Image stored in IndexedDB', request.result);
-                    // Optionally, display the image or indicate success to the user
-                    const imageId = event.target.result; // This is the ID of the stored image
-                    resolve(imageId)
-                };
-                request.onerror = (event) => {
-                    reject('Error storing image:' + event.target.error);
-                };
-            }).catch((error) => {
-                reject('Error opening database:' + error);
-            });
+            // if PAR then save image to Bucket
+            const par = getPAR()
+            if (par) {
+                const filename = IMAGE_DIRECTORY + '/' + new Date().getTime() + '.jpg'
+                console.log('getPAR', getPAR())
+                saveFile(file, filename)
+                resolve({ url: getPAR()+ filename })
+                // else save to image DB 
+            } else {
+
+                openDatabase().then((db) => {
+                    const transaction = db.transaction(['images'], 'readwrite');
+                    const store = transaction.objectStore('images');
+                    const request = store.add({ image: file });
+                    request.onsuccess = (event) => {
+                        console.log('Image stored in IndexedDB', request.result);
+                        // Optionally, display the image or indicate success to the user
+                        const imageId = event.target.result; // This is the ID of the stored image
+                        resolve({imageId})
+                    };
+                    request.onerror = (event) => {
+                        reject('Error storing image:' + event.target.error);
+                    };
+                }).catch((error) => {
+                    reject('Error opening database:' + error);
+                });
+            }
         })
     }
 
@@ -182,7 +197,7 @@ export const useImagesStore = defineStore('imageData', () => {
 
                 //          const dateTimeOriginal = output.DateTimeOriginal;
                 // Mon Mar 12 2018 08:10:41 GMT+0100 (Central European Standard Time) {}
-                const dateTimeOriginal = output.DateTimeOriginal ;
+                const dateTimeOriginal = output.DateTimeOriginal;
 
                 const gpsInfo = {
                     GPSLatitude: output.GPSLatitude, // GPSLatitude is in degrees (N = +, S = -) :   (3) [47, 29, 55.37]
