@@ -130,7 +130,7 @@ const handleClickOnTree = (event) => {
   const treeData = treeRef.value.value
 
   const selectedNode = findNodeWithId(treeData, parseInt(treeKey.key))
-  if (selectedNode.nodeType === 'site' && selectedNode.key) {
+  if (selectedNode && selectedNode.nodeType && selectedNode.nodeType === 'site' && selectedNode.key) {
     if (event.shiftKey) {
       console.log(`tree was shift clicked - find all sites from ${previouslySelectedNode.key} to  ${lastSelectedNode.key}`)
 
