@@ -9,7 +9,7 @@
 
       </div>
       <div>
-        <v-img width="500" cover :src="site?.imageURL" content-class="hover-zoom"></v-img>    
+        <v-img width="500" cover :src="site?.imageUrl" content-class="hover-zoom"></v-img>    
         <QuillEditor theme="bubble" :toolbar="[]" v-model:content="siteDescription" contentType="delta" :readOnly="true" v-if="site?.description"/>
       </div>
 

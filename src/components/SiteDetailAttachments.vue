@@ -13,7 +13,7 @@
             <div class="border-1 surface-border border-round m-2  p-3">
               <div class="mb-3">
                 <div class="relative mx-auto">
-                  <v-img width="400" cover :src="slotProps.data.imageURL"></v-img>
+                  <v-img width="400" cover :src="slotProps.data.imageUrl"></v-img>
 
                 </div>
               </div>

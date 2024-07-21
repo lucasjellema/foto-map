@@ -158,7 +158,7 @@
             <v-expansion-panel title="Attachments" collapse-icon="mdi-attachment" expand-icon="mdi-attachment">
               <v-expansion-panel-text>
 
-                '<v-data-table :headers="attachmentHeaders" :items="modelSite.attachments" item-key="label"
+                <v-data-table :headers="attachmentHeaders" :items="modelSite.attachments" item-key="label"
                   class="elevation-1">
                   <template v-slot:item.thumbnail="{ item, index }">
                     
@@ -517,6 +517,5 @@ const handleImageChange = (event) => {
 .thumbnail:hover { 
 transform: scale(3); 
 z-index: 900;
-
 }
 </style>

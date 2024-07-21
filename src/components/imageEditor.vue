@@ -80,6 +80,11 @@ const handleNewImage = async (file) => {
         const imageSaveResult = await imagesStore.saveImage(resizedBlob);
         //const newImageId = await imagesStore.saveImage(resizedBlob);
         //   editedStory.value.imageId = imageId;
+
+        if (!isFastSiteCreator.value) {
+            resetImage() // if a prior image was defined, remove it now
+            // resetImage should not be done in the fastSiteCreator
+        }
         if (imageSaveResult.imageId) {
             imageId.value = imageSaveResult.imageId
             imageUrl.value = null
@@ -93,10 +98,7 @@ const handleNewImage = async (file) => {
             console.log('Image stored in bucket with URL:', imageUrl.value);
             
         }
-        if (!isFastSiteCreator.value) {
-            resetImage() // if a prior image was defined, remove it now
-            // resetImage should not be done in the fastSiteCreator
-        }
+
         emitImageChange()
         imagesStore.extractEXIFData(file).then(({ dateTimeOriginal, gpsInfo }) => {
             console.log('Timestamp:', dateTimeOriginal);

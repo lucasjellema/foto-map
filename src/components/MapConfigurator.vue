@@ -14,8 +14,10 @@
                     type="number"></v-text-field>            
             <v-text-field v-model="modelMap.consolidationPeriod" label="Consolidation Period (hours)" 
                     type="number"></v-text-field>
-            Reset Story (remove all sites)
+                    Reset Story (remove all sites)
             <v-btn @click="emit('resetStory')" icon="mdi-close-circle"></v-btn>
+            Consolidate Story (incorporate all deltas)
+            <v-btn @click="emit('consolidateDeltas')" icon="mdi-set-merge"></v-btn>
           </v-expansion-panel-text>
         </v-expansion-panel>
         <v-expansion-panel title="Timelines" collapse-icon="mdi-sort-clock-descending-outline"
@@ -171,10 +173,13 @@ const showTimelineEditorPopup = ref(false)
 const tourToEdit = ref(null)
 const showTourEditorPopup = ref(false)
 let newTour = false
+import { useStorieStore } from "@/store/storiesStore";
+const storiesStore = useStorieStore()
 
 const saveTimeline = () => {
   showTimelineEditorPopup.value = false
   // TODO update timeline??
+  storiesStore.updateMapConfiguration()
 }
 
 const saveTour = () => {
@@ -183,13 +188,13 @@ const saveTour = () => {
   if (newTour) {
     modelMap.value.tours.push(tourToEdit.value) 
   }
-
+  storiesStore.updateMapConfiguration()
   showTourEditorPopup.value = false
 
 }
 
 const modelMap = defineModel('map');
-const emit = defineEmits(['resetStory']);
+const emit = defineEmits(['resetStory','consolidateDeltas']);
 
 onMounted(() => {
 });

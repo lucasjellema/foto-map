@@ -216,7 +216,7 @@
     <!-- contents for the popup on markers; note: this content is moved to the leaflet popup by referencing the $el under the popupContentRef -->
     <div style="display: none;">
       <v-card class="mx-auto hover-zoom" max-width="600" :title="poppedupSite?.label"
-        :theme="poppedupSite?.imageURL ? 'light' : 'light'" ref="popupContentRef">
+        :theme="poppedupSite?.imageUrl ? 'light' : 'light'" ref="popupContentRef">
         <SiteDetails v-model:site="poppedupSite" ref="popupContentRef"></SiteDetails>
       </v-card>
     </div>
@@ -366,9 +366,9 @@ const handleImportedStory = (story, imageFile2NewImageIdMap, replaceCurrentStory
 
       if (imageFile2NewImageIdMap[`images\/${site.imageId}`].imageId) {
         existingSite.imageId = imageFile2NewImageIdMap[`images\/${site.imageId}`]
-        existingSite.imageURL = null
+        existingSite.imageUrl = null
       } else if (imageFile2NewImageIdMap[`images\/${site.imageId}`].url) {
-        existingSite.imageURL = imageFile2NewImageIdMap[`images\/${site.imageId}`].url
+        existingSite.imageUrl = imageFile2NewImageIdMap[`images\/${site.imageId}`].url
         existingSite.imageId = null
       }
 
@@ -376,9 +376,9 @@ const handleImportedStory = (story, imageFile2NewImageIdMap, replaceCurrentStory
         if (attachment.imageId) {
           if (imageFile2NewImageIdMap[`images\/${attachment.imageId}`].imageId) {
             attachment.imageId = imageFile2NewImageIdMap[`images\/${attachment.imageId}`].imageId
-            attachment.imageURL = null
+            attachment.imageUrl = null
           } else if (imageFile2NewImageIdMap[`images\/${attachment.imageId}`].url) {
-            attachment.imageURL = imageFile2NewImageIdMap[`images\/${attachment.imageId}`].url
+            attachment.imageUrl = imageFile2NewImageIdMap[`images\/${attachment.imageId}`].url
             attachment.imageId = null
           }
 
@@ -400,7 +400,7 @@ const handleImportedStory = (story, imageFile2NewImageIdMap, replaceCurrentStory
         newSite.imageId = imageFile2NewImageIdMap[`images\/${site.imageId}`]
         
       } else if (imageFile2NewImageIdMap[`images\/${site.imageId}`].url) {
-        newSite.imageURL = imageFile2NewImageIdMap[`images\/${site.imageId}`].url
+        newSite.imageUrl = imageFile2NewImageIdMap[`images\/${site.imageId}`].url
         
       }
     } catch (error) {
@@ -450,6 +450,8 @@ const handleSiteAction = ({ siteId, siteIds, action, payload }) => {
     if (action === 'createTimelinesPerMonth') createTimelinePer('month', sitesData.value, currentStory.value.mapConfiguration.timelines, map.value, payload)
     if (action === 'createTimelinesPerDay') createTimelinePer('day', sitesData.value, currentStory.value.mapConfiguration.timelines, map.value, payload)
     //TODO if (action==='createTimelinesPerWeek') createTimelinesPerWeek()
+    
+    storiesStore.updateMapConfiguration()
     return
   }
 
@@ -507,6 +509,7 @@ const handleSiteAction = ({ siteId, siteIds, action, payload }) => {
     if (action == 'editTimeline') {
       const timeline = currentStory.value.mapConfiguration.timelines.find(timeline => timeline.id == payload.timelineId)
       editTimeline(timeline)
+      storiesStore.updateMapConfiguration()
     }
 
   } else {
@@ -522,6 +525,7 @@ const handleSiteAction = ({ siteId, siteIds, action, payload }) => {
         highlightSite(site, payload)
       } else if (action == 'splitTimeline') {
         splitTimelineAtSite(site)
+        storiesStore.updateMapConfiguration()
       }
     }
   }
@@ -1784,8 +1788,8 @@ const attachMapListeners = () => {
 
 const setImageURLonObject = async (imageId, theObject) => {
   const url = await imagesStore.getUrlForIndexedDBImage(imageId)
-  //  poppedupFeature.value.properties.imageURL = url
-  theObject.imageURL = url
+  //  poppedupFeature.value.properties.imageUrl = url
+  theObject.imageUrl = url
 
 }
 const addSitesAsMarkersToLayer = (layer, sites) => {
@@ -1824,11 +1828,11 @@ const addSitesToLayer = (layer, sites) => {
   } catch (e) { console.warn(`map.value.fitBounds(layer.getBounds() failed`); }
 }
 
-function createSiteFromGeoJSON(newGeoJsonData, imageId, dateTimeOriginal, rezoom, imageURL) {
+function createSiteFromGeoJSON(newGeoJsonData, imageId, dateTimeOriginal, rezoom, imageUrl) {
   const site = {
     label: "To be geo-encoded",
     imageId: imageId,
-    imageURL: imageURL,
+    imageUrl: imageUrl,
     timestamp: dateTimeOriginal,
     geoJSON: newGeoJsonData,
     resolution: mapZoomToResolution(map.value.getZoom()),

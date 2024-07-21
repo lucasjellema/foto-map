@@ -23,6 +23,8 @@ export const useStorieStore = defineStore('storyData', () => {
 
     const currentStory = ref(stories.value[0])
 
+
+
     const handleImportedStory = (story, imageFile2NewImageIdMap) => {
 
         // invoked for a story that was imported from a zip file
@@ -30,9 +32,9 @@ export const useStorieStore = defineStore('storyData', () => {
             if (site.imageId) {
                 if (imageFile2NewImageIdMap[`images\/${site.imageId}`].imageId) {
                     site.imageId = imageFile2NewImageIdMap[`images\/${site.imageId}`]
-                    site.imageURL = null
+                    site.imageUrl = null
                   } else if (imageFile2NewImageIdMap[`images\/${site.imageId}`].url) {
-                    site.imageURL = imageFile2NewImageIdMap[`images\/${site.imageId}`].url
+                    site.imageUrl = imageFile2NewImageIdMap[`images\/${site.imageId}`].url
                     site.imageId = null
                   }
 
@@ -46,7 +48,7 @@ export const useStorieStore = defineStore('storyData', () => {
                     if (imageFile2NewImageIdMap[`images\/${attachment.imageId}`].imageId) {
                         attachment.imageId = imageFile2NewImageIdMap[`images\/${attachment.imageId}`].imageId
                       } else if (imageFile2NewImageIdMap[`images\/${attachment.imageId}`].url) {
-                        attachment.imageURL = imageFile2NewImageIdMap[`images\/${attachment.imageId}`].url
+                        attachment.imageUrl = imageFile2NewImageIdMap[`images\/${attachment.imageId}`].url
                         attachment.imageId = null
                       }
             
@@ -184,6 +186,14 @@ export const useStorieStore = defineStore('storyData', () => {
                     }
                     catch (error) {
                         console.log("failed loading delta remove site " + file.name, error)
+                    }
+                }
+                if (delta.type == 'map-config') {
+                    try {
+                        currentStory.value.mapConfiguration = delta.mapConfiguration
+                    }
+                    catch (error) {
+                        console.log("failed loading delta mapConfig " , error)
                     }
                 }
             }
@@ -377,6 +387,15 @@ export const useStorieStore = defineStore('storyData', () => {
             }, 5000)
     }
 
+    const updateMapConfiguration = () => {
+        console.log('updateMapConfiguration')
+        // TODO save delta for the map config
+
+        if (getPAR()){
+                const filename = DELTA_DIRECTORY + '/' + new Date().getTime() + '.json'
+                saveFile(JSON.stringify({ type: 'map-config',mapConfiguration: currentStory.value.mapConfiguration }), filename)
+        }
+     }
 
     const updateSite = (site, saveDelta = true, addIfNotFound = false) => {
         const theIndex = currentStory.value.sites.findIndex(l => l.id === site.id);
@@ -435,7 +454,7 @@ export const useStorieStore = defineStore('storyData', () => {
     }
 
     return {
-        stories, currentStory, addStory, updateStory, removeStory, resetStory, setCurrentStory, addSite, removeSite, updateSite, getSite, getStoryTags, setPAR
+        stories, currentStory, addStory, updateStory, removeStory, resetStory, setCurrentStory, addSite, removeSite, updateSite, getSite, getStoryTags, setPAR, updateMapConfiguration
     };
 });
 
