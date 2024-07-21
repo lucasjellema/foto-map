@@ -1,7 +1,7 @@
 
 
 import { createRouter, createWebHistory } from 'vue-router'
-import fastSiteCreator from '@/pages/fastSiteCreator.vue';
+import fastSiteCreator from '../pages/fastSiteCreator.vue';
 
 const router = createRouter({
   history: createWebHistory(process.env.BASE_URL),
@@ -10,9 +10,18 @@ const router = createRouter({
     name: 'Default',
     component: fastSiteCreator
   },
-
   {
     path: '/foto-map',
+    name: 'Stories',
+    component: fastSiteCreator,
+  },
+  {
+    path: '/foto-map/',
+    name: 'Stories',
+    component: fastSiteCreator,
+  },
+  {
+    path: '/foto-map/index.html',
     name: 'Stories',
     component: fastSiteCreator,
   },
