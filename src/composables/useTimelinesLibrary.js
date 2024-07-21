@@ -107,13 +107,13 @@ export function useTimelinesLibrary() {
     return years
   }
 
-  const createTimeline = (siteToStartAt, siteToEndAt, label, color) => {
+  const createTimeline = (siteToStartAt, siteToEndAt, label, color, startTimestamp = null, endTimestamp = null) => {
     return {
       id: uuidv4(),
-//      startSiteId: siteToStartAt.id,
- //     endSiteId: siteToEndAt.id,
-      startTimestamp: siteToStartAt.timestamp,
-      endTimestamp: siteToEndAt.timestamp,
+      //      startSiteId: siteToStartAt.id,
+      //     endSiteId: siteToEndAt.id,
+      startTimestamp: startTimestamp || siteToStartAt.timestamp,
+      endTimestamp: endTimestamp || siteToEndAt.timestamp,
       label: label,
       color: color,
       width: 3,
@@ -133,7 +133,13 @@ export function useTimelinesLibrary() {
           const lastDayIndex = year.children[lastMonthIndex].children.length - 1
           const lastSiteIndex = year.children[lastMonthIndex].children[lastDayIndex].children.length - 1
           const siteToEndAt = year.children[lastMonthIndex].children[lastDayIndex].children[lastSiteIndex] // last month, last day, last site
-          timelines.push(createTimeline(siteToStartAt, siteToEndAt, `the year ${year.label}`, colors[colorIndex++]))
+
+          // TODO correction for current timezone!! 
+          const startTimestamp = // first day of year year.data
+            new Date(year.data, 0, 1).getTime() // 0 = jan, 1 = first day
+          const endTimestamp = // last day of year year.data
+            new Date(year.data, 11, 31).getTime()
+          timelines.push(createTimeline(siteToStartAt, siteToEndAt, `the year ${year.label}`, colors[colorIndex++], startTimestamp, endTimestamp))
           if (colorIndex >= colors.length) { colorIndex = 0 }
         } else for (const month of year.children) {
           if (!context.month || context.month == month.data)
@@ -142,7 +148,16 @@ export function useTimelinesLibrary() {
               const lastDayIndex = month.children.length - 1
               const lastSiteIndex = month.children[lastDayIndex].children.length - 1
               const siteToEndAt = month.children[lastDayIndex].children[lastSiteIndex] // last day, last site
-              timelines.push(createTimeline(siteToStartAt, siteToEndAt, `${month.label} ${year.label}`, colors[colorIndex++]))
+              const startTimestamp =     // first day of the month in siteToStartAt.timestamp
+                //create a new data from siteToStartAt.timestamp
+                // then take first day of the month
+                new Date(new Date(siteToStartAt.timestamp).setDate(1)).getTime()
+
+              const endTimestamp = new Date(new Date(startTimestamp).getFullYear(), new Date(startTimestamp).getMonth() + 1, 0);
+              //
+
+
+              timelines.push(createTimeline(siteToStartAt, siteToEndAt, `${month.label} ${year.label}`, colors[colorIndex++]), startTimestamp, endTimestamp)
               if (colorIndex >= colors.length) { colorIndex = 0 }
             } else for (const day of month.children) {
               if (!context.day || context.day == day.data)
@@ -403,7 +418,8 @@ export function useTimelinesLibrary() {
 
     const sites = getSortedSites(allSites)
     if (timelines && timelines.length > 0) {
-      for (const timeline of getSortedTimelines(timelines)) { const sitesForTimeline =  getSortedSitesInTimeline (timeline, allSites)
+      for (const timeline of getSortedTimelines(timelines)) {
+        const sitesForTimeline = getSortedSitesInTimeline(timeline, allSites)
         const { polyline, timelineDecorator } = drawTimeline(timeline, sitesForTimeline, map)
         polyline.timeline = timeline
         drawnTimelines.push(polyline)
