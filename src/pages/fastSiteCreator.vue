@@ -345,6 +345,11 @@ const handleResetStory = () => {
   refreshMap()
 }
 
+watch (() => storiesStore.storyUpdateIndicator, (newValue) => {  // get signal from storiesStore in case an update has taken place that should be presented in the map; one example: all deltas have been processed
+  console.log(  `######## storiesStore.storyUpdateIndicator changed to ${newValue}`)
+  refreshMap()
+})
+
 // callback - will be invoked from importStoryFromZip  
 const handleImportedStory = (story, imageFile2NewImageIdMap, replaceCurrentStory) => {
   if (replaceCurrentStory) {
