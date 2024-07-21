@@ -190,6 +190,9 @@ const handleContextMenuClickOnTree = (event) => {
  // const selectedNode = findNodeWithKey(treeData, treeKey.key)
  console.log(`node id = `, treeKey.key)
   const selectedNode = findNodeWithId(treeData, parseInt(treeKey.key))
+  if (selectedNode && !selectedNode.nodeType) selectedNode.nodeType = 'UNKNOWN' // to prevent error because of missing nodeType
+    
+  
   
   // TODO in case of a site node - it will find the first occurrence of the site in the tree, which may not be the one that is context menu clicked 
 console.log(`selectedNode ID`, selectedNode.id)
