@@ -226,12 +226,13 @@ export const useStorieStore = defineStore('storyData', () => {
                     // remove the first story
                     stories.value.shift()
                 }
-                setCurrentStory(story)
+                setCurrentStory(stories.value[0])
                 // save it
                 saveFile(JSON.stringify(stories.value), STORIES_FILE)
 
             } else {
-                stories.value = storyJSON
+                stories.value= [storyJSON]
+                setCurrentStory(stories.value[0])
                 await loadDeltaFiles()
                 storyUpdateIndicator.value++
             }
