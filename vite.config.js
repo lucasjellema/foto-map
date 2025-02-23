@@ -3,13 +3,17 @@ import AutoImport from 'unplugin-auto-import/vite'
 import Components from 'unplugin-vue-components/vite'
 import Fonts from 'unplugin-fonts/vite'
 import Layouts from 'vite-plugin-vue-layouts'
-import Vue from '@vitejs/plugin-vue'
+//import Vue from '@vitejs/plugin-vue' 
+
+const Vue = require('@vitejs/plugin-vue');
+const { defineConfig } = require('vite');
+
 import VueRouter from 'unplugin-vue-router/vite'
 import Vuetify, { transformAssetUrls } from 'vite-plugin-vuetify'
 import dsv from '@rollup/plugin-dsv'
 
 // Utilities
-import { defineConfig } from 'vite'
+//import { defineConfig } from 'vite'
 import { fileURLToPath, URL } from 'node:url'
 
 // https://vitejs.dev/config/
@@ -49,6 +53,10 @@ export default defineConfig({
       vueTemplate: true,
     }),
   ],
+  build: {
+    minify: true,
+    sourcemap: false
+  },
   define: { 'process.env': {} },
   resolve: {
     alias: {

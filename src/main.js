@@ -15,8 +15,7 @@ import 'leaflet/dist/leaflet.css';
 import PrimeVue from 'primevue/config';
 import 'primevue/resources/themes/aura-light-green/theme.css'
 
-import "primeflex/primeflex.css";
-import "primeicons/primeicons.css";
+
 
 
 
